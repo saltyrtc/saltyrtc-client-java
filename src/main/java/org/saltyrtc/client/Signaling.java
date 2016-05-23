@@ -8,18 +8,18 @@
 
 package org.saltyrtc.client;
 
+import org.java_websocket.WebSocket;
+import org.java_websocket.client.WebSocketClient;
+import org.java_websocket.handshake.ServerHandshake;
 import org.saltyrtc.client.exceptions.CryptoException;
 import org.saltyrtc.client.exceptions.SessionUnavailableException;
-import de.tavendo.autobahn.WebSocketConnection;
-import de.tavendo.autobahn.WebSocketException;
-import de.tavendo.autobahn.WebSocketHandler;
-import de.tavendo.autobahn.WebSocketOptions;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.webrtc.IceCandidate;
 import org.webrtc.SessionDescription;
 
+import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
@@ -29,14 +29,12 @@ import java.util.ArrayList;
  */
 public class Signaling extends EncryptedChannel {
     protected static final Logger LOG = org.slf4j.LoggerFactory.getLogger(Signaling.class);
-    protected static final String DEFAULT_URL = "ws://127.0.0.1:8765/";
     protected static final int CONNECT_MAX_RETRIES = 10;
-    protected static final int CONNECT_RETRY_INTERVAL = 10000;
+    protected static final int CONNECT_RETRY_INTERVAL = 5000;
     protected String path;
     protected String url;
     protected String state;
-    protected final WebSocketOptions options;
-    protected WebSocketConnection ws = null;
+    protected WebSocketClient ws = null;
     protected int connectTries;
     protected ArrayList<CachedItem> cached;
     protected Events events;
@@ -47,12 +45,35 @@ public class Signaling extends EncryptedChannel {
     protected final ConnectTimer connectTimer = new ConnectTimer();
 
     public Signaling() {
-        // Set timeout option
-        this.options = new WebSocketOptions();
-        this.options.setSocketConnectTimeout(CONNECT_RETRY_INTERVAL);
-
         // Store own public key for announcement
         this.reset(true);
+    }
+
+    private void initWebsocket(final String url) {
+        final String baseUrl = url.endsWith("/") ? url : url + "/";
+        final String path = KeyStore.getPublicKey();
+        final URI uri = URI.create(baseUrl + path);
+        this.ws = new WebSocketClient(uri) {
+            @Override
+            public void onOpen(ServerHandshake handshakedata) {
+
+            }
+
+            @Override
+            public void onMessage(String message) {
+
+            }
+
+            @Override
+            public void onClose(int code, String reason, boolean remote) {
+
+            }
+
+            @Override
+            public void onError(Exception ex) {
+
+            }
+        };
     }
 
     /**
@@ -85,70 +106,18 @@ public class Signaling extends EncryptedChannel {
         }
     }
 
-    /**
-     * Handles signaling events and dispatches messages.
-     * Note: It is vital that messages are always processed with the same amount of post calls
-     * to the event loop. This will avoid message reordering while processing.
-     */
-    protected class Events extends WebSocketHandler {
+    protected class Events extends WebSocketClient {
         private volatile boolean stopped = false;
 
+        public Events(URI serverURI) {
+            super(serverURI);
+        }
+
+        /**
+         * Stop the WebSocket client.
+         */
         public void stop() {
             this.stopped = true;
-        }
-
-        @Override
-        public void onOpen() {
-            // Web socket connection is ready for sending and receiving
-            Handler.post(new Runnable() {
-                @Override
-                public void run() {
-                    if (!stopped) {
-                        setState("open");
-                    }
-                }
-            });
-        }
-
-        @Override
-        public void onClose(final int code, String reason) {
-            LOG.debug("Connection closed with code: " + code + ", reason: " + reason);
-            // Web Socket connection has been closed
-            Handler.post(new Runnable() {
-                @Override
-                public void run() {
-                    if (stopped) {
-                        return;
-                    }
-                    // Note: We don't need a timer like in the browser version here
-                    if (code == CLOSE_CANNOT_CONNECT) {
-                        reconnect(0);
-                    } else {
-                        setState("closed");
-                    }
-                }
-            });
-        }
-
-        @Override
-        public void onTextMessage(final String payload) {
-            // A message has been received
-            Handler.post(new Runnable() {
-                @Override
-                public void run() {
-                    if (!stopped) {
-                        receiveText(payload);
-                    }
-                }
-            });
-        }
-
-        @Override
-        public void onRawTextMessage(byte[] payload) {
-            if (this.stopped) {
-                return;
-            }
-            LOG.error("Ignored raw text message");
         }
 
         @Override
@@ -157,26 +126,56 @@ public class Signaling extends EncryptedChannel {
                 return;
             }
 
+
+        }
+
+
+        @Override
+        public void onOpen(ServerHandshake handshakedata) {
+            LOG.debug("Connection opened");
+            setState("open");
+        }
+
+        @Override
+        public void onMessage(String message) {
+            LOG.debug("Text message arrived");
+            if (!this.stopped) {
+                receiveText(message);
+            }
+        }
+
+        @Override
+        public void onMessage(ByteBuffer buf) {
+            LOG.debug("Binary message arrived");
+            if (this.stopped) {
+                return;
+            }
+
             // Note: Bytes need to be received directly as they might be disposed after return
             final String data;
             try {
-                data = decrypt(new KeyStore.Box(ByteBuffer.wrap(payload)));
+                data = decrypt(new KeyStore.Box(buf));
             } catch (CryptoException e) {
                 stateDispatcher.error(e.getState(), e.getError());
                 return;
             }
 
+            // TODO HERE
+
             // Now that the bytes have been fetched from the buffer, we can safely dispatch the
             // data (if it could be decrypted)
-            Handler.post(new Runnable() {
-                @Override
-                public void run() {
-                    if (stopped) {
-                        return;
-                    }
-                    receiveBinary(data);
-                }
-            });
+            receiveBinary(data);
+        }
+
+        @Override
+        public void onClose(int code, String reason, boolean remote) {
+            LOG.debug("Connection closed with code: " + String.valueOf(code) + ", reason: " + reason);
+            setState("closed");
+        }
+
+        @Override
+        public void onError(Exception ex) {
+
         }
     }
 
@@ -238,12 +237,7 @@ public class Signaling extends EncryptedChannel {
         this.cached = new ArrayList<>();
     }
 
-    // Ex protected
-    public void connect(String path) {
-        this.connect(path, DEFAULT_URL);
-    }
-
-    protected void connect(String path, String url) { // TODO: Use WSS
+    protected void connect(String path, String url) {
         // Store path and URL
         this.path = path;
         this.url = url;
