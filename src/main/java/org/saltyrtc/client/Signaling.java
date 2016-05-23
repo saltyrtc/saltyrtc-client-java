@@ -1,8 +1,5 @@
 package org.saltyrtc.client;
 
-
-import android.util.Log;
-
 import org.saltyrtc.client.exceptions.CryptoException;
 import org.saltyrtc.client.exceptions.SessionUnavailableException;
 import de.tavendo.autobahn.WebSocketConnection;
@@ -11,6 +8,7 @@ import de.tavendo.autobahn.WebSocketHandler;
 import de.tavendo.autobahn.WebSocketOptions;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.slf4j.Logger;
 import org.webrtc.IceCandidate;
 import org.webrtc.SessionDescription;
 
@@ -22,7 +20,7 @@ import java.util.ArrayList;
  * Note: Public methods can be used safely from any thread.
  */
 public class Signaling extends EncryptedChannel {
-    protected static final String NAME = "Signaling";
+    protected static final Logger LOG = org.slf4j.LoggerFactory.getLogger(Signaling.class);
     protected static final String DEFAULT_URL = "ws://127.0.0.1:8765/";
     protected static final int CONNECT_MAX_RETRIES = 10;
     protected static final int CONNECT_RETRY_INTERVAL = 10000;
@@ -73,7 +71,7 @@ public class Signaling extends EncryptedChannel {
         @Override
         public void run() {
             connectTries += 1;
-            Log.w(NAME, "Connect timeout, retry " +
+            LOG.error("Connect timeout, retry " +
                     connectTries + "/" + CONNECT_MAX_RETRIES);
             connect(path, url);
         }
@@ -106,7 +104,7 @@ public class Signaling extends EncryptedChannel {
 
         @Override
         public void onClose(final int code, String reason) {
-            Log.d(NAME, "Connection closed with code: " + code + ", reason: " + reason);
+            LOG.debug("Connection closed with code: " + code + ", reason: " + reason);
             // Web Socket connection has been closed
             Handler.post(new Runnable() {
                 @Override
@@ -142,7 +140,7 @@ public class Signaling extends EncryptedChannel {
             if (this.stopped) {
                 return;
             }
-            Log.w(NAME, "Ignored raw text message");
+            LOG.error("Ignored raw text message");
         }
 
         @Override
@@ -177,7 +175,7 @@ public class Signaling extends EncryptedChannel {
     protected void setState(String state) {
         // Ignore repeated state changes
         if (state.equals(this.state)) {
-            Log.d(NAME, "Ignoring repeated state: " + state);
+            LOG.debug("Ignoring repeated state: " + state);
             return;
         }
 
@@ -208,7 +206,7 @@ public class Signaling extends EncryptedChannel {
 
         // Close web socket instance
         if (this.ws != null && this.ws.isConnected()) {
-            Log.d(NAME, "Disconnecting");
+            LOG.debug("Disconnecting");
             this.ws.disconnect();
         }
         // Note: This is required because the web socket can't disconnect reliably, thus
@@ -245,7 +243,7 @@ public class Signaling extends EncryptedChannel {
         // Give up?
         if (this.connectTries == CONNECT_MAX_RETRIES) {
             this.connectTries = 0;
-            Log.e(NAME, "Connecting failed");
+            LOG.error("Connecting failed");
             this.setState("failed");
             return;
         }
@@ -253,15 +251,15 @@ public class Signaling extends EncryptedChannel {
         // Reset and create web socket instance
         this.reset();
         this.ws = new WebSocketConnection();
-        Log.d(NAME, "Created");
+        LOG.debug("Created");
         this.setState("connecting");
 
         // Connect
-        Log.d(NAME, "Connecting to path: " + path);
+        LOG.debug("Connecting to path: " + path);
         try {
             this.ws.connect(url + path, this.events, this.options);
         } catch (WebSocketException e) {
-            Log.e(NAME, "Connect error: " + e.toString());
+            LOG.error("Connect error: " + e.toString());
             this.stateDispatcher.error("connect", e.toString());
         }
     }
@@ -275,7 +273,7 @@ public class Signaling extends EncryptedChannel {
     }
 
     public void sendHello() {
-        Log.d(NAME, "Sending hello");
+        LOG.debug("Sending hello");
 
         // Build JSON
         String type = "hello-server";
@@ -285,7 +283,7 @@ public class Signaling extends EncryptedChannel {
             message.put("type", type);
             message.put("key", KeyStore.getPublicKey());
         } catch (JSONException e) {
-            Log.e(NAME, "Hello encode error: " + e.toString());
+            LOG.error("Hello encode error: " + e.toString());
             this.stateDispatcher.error("encode", e.toString());
             return;
         }
@@ -296,7 +294,7 @@ public class Signaling extends EncryptedChannel {
 
     // Ex protected
     public void sendReset() {
-        Log.d(NAME, "Sending reset");
+        LOG.debug("Sending reset");
 
         // Build JSON
         String type = "reset";
@@ -305,7 +303,7 @@ public class Signaling extends EncryptedChannel {
             // Prepare data
             message.put("type", type);
         } catch (JSONException e) {
-            Log.e(NAME, "Reset encode error: " + e.toString());
+            LOG.error("Reset encode error: " + e.toString());
             e.printStackTrace();
             this.stateDispatcher.error("encode", e.toString());
             return;
@@ -316,23 +314,23 @@ public class Signaling extends EncryptedChannel {
     }
 
     protected void receiveReset() {
-        Log.d(NAME, "Broadcasting reset");
+        LOG.debug("Broadcasting reset");
         this.messageDispatcher.reset();
     }
 
     protected void receiveSendError() {
-        Log.d(NAME, "Broadcasting send error");
+        LOG.debug("Broadcasting send error");
         this.messageDispatcher.sendError();
     }
 
     protected void receiveOffer(SessionDescription offer, String session) {
-        Log.d(NAME, "Broadcasting offer");
+        LOG.debug("Broadcasting offer");
         this.messageDispatcher.offer(offer, session);
     }
 
     // Ex protected
     public void sendAnswer(SessionDescription description) {
-        Log.d(NAME, "Sending answer");
+        LOG.debug("Sending answer");
 
         // Build JSON
         String type = "answer";
@@ -348,12 +346,12 @@ public class Signaling extends EncryptedChannel {
             message.put("session", Session.get());
             message.put("data", payload);
         } catch (JSONException e) {
-            Log.e(NAME, "Answer encode error: " + e.toString());
+            LOG.error("Answer encode error: " + e.toString());
             e.printStackTrace();
             this.stateDispatcher.error("encode", e.toString());
             return;
         } catch (SessionUnavailableException e) {
-            Log.e(NAME, "Session unavailable error: " + e.toString());
+            LOG.error("Session unavailable error: " + e.toString());
             e.printStackTrace();
             this.stateDispatcher.error("session", e.toString());
             return;
@@ -365,7 +363,7 @@ public class Signaling extends EncryptedChannel {
 
     // Ex protected
     public void sendCandidate(IceCandidate candidate) {
-        Log.d(NAME, "Sending candidate");
+        LOG.debug("Sending candidate");
 
         // Build JSON
         String type = "candidate";
@@ -383,12 +381,12 @@ public class Signaling extends EncryptedChannel {
             message.put("session", Session.get());
             message.put("data", payload);
         } catch (JSONException e) {
-            Log.e(NAME, "Candidate encode error: " + e.toString());
+            LOG.error("Candidate encode error: " + e.toString());
             e.printStackTrace();
             this.stateDispatcher.error("encode", e.toString());
             return;
         } catch (SessionUnavailableException e) {
-            Log.e(NAME, "Session unavailable error: " + e.toString());
+            LOG.error("Session unavailable error: " + e.toString());
             e.printStackTrace();
             this.stateDispatcher.error("session", e.toString());
             return;
@@ -399,7 +397,7 @@ public class Signaling extends EncryptedChannel {
     }
 
     protected void receiveCandidate(IceCandidate candidate) {
-        Log.d(NAME, "Broadcasting candidate");
+        LOG.debug("Broadcasting candidate");
         this.messageDispatcher.candidate(candidate);
     }
 
@@ -417,7 +415,7 @@ public class Signaling extends EncryptedChannel {
     }
 
     public void sendCached() {
-        Log.d(NAME, "Sending " + this.cached.size() + " delayed messages");
+        LOG.debug("Sending " + this.cached.size() + " delayed messages");
         for (CachedItem item : this.cached) {
             this.send(item.message, item.encrypt);
         }
@@ -431,7 +429,7 @@ public class Signaling extends EncryptedChannel {
     protected void send(JSONObject message, boolean encrypt) {
         // Delay sending until connected
         if (this.ws != null && this.ws.isConnected()) {
-            Log.d(NAME, "Sending message (encrypted: " + encrypt + "): " + message);
+            LOG.debug("Sending message (encrypted: " + encrypt + "): " + message);
             if (encrypt) {
                 KeyStore.Box box;
                 try {
@@ -448,7 +446,7 @@ public class Signaling extends EncryptedChannel {
                 this.ws.sendTextMessage(message.toString());
             }
         } else {
-            Log.d(NAME, "Delaying message until WebSocket is open");
+            LOG.debug("Delaying message until WebSocket is open");
             this.cached.add(new CachedItem(message, encrypt));
         }
     }
@@ -456,7 +454,7 @@ public class Signaling extends EncryptedChannel {
     protected void receiveText(String data) {
         try {
             // Decode data
-            Log.d(NAME, "Received text message: " + data);
+            LOG.debug("Received text message: " + data);
             JSONObject message = new JSONObject(data);
             String type = message.getString("type");
 
@@ -467,24 +465,24 @@ public class Signaling extends EncryptedChannel {
             } else if (type.equals("send-error")) {
                 this.receiveSendError();
             } else {
-                Log.w(NAME, "Ignored text message: " + data);
+                LOG.error("Ignored text message: " + data);
             }
         } catch (JSONException e) {
-            Log.w(NAME, "Ignored invalid text message: " + data);
+            LOG.error("Ignored invalid text message: " + data);
         }
     }
 
     protected void receiveBinary(String data) {
         try {
             // Decode data
-            Log.d(NAME, "Received encrypted message: " + data);
+            LOG.debug("Received encrypted message: " + data);
             JSONObject message = new JSONObject(data);
             String type = message.getString("type");
 
             // Check session
             String session = message.getString("session");
             if (!type.equals("offer") && !equals(session)) {
-                Log.w(NAME, "Ignored message from another session: " + session);
+                LOG.error("Ignored message from another session: " + session);
                 return;
             }
 
@@ -504,10 +502,10 @@ public class Signaling extends EncryptedChannel {
                         payload.getString("candidate")
                 ));
             } else {
-                Log.w(NAME, "Ignored encrypted message: " + data);
+                LOG.error("Ignored encrypted message: " + data);
             }
         } catch (JSONException e) {
-            Log.w(NAME, "Ignored invalid encrypted message: " + data);
+            LOG.error("Ignored invalid encrypted message: " + data);
         }
     }
 }

@@ -1,13 +1,12 @@
 package org.saltyrtc.client;
 
-import android.util.Log;
-
 import org.saltyrtc.client.exceptions.CryptoException;
 import org.saltyrtc.client.exceptions.InvalidChunkException;
 import org.saltyrtc.client.Utils;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.slf4j.Logger;
 import org.webrtc.DataChannel.Buffer;
 import org.webrtc.DataChannel.Observer;
 import org.webrtc.DataChannel.State;
@@ -20,10 +19,11 @@ import java.util.ArrayList;
  * Note: Public methods can be used safely from any thread.
  */
 public class DataChannel extends EncryptedChannel {
-    protected static final String NAME = "DataChannel";
+    protected static final Logger LOG = org.slf4j.LoggerFactory.getLogger(DataChannel.class);
     protected static final String LABEL = "saltyrtc";
     protected static final int HEARTBEAT_ACK_TIMEOUT = 10000;
     protected static final int MTU = 16384;
+
     protected State state;
     protected org.webrtc.DataChannel dc;
     protected ArrayList<JSONObject> cached;
@@ -74,7 +74,7 @@ public class DataChannel extends EncryptedChannel {
                 return;
             }
             if (!buffer.binary) {
-                Log.w(NAME, "Ignored ASCII message");
+                LOG.warn("Ignored ASCII message");
             } else {
                 // Note: Buffer need to be received directly as it will be disposed after return
                 try {
@@ -102,7 +102,7 @@ public class DataChannel extends EncryptedChannel {
     protected class HeartbeatAckTimer implements Runnable {
         @Override
         public void run() {
-            Log.e(NAME, "Heartbeat ack timeout");
+            LOG.error("Heartbeat ack timeout");
             stateDispatcher.error("timeout", "Heartbeat ack timeout");
             dc.close();
         }
@@ -162,7 +162,7 @@ public class DataChannel extends EncryptedChannel {
         if (state == null) {
             // Ignore repeated state changes
             if (this.state == null) {
-                Log.d(NAME, "Ignoring repeated state: unknown");
+                LOG.debug("Ignoring repeated state: unknown");
                 return;
             }
 
@@ -172,7 +172,7 @@ public class DataChannel extends EncryptedChannel {
         } else {
             // Ignore repeated state changes
             if (state == this.state) {
-                Log.d(NAME, "Ignoring repeated state: " + state.toString().toLowerCase());
+                LOG.debug("Ignoring repeated state: " + state.toString().toLowerCase());
                 return;
             }
 
@@ -202,7 +202,7 @@ public class DataChannel extends EncryptedChannel {
 
     // Ex protected
     public void sendCached() {
-        Log.d(NAME, "Sending " + this.cached.size() + " delayed messages");
+        LOG.debug("Sending " + this.cached.size() + " delayed messages");
         for (JSONObject message : this.cached) {
             this.send(message);
         }
@@ -218,7 +218,7 @@ public class DataChannel extends EncryptedChannel {
             message.put("type", "message");
             message.put("data", inner);
         } catch (JSONException e) {
-            Log.e(NAME, "Message encode error: " + e.toString());
+            LOG.error("Message encode error: " + e.toString());
             e.printStackTrace();
             this.stateDispatcher.error("encode", e.toString());
             return;
@@ -230,7 +230,7 @@ public class DataChannel extends EncryptedChannel {
 
     // Ex protected
     public void receiveMessage(JSONObject inner) {
-        Log.d(NAME, "Broadcasting message");
+        LOG.debug("Broadcasting message");
         this.messageDispatcher.message(inner);
     }
 
@@ -239,7 +239,7 @@ public class DataChannel extends EncryptedChannel {
     }
 
     protected void sendHeartbeat(String content) {
-        Log.d(NAME, "Sending heartbeat");
+        LOG.debug("Sending heartbeat");
 
         // Store heartbeat
         this.heartbeat = content;
@@ -251,7 +251,7 @@ public class DataChannel extends EncryptedChannel {
             message.put("type", "heartbeat");
             message.put("data", content);
         } catch (JSONException e) {
-            Log.e(NAME, "Heartbeat encode error: " + e.toString());
+            LOG.error("Heartbeat encode error: " + e.toString());
             e.printStackTrace();
             this.stateDispatcher.error("encode", e.toString());
             return;
@@ -265,15 +265,15 @@ public class DataChannel extends EncryptedChannel {
     protected void receiveHeartbeatAck(String content) {
         // Validate heartbeat ack
         if (this.heartbeat == null) {
-            Log.w(NAME, "Ignored heartbeat-ack that has not been sent");
+            LOG.error("Ignored heartbeat-ack that has not been sent");
             return;
         }
         if (!content.equals(this.heartbeat)) {
-            Log.e(NAME, "Heartbeat-ack does not match, expected: " + this.heartbeat +
+            LOG.error("Heartbeat-ack does not match, expected: " + this.heartbeat +
                     "received: " + content);
             this.stateDispatcher.error("heartbeat", "Content did not match");
         } else {
-            Log.d(NAME, "Received heartbeat-ack");
+            LOG.debug("Received heartbeat-ack");
             this.heartbeat = null;
             // Cancel heartbeat ack timer
             this.cancelHeartbeatAckTimer();
@@ -281,12 +281,12 @@ public class DataChannel extends EncryptedChannel {
     }
 
     protected void receiveHeartbeat(String content) {
-        Log.d(NAME, "Received heartbeat");
+        LOG.debug("Received heartbeat");
         this.sendHeartbeatAck(content);
     }
 
     protected void sendHeartbeatAck(String content) {
-        Log.d(NAME, "Sending heartbeat-ack");
+        LOG.debug("Sending heartbeat-ack");
 
         // Build JSON
         JSONObject message = new JSONObject();
@@ -296,7 +296,7 @@ public class DataChannel extends EncryptedChannel {
             message.put("data", content);
         } catch (JSONException e) {
             this.stateDispatcher.error("encode", e.toString());
-            Log.e(NAME, "Heartbeat ack encode error: " + e.toString());
+            LOG.error("Heartbeat ack encode error: " + e.toString());
             e.printStackTrace();
             return;
         }
@@ -319,7 +319,7 @@ public class DataChannel extends EncryptedChannel {
 
             // Send chunks
             String sizeKb = String.format("%.2f", ((float) box.getSize()) / 1024);
-            Log.d(NAME, "Sending message (size: " + sizeKb + " KB): " + message);
+            LOG.debug("Sending message (size: " + sizeKb + " KB): " + message);
             Chunkifier chunkifier = new Chunkifier(box.getBuffer().array(), MTU);
             for (ByteBuffer chunk : chunkifier) {
                 // Wrap buffer into data channel buffer and set the 'binary' flag
@@ -329,7 +329,7 @@ public class DataChannel extends EncryptedChannel {
                 this.dc.send(buffer);
             }
         } else {
-            Log.d(NAME, "Delaying message until channel is open");
+            LOG.debug("Delaying message until channel is open");
             this.cached.add(message);
         }
     }
@@ -349,7 +349,7 @@ public class DataChannel extends EncryptedChannel {
 
         try {
             // Decode data
-            Log.d(NAME, "Received message (size: " + sizeKb + " KB): " + data);
+            LOG.debug("Received message (size: " + sizeKb + " KB): " + data);
             JSONObject message = new JSONObject(data);
             String type = message.getString("type");
 
@@ -365,10 +365,10 @@ public class DataChannel extends EncryptedChannel {
                 String content = message.getString("data");
                 receiveHeartbeat(content);
             } else {
-                Log.w(NAME, "Ignored message: " + data);
+                LOG.error("Ignored message: " + data);
             }
         } catch (JSONException e) {
-            Log.w(NAME, "Ignored invalid message: " + data);
+            LOG.error("Ignored invalid message: " + data);
         }
     }
 }

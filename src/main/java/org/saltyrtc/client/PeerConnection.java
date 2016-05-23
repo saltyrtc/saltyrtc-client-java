@@ -1,7 +1,8 @@
 package org.saltyrtc.client;
 
 import android.content.Context;
-import android.util.Log;
+
+import org.slf4j.Logger;
 import org.webrtc.*;
 import org.webrtc.PeerConnection.*;
 
@@ -14,7 +15,7 @@ import java.util.LinkedList;
  * Public methods can be used safely from any thread.
  */
 public class PeerConnection {
-    protected static final String NAME = "PeerConnection";
+    protected static final Logger LOG = org.slf4j.LoggerFactory.getLogger(PeerConnection.class);
     protected PeerConnectionFactory factory;
     protected String state = null;
     protected org.webrtc.PeerConnection pc;
@@ -53,7 +54,7 @@ public class PeerConnection {
         @Override
         public void onRenegotiationNeeded() {
             if (!this.stopped) {
-                Log.w(NAME, "Ignored renegotiation request");
+                LOG.error("Ignored renegotiation request");
             }
         }
 
@@ -75,21 +76,21 @@ public class PeerConnection {
         @Override
         public void onSignalingChange(SignalingState signalingState) {
             if (!this.stopped) {
-                Log.d(NAME, "Ignored signaling state change to: " + signalingState.toString());
+                LOG.debug("Ignored signaling state change to: " + signalingState.toString());
             }
         }
 
         @Override
         public void onAddStream(MediaStream mediaStream) {
             if (!this.stopped) {
-                Log.w(NAME, "Ignored incoming media stream");
+                LOG.error("Ignored incoming media stream");
             }
         }
 
         @Override
         public void onRemoveStream(MediaStream mediaStream) {
             if (!this.stopped) {
-                Log.w(NAME, "Ignored media stream removal");
+                LOG.error("Ignored media stream removal");
             }
         }
 
@@ -112,7 +113,7 @@ public class PeerConnection {
             if (this.stopped) {
                 return;
             }
-            Log.d(NAME, "Ignored ICE gathering state change to: " + iceGatheringState.toString());
+            LOG.debug("Ignored ICE gathering state change to: " + iceGatheringState.toString());
         }
 
         @Override
@@ -126,12 +127,12 @@ public class PeerConnection {
                         if (stopped) {
                             return;
                         }
-                        Log.i(NAME, "Received channel");
+                        LOG.info("Received channel");
                         dc.setInstance(incomingDc);
                     }
                 });
             } else {
-                Log.w(NAME, "Ignored channel with label: " + incomingDc.label());
+                LOG.error("Ignored channel with label: " + incomingDc.label());
             }
         }
     }
@@ -163,11 +164,11 @@ public class PeerConnection {
                     SessionDescription.Type type = originalDescription.type;
                     String[] parts = originalDescription.description.split("b=AS:30");
                     if (parts.length == 2) {
-                        Log.d(NAME, "Overriding bandwidth setting to 100 Mbps");
+                        LOG.debug("Overriding bandwidth setting to 100 Mbps");
                         modifiedDescription = new SessionDescription(
                                 type, (parts[0] + "b=AS:102400" + parts[1]));
                     } else {
-                        Log.w(NAME, "Couldn't override bandwidth setting");
+                        LOG.error("Couldn't override bandwidth setting");
                         modifiedDescription = originalDescription;
                     }
                     pc.setLocalDescription(localDescriptionEvents, modifiedDescription);
@@ -177,7 +178,7 @@ public class PeerConnection {
 
         @Override
         public void onSetSuccess() {
-            Log.d(NAME, "Local description set");
+            LOG.debug("Local description set");
             Handler.post(new Runnable() {
                 @Override
                 public void run() {
@@ -204,7 +205,7 @@ public class PeerConnection {
             if (this.stopped) {
                 return;
             }
-            Log.e(NAME, "Creating answer failed: " + error);
+            LOG.error("Creating answer failed: " + error);
             stateDispatcher.error("create", error);
         }
 
@@ -213,7 +214,7 @@ public class PeerConnection {
             if (this.stopped) {
                 return;
             }
-            Log.e(NAME, "Setting local description failed: " + error);
+            LOG.error("Setting local description failed: " + error);
             stateDispatcher.error("local", error);
         }
     }
@@ -234,12 +235,12 @@ public class PeerConnection {
                 return;
             }
             // Note: Not used, should never trigger
-            Log.w(NAME, "Ignored remote description create event");
+            LOG.error("Ignored remote description create event");
         }
 
         @Override
         public void onSetSuccess() {
-            Log.d(NAME, "Remote description set");
+            LOG.debug("Remote description set");
             Handler.post(new Runnable() {
                 @Override
                 public void run() {
@@ -258,7 +259,7 @@ public class PeerConnection {
                 return;
             }
             // Note: Not used, should never trigger
-            Log.w(NAME, "Ignored remote description creation failure: " + error);
+            LOG.error("Ignored remote description creation failure: " + error);
         }
 
         @Override
@@ -266,7 +267,7 @@ public class PeerConnection {
             if (this.stopped) {
                 return;
             }
-            Log.e(NAME, "Setting remote description failed: " + error);
+            LOG.error("Setting remote description failed: " + error);
             stateDispatcher.error("remote", error);
         }
     }
@@ -292,7 +293,7 @@ public class PeerConnection {
         if (!PeerConnectionFactory.initializeAndroidGlobals(
                 context, true, false, false, null
         )) {
-            Log.e(NAME, "Initialising Android globals failed!");
+            LOG.error("Initialising Android globals failed!");
             this.stateDispatcher.error("init", "Initialising Android globals failed");
             return;
         }
@@ -319,7 +320,7 @@ public class PeerConnection {
     protected void setState(String state) {
         // Ignore repeated state changes
         if (state.equals(this.state)) {
-            Log.d(NAME, "Ignoring repeated state: " + state);
+            LOG.debug("Ignoring repeated state: " + state);
             return;
         }
 
@@ -344,7 +345,7 @@ public class PeerConnection {
 
         // Close peer connection instance
         if (this.pc != null) {
-            Log.d(NAME, "Closing");
+            LOG.debug("Closing");
             this.pc.close();
             this.pc.dispose();
             this.pc = null;
@@ -382,24 +383,24 @@ public class PeerConnection {
         this.pc = this.factory.createPeerConnection(
                 this.iceServers, peerConstraints, this.events
         );
-        Log.d(NAME, "Peer Connection created");
+        LOG.debug("Peer Connection created");
     }
 
     // Ex protected
     public void receiveOffer(SessionDescription description) {
-        Log.i(NAME, "Received offer");
+        LOG.info("Received offer");
         this.pc.setRemoteDescription(this.remoteDescriptionEvents, description);
     }
 
     protected void sendAnswer() {
-        Log.i(NAME, "Creating answer");
+        LOG.info("Creating answer");
         this.pc.createAnswer(this.localDescriptionEvents, this.constraints);
     }
 
     protected void sendCandidate(IceCandidate candidate) {
         if (this.descriptionsExchanged) {
             // Send candidate
-            Log.d(NAME, "Broadcasting candidate");
+            LOG.debug("Broadcasting candidate");
             this.messageDispatcher.candidate(candidate);
         } else {
             // Cache candidates if no answer has been received yet
@@ -409,17 +410,17 @@ public class PeerConnection {
 
     // Ex protected
     public void receiveCandidate(IceCandidate candidate) {
-        Log.d(NAME, "Received candidate");
+        LOG.debug("Received candidate");
         if (!this.descriptionsExchanged) {
             // Queue candidates if not connected
             // Note: This is required because the app will crash if a candidate is added
             //       before the local description has been set.
-            Log.d(NAME, "Delaying setting remote candidate until descriptions have been exchanged");
+            LOG.debug("Delaying setting remote candidate until descriptions have been exchanged");
             this.remoteCandidates.add(candidate);
         } else {
             // Note: A weird freeze occurred here... if this happens again, you're fucked!
             this.pc.addIceCandidate(candidate);
-            Log.d(NAME, "Candidate set");
+            LOG.debug("Candidate set");
         }
     }
 
@@ -427,14 +428,14 @@ public class PeerConnection {
         this.descriptionsExchanged = true;
 
         // Send cached local candidates
-        Log.d(NAME, "Sending " + this.localCandidates.size() + " delayed local candidates");
+        LOG.debug("Sending " + this.localCandidates.size() + " delayed local candidates");
         for (IceCandidate candidate : this.localCandidates) {
             this.sendCandidate(candidate);
         }
         this.localCandidates.clear();
 
         // Set cached remote candidates
-        Log.d(NAME, "Setting " + this.remoteCandidates.size() + " delayed remote candidates");
+        LOG.debug("Setting " + this.remoteCandidates.size() + " delayed remote candidates");
         for (IceCandidate candidate : this.remoteCandidates) {
             this.pc.addIceCandidate(candidate);
         }

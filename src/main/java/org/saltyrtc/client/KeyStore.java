@@ -1,10 +1,9 @@
 package org.saltyrtc.client;
 
-import android.util.Log;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
 import org.saltyrtc.client.exceptions.OtherKeyMissingException;
-import org.saltyrtc.client.Utils;
+import org.slf4j.Logger;
 
 import com.neilalexander.jnacl.NaCl;
 
@@ -17,7 +16,7 @@ import java.security.SecureRandom;
  * Note: This class is thread safe.
  */
 public class KeyStore {
-    protected static final String name = "KeyStore";
+    protected static final Logger LOG = org.slf4j.LoggerFactory.getLogger(KeyStore.class);
     protected static boolean setupDone = false;
     protected static final byte[] privateKey = new byte[NaCl.SECRETKEYBYTES];
     protected static final byte[] publicKey = new byte[NaCl.PUBLICKEYBYTES];
@@ -94,10 +93,10 @@ public class KeyStore {
         }
 
         // Generate key pair
-        Log.d(name, "Generating new key pair");
+        LOG.debug("Generating new key pair");
         NaCl.genkeypair(KeyStore.publicKey, KeyStore.privateKey);
-        Log.d(name, "Private key: " + NaCl.asHex(KeyStore.privateKey));
-        Log.d(name, "Public key: " + NaCl.asHex(KeyStore.publicKey));
+        LOG.debug("Private key: " + NaCl.asHex(KeyStore.privateKey));
+        LOG.debug("Public key: " + NaCl.asHex(KeyStore.publicKey));
         setupDone = true;
 
         // Make sure encryption and decryption works properly
@@ -110,10 +109,10 @@ public class KeyStore {
                 throw new AssertionError("Self-test failed");
             }
         } catch (Exception e) {
-            Log.e(name, "Self-test failed");
+            LOG.error("Self-test failed");
             e.printStackTrace();
         }
-        Log.d(name, "Self-test passed");
+        LOG.debug("Self-test passed");
         KeyStore.nacl = nacl;
     }
 

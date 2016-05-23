@@ -1,6 +1,6 @@
 package org.saltyrtc.client;
 
-import android.util.Log;
+import org.slf4j.Logger;
 
 import java.util.HashMap;
 
@@ -10,6 +10,8 @@ import java.util.HashMap;
  */
 public class InternalState extends State {
     protected final HashMap<String, Integer> rules = new HashMap<>();
+
+    protected static Logger LOG = org.slf4j.LoggerFactory.getLogger(InternalState.class);
 
     public InternalState(String name) {
         super(name);
@@ -29,8 +31,8 @@ public class InternalState extends State {
         // Find state type for value in rules
         Integer type = this.rules.get(value);
         if (type == null) {
-            Log.w(name, "Unknown state '" + value + "' for " + this.toString());
-            Log.d(name, "Rules: " + this.rules.toString());
+            LOG.warn("Unknown state '" + value + "' for " + this.toString());
+            LOG.debug("Rules: " + this.rules.toString());
             type = StateType.DANGER;
             value = "unknown";
         }

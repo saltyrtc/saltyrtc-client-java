@@ -1,6 +1,6 @@
 package org.saltyrtc.client;
 
-import android.util.Log;
+import org.slf4j.Logger;
 
 import java.util.HashMap;
 
@@ -8,7 +8,7 @@ import java.util.HashMap;
  * Listener for state change events.
  */
 public abstract class InternalStateListener {
-    protected static final String NAME = "InternalStateListener";
+    protected static final Logger LOG = org.slf4j.LoggerFactory.getLogger(InternalStateListener.class);
     protected final HashMap<String, StateHandler> stateHandler = new HashMap<>();
     protected final HashMap<String, ErrorStateHandler> errorHandler = new HashMap<>();
 
@@ -32,7 +32,7 @@ public abstract class InternalStateListener {
     protected void handleState(String state) {
         this.onState(state);
         if (this.stateHandler != null && this.stateHandler.containsKey(state)) {
-            Log.d(NAME, "Calling handler for state: " + state);
+            LOG.debug("Calling handler for state: " + state);
             final StateHandler handler = this.stateHandler.get(state);
 
             // Handle state in runnable
@@ -52,7 +52,7 @@ public abstract class InternalStateListener {
     protected void handleError(String state, final String error) {
         this.onError(state, error);
         if (this.errorHandler != null && this.errorHandler.containsKey(state)) {
-            Log.d(NAME, "Calling handler for error state: " + state);
+            LOG.debug("Calling handler for error state: " + state);
             final ErrorStateHandler handler = this.errorHandler.get(state);
 
             // Handle error state in runnable

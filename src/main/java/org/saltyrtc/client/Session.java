@@ -1,10 +1,10 @@
 package org.saltyrtc.client;
 
-import android.util.Log;
 import org.saltyrtc.client.exceptions.SessionUnavailableException;
+import org.slf4j.Logger;
 
 public class Session {
-    protected static final String NAME = "Session";
+    protected static final Logger LOG = org.slf4j.LoggerFactory.getLogger(Session.class);
     protected static String id = null;
 
     protected synchronized static boolean equals(String otherId) {
@@ -19,13 +19,13 @@ public class Session {
     }
 
     protected synchronized static void set(String id) {
-        Log.d(NAME, "New: " + id);
+        LOG.debug("New: " + id);
         Session.id = id;
     }
 
     // Ex protected
     public synchronized static void reset() {
         id = null;
-        Log.d(NAME, "Reset");
+        LOG.debug("Reset");
     }
 }
