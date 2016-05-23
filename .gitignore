@@ -1,0 +1,10 @@
+# Vim
+*.swp
+
+# IntelliJ
+*.iml
+.idea
+
+# Gradle
+.gradle
+local.properties
