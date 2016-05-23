@@ -1,7 +1,5 @@
 package org.saltyrtc.client;
 
-import android.content.Context;
-
 import org.slf4j.Logger;
 import org.webrtc.*;
 import org.webrtc.PeerConnection.*;
@@ -276,9 +274,8 @@ public class PeerConnection {
      * TODO: Description
      *
      * @param dc The used data channel (wrapper) instance.
-     * @param context Required because WebRTC init stuff... dunno, just don't ask
      */
-    public PeerConnection(org.saltyrtc.client.DataChannel dc, Context context) {
+    public PeerConnection(org.saltyrtc.client.DataChannel dc) {
         this.dc = dc;
 
         // Set initial state
@@ -290,13 +287,13 @@ public class PeerConnection {
 
         // For some shitty reason we need to initialise audio here...
         // See: https://code.google.com/p/webrtc/issues/detail?id=3416
-        if (!PeerConnectionFactory.initializeAndroidGlobals(
+        /*if (!PeerConnectionFactory.initializeAndroidGlobals(
                 context, true, false, false, null
         )) {
             LOG.error("Initialising Android globals failed!");
             this.stateDispatcher.error("init", "Initialising Android globals failed");
             return;
-        }
+        }*/
 
         // Now we can safely create the factory... hopefully...
         this.factory = new PeerConnectionFactory();
