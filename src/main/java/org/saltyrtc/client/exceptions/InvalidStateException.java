@@ -6,8 +6,10 @@
  * copied, modified, or distributed except according to those terms.
  */
 
-package org.saltyrtc.client;
+package org.saltyrtc.client.exceptions;
 
-public interface StateHandler {
-    void handle();
+public class InvalidStateException extends Exception {
+    public InvalidStateException(String message) {
+        super(message);
+    }
 }
