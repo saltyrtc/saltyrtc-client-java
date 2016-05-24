@@ -8,3 +8,6 @@
 # Gradle
 .gradle
 local.properties
+
+# Java
+build/
