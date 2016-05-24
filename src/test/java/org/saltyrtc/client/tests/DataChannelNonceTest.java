@@ -10,7 +10,7 @@ package org.saltyrtc.client.tests;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.saltyrtc.client.Nonce;
+import org.saltyrtc.client.nonce.DataChannelNonce;
 
 import java.nio.ByteBuffer;
 
@@ -18,20 +18,20 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.fail;
 
-public class NonceTest {
+public class DataChannelNonceTest {
 
-    private static byte[] cookie = new byte[Nonce.COOKIE_LENGTH];
+    private static byte[] cookie = new byte[DataChannelNonce.COOKIE_LENGTH];
 
     @BeforeClass
     public static void setUpStatic() {
-        for (int i = 0; i < Nonce.COOKIE_LENGTH; i++) {
+        for (int i = 0; i < DataChannelNonce.COOKIE_LENGTH; i++) {
             cookie[i] = (byte)i;
         }
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testNonceCookieValidation() {
-        new Nonce(new byte[] { 0x00, 0x01, 0x02, 0x03 }, 0, 1, 0);
+        new DataChannelNonce(new byte[] { 0x00, 0x01, 0x02, 0x03 }, 0, 1, 0);
     }
 
     @Test
@@ -40,12 +40,12 @@ public class NonceTest {
         int[] valid = new int[] { 0, 1 << 16 - 1 };
         for (int value : invalid) {
             try {
-                new Nonce(cookie, value, 1, 0);
+                new DataChannelNonce(cookie, value, 1, 0);
                 fail("Did not raise IllegalArgumentException for value " + value);
             } catch (IllegalArgumentException ignored) {}
         }
         for (int value : valid) {
-            new Nonce(cookie, value, 1, 0);
+            new DataChannelNonce(cookie, value, 1, 0);
         }
     }
 
@@ -55,12 +55,12 @@ public class NonceTest {
         int[] valid = new int[] { 0, 1 << 16 - 1 };
         for (int value : invalid) {
             try {
-                new Nonce(cookie, 0, value, 0);
+                new DataChannelNonce(cookie, 0, value, 0);
                 fail("Did not raise IllegalArgumentException for value " + value);
             } catch (IllegalArgumentException ignored) {}
         }
         for (int value : valid) {
-            new Nonce(cookie, 0, value, 0);
+            new DataChannelNonce(cookie, 0, value, 0);
         }
     }
 
@@ -70,12 +70,12 @@ public class NonceTest {
         long[] valid = new long[] { 0, 1L << 32 - 1 };
         for (long value : invalid) {
             try {
-                new Nonce(cookie, 0, 1, value);
+                new DataChannelNonce(cookie, 0, 1, value);
                 fail("Did not raise IllegalArgumentException for value " + value);
             } catch (IllegalArgumentException ignored) {}
         }
         for (long value : valid) {
-            new Nonce(cookie, 0, 1, value);
+            new DataChannelNonce(cookie, 0, 1, value);
         }
     }
 
@@ -84,7 +84,7 @@ public class NonceTest {
      */
     @Test(expected = IllegalArgumentException.class)
     public void testNonceBytesValidation() {
-        new Nonce(ByteBuffer.wrap(new byte[] { 0x0 }));
+        new DataChannelNonce(ByteBuffer.wrap(new byte[] { 0x0 }));
     }
 
     /**
@@ -130,7 +130,7 @@ public class NonceTest {
             // Sequence (0x80000003
             -128, 0, 0, 3,
         };
-        final Nonce nonce = new Nonce(ByteBuffer.wrap(bytes));
+        final DataChannelNonce nonce = new DataChannelNonce(ByteBuffer.wrap(bytes));
         assertEquals(0x8001, nonce.getChannelId());
         assertEquals(0x8002, nonce.getOverflow());
         assertEquals(0x80000003L, nonce.getSequence());
@@ -138,7 +138,7 @@ public class NonceTest {
 
     @Test
     public void testCombinedSequence() {
-        final Nonce nonce = new Nonce(cookie, 0, 0x8000, 42L);
+        final DataChannelNonce nonce = new DataChannelNonce(cookie, 0, 0x8000, 42L);
         // (0x8000 << 32) + 42 = 140737488355370
         assertEquals(140737488355370L, nonce.getCombinedSequence());
     }

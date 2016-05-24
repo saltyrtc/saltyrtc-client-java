@@ -6,14 +6,12 @@
  * copied, modified, or distributed except according to those terms.
  */
 
-package org.saltyrtc.client;
-
-import com.neilalexander.jnacl.NaCl;
+package org.saltyrtc.client.nonce;
 
 import java.nio.ByteBuffer;
 
 /**
- * A SaltyRTC nonce.
+ * A SaltyRTC data channel nonce.
  *
  * Nonce structure:
  *
@@ -24,15 +22,9 @@ import java.nio.ByteBuffer;
  * - O: Overflow number (2 byte)
  * - Q: Sequence number (4 byte)
  */
-public class Nonce {
+public class DataChannelNonce extends Nonce {
 
-    private byte[] cookie;
     private int channelId;
-    private int overflow;
-    private long sequence;
-
-    public static int COOKIE_LENGTH = 16;
-    public static int TOTAL_LENGTH = NaCl.NONCEBYTES;
 
     /**
      * Create a new nonce.
@@ -44,7 +36,7 @@ public class Nonce {
      *
      * See also: http://stackoverflow.com/a/397997/284318.
      */
-    public Nonce(byte[] cookie, int channelId, int overflow, long sequence) {
+    public DataChannelNonce(byte[] cookie, int channelId, int overflow, long sequence) {
         validateCookie(cookie);
         validateChannelId(channelId);
         validateOverflow(overflow);
@@ -58,7 +50,7 @@ public class Nonce {
     /**
      * Create a new nonce from raw binary data.
      */
-    public Nonce(ByteBuffer buf) {
+    public DataChannelNonce(ByteBuffer buf) {
         if (buf.limit() < TOTAL_LENGTH) {
             throw new IllegalArgumentException("Buffer limit must be at least " + TOTAL_LENGTH);
         }
@@ -67,28 +59,19 @@ public class Nonce {
         buf.get(cookie, 0, COOKIE_LENGTH);
         validateCookie(cookie);
 
-        final int channelId = ((int)buf.getShort()) & 0xFFFF;
+        final int channelId = ((int)buf.getShort()) & 0x0000FFFF;
         validateChannelId(channelId);
 
-        final int overflow = ((int)buf.getShort()) & 0xFFFF;
+        final int overflow = ((int)buf.getShort()) & 0x0000FFFF;
         validateOverflow(overflow);
 
-        final long sequence = ((long)buf.getInt()) & 0xFFFFFFFFL;
+        final long sequence = ((long)buf.getInt()) & 0x00000000FFFFFFFFL;
         validateSequence(sequence);
 
         this.cookie = cookie;
         this.channelId = channelId;
         this.overflow = overflow;
         this.sequence = sequence;
-    }
-
-    /**
-     * A cookie should be 16 bytes long.
-     */
-    private void validateCookie(byte[] cookie) {
-        if (cookie.length != COOKIE_LENGTH) {
-            throw new IllegalArgumentException("cookie must be " + COOKIE_LENGTH + " bytes long");
-        }
     }
 
     /**
@@ -101,55 +84,10 @@ public class Nonce {
     }
 
     /**
-     * An overflow number should be an uint16.
-     */
-    private void validateOverflow(int overflow) {
-        if (overflow < 0 || overflow >= (1 << 16)) {
-            throw new IllegalArgumentException("overflow must be between 0 and 2**16-1");
-        }
-    }
-
-    /**
-     * A sequence should be an uint32.
-     */
-    private void validateSequence(long sequence) {
-        if (sequence < 0 || sequence >= (1L << 32)) {
-            throw new IllegalArgumentException("sequence must be between 0 and 2**32-1");
-        }
-    }
-
-    public byte[] getCookie() {
-        return this.cookie;
-    }
-
-    /**
      * Return the channel id.
      */
     public int getChannelId() {
         return this.channelId;
-    }
-
-    /**
-     * Return the channel id.
-     */
-    public int getOverflow() {
-        return this.overflow;
-    }
-
-    /**
-     * Return the sequence number.
-     */
-    public long getSequence() {
-        return this.sequence;
-    }
-
-    /**
-     * Return the combined sequence number.
-     */
-    public long getCombinedSequence() {
-        long combined = (long)this.overflow << 32 | this.sequence;
-        assert combined >= 0 && combined < (1L << 48); // Sanity check
-        return combined;
     }
 
 }
