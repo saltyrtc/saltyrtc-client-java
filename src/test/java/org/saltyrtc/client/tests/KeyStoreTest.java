@@ -12,7 +12,7 @@ import com.neilalexander.jnacl.NaCl;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.saltyrtc.client.KeyStore;
+import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
 
 import static org.junit.Assert.*;

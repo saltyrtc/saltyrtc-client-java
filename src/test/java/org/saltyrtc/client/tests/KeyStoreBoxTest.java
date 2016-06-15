@@ -15,7 +15,7 @@ import org.junit.Test;
 
 import com.neilalexander.jnacl.NaCl;
 
-import org.saltyrtc.client.KeyStore;
+import org.saltyrtc.client.keystore.KeyStore;
 
 import java.nio.ByteBuffer;
 
