@@ -8,8 +8,6 @@
 
 package org.saltyrtc.client.keystore;
 
-import com.neilalexander.jnacl.NaCl;
-
 import java.nio.ByteBuffer;
 
 
@@ -33,20 +31,26 @@ public class Box {
      *
      * @param buffer The ByteBuffer containing nonce and data.
      */
-    public Box(ByteBuffer buffer) {
+    public Box(ByteBuffer buffer, int nonceLength) {
         // Unpack nonce
-        this.nonce = new byte[NaCl.NONCEBYTES];
-        buffer.get(nonce, 0, NaCl.NONCEBYTES);
+        this.nonce = new byte[nonceLength];
+        buffer.get(nonce, 0, nonceLength);
 
         // Unpack data
         this.data = new byte[buffer.remaining()];
         buffer.get(data);
     }
 
+    /**
+     * Return the nonce as byte array.
+     */
     public byte[] getNonce() {
         return nonce;
     }
 
+    /**
+     * Return the data as byte array.
+     */
     public byte[] getData() {
         return data;
     }

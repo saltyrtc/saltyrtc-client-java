@@ -15,6 +15,7 @@ import org.junit.Test;
 
 import com.neilalexander.jnacl.NaCl;
 
+import org.saltyrtc.client.keystore.Box;
 import org.saltyrtc.client.keystore.KeyStore;
 
 import java.nio.ByteBuffer;
@@ -34,7 +35,7 @@ public class KeyStoreBoxTest {
 
     @Test
     public void testCreationFromNonceAndData() {
-        final KeyStore.Box box = new KeyStore.Box(nonce, data);
+        final Box box = new Box(nonce, data);
         assertArrayEquals(box.getData(), data);
         assertArrayEquals(box.getNonce(), nonce);
     }
@@ -45,15 +46,15 @@ public class KeyStoreBoxTest {
         buf.put(nonce);
         buf.put(data);
         buf.flip();
-        final KeyStore.Box box = new KeyStore.Box(buf);
+        final Box box = new Box(buf, NaCl.NONCEBYTES);
         assertArrayEquals(box.getData(), data);
         assertArrayEquals(box.getNonce(), nonce);
     }
 
     @Test
     public void testGetSize() {
-        final KeyStore.Box box1 = new KeyStore.Box(nonce, data);
-        final KeyStore.Box box2 = new KeyStore.Box(nonce, new byte[] { 0x23, 0x42 });
+        final Box box1 = new Box(nonce, data);
+        final Box box2 = new Box(nonce, new byte[] { 0x23, 0x42 });
         assertEquals(box1.getSize(), nonce.length + data.length);
         assertEquals(box2.getSize(), nonce.length + 2);
 

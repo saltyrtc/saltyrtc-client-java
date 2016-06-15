@@ -121,7 +121,7 @@ public class KeyStore {
     public byte[] decrypt(Box box) throws OtherKeyMissingException, CryptoFailedException {
         byte[] data;
         try {
-            data = getNaCl().decrypt(box.data, box.nonce);
+            data = getNaCl().decrypt(box.getData(), box.getNonce());
         } catch (Error e) {
             throw new CryptoFailedException(e.toString());
         }
