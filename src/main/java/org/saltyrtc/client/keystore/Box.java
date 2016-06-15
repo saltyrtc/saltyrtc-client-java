@@ -12,7 +12,7 @@ import java.nio.ByteBuffer;
 
 
 /**
- * A NaCl box.
+ * A NaCl box. It holds encrypted data as well as the corresponding nonce.
  */
 public class Box {
     private final byte[] nonce;

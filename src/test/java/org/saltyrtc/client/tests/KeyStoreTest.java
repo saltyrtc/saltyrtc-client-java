@@ -12,14 +12,19 @@ import com.neilalexander.jnacl.NaCl;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.saltyrtc.client.exceptions.CryptoFailedException;
+import org.saltyrtc.client.keystore.Box;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
+
+import java.security.SecureRandom;
 
 import static org.junit.Assert.*;
 
 public class KeyStoreTest {
 
     private KeyStore ks;
+    private SecureRandom random = new SecureRandom();
 
     @Before
     public void setUp() throws Exception {
@@ -32,18 +37,16 @@ public class KeyStoreTest {
         assertEquals(pk.length(), 64);
     }
 
-    @Test(expected=InvalidKeyException.class)
-    public void testSetOtherKeyInvalid() throws InvalidKeyException {
-        this.ks.setOtherKey(new byte[] { 0x00, 0x01 });
-    }
-
     @Test
-    public void testSetOtherKey() throws InvalidKeyException {
-        byte[] bytes = new byte[NaCl.PUBLICKEYBYTES];
-        for (int i = 0; i < NaCl.PUBLICKEYBYTES; i++) {
-            bytes[i] = (byte)i;
-        };
-        this.ks.setOtherKey(bytes);
+    public void testEncrypt() throws CryptoFailedException, InvalidKeyException {
+        final byte[] in = "hello".getBytes();
+        final byte[] nonce = new byte[NaCl.NONCEBYTES];
+        final byte[] otherKey = new byte[NaCl.PUBLICKEYBYTES];
+        this.random.nextBytes(nonce);
+        this.random.nextBytes(otherKey);
+        final Box box = this.ks.encrypt(in, nonce, otherKey);
+        assertEquals(nonce, box.getNonce());
+        assertNotEquals(in, box.getData());
     }
 
 }
