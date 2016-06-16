@@ -23,16 +23,27 @@ public class KeyStore {
     private static final Logger LOG = org.slf4j.LoggerFactory.getLogger(KeyStore.class);
 
     // Keys
-    private final byte[] secretKey = new byte[NaCl.SECRETKEYBYTES];
-    private final byte[] publicKey = new byte[NaCl.PUBLICKEYBYTES];
+    private byte[] privateKey = new byte[NaCl.SECRETKEYBYTES];
+    private byte[] publicKey = new byte[NaCl.PUBLICKEYBYTES];
 
     /**
      * Create a new key store.
      */
     public KeyStore() {
         LOG.debug("Generating new key pair");
-        NaCl.genkeypair(this.publicKey, this.secretKey);
-        LOG.debug("Private key: " + NaCl.asHex(this.secretKey));
+        NaCl.genkeypair(this.publicKey, this.privateKey);
+        LOG.debug("Private key: " + NaCl.asHex(this.privateKey));
+        LOG.debug("Public key: " + NaCl.asHex(this.publicKey));
+    }
+
+    /**
+     * Create a new key store from an existing secret key.
+     */
+    public KeyStore(byte[] privateKey) {
+        LOG.debug("Deriving public key from private key");
+        this.privateKey = privateKey;
+        this.publicKey = NaCl.derivePublicKey(privateKey);
+        LOG.debug("Private key: " + NaCl.asHex(this.privateKey));
         LOG.debug("Public key: " + NaCl.asHex(this.publicKey));
     }
 
@@ -40,8 +51,8 @@ public class KeyStore {
         return publicKey;
     }
 
-    public byte[] getSecretKey() {
-        return secretKey;
+    public byte[] getPrivateKey() {
+        return privateKey;
     }
 
     /**
@@ -65,7 +76,7 @@ public class KeyStore {
         // Create NaCl instance
         final NaCl nacl;
         try {
-            nacl = new NaCl(this.secretKey, otherKey);
+            nacl = new NaCl(this.privateKey, otherKey);
         } catch (Error e) {
             throw new InvalidKeyException(e.toString());
         }
@@ -97,7 +108,7 @@ public class KeyStore {
         // Create NaCl instance
         final NaCl nacl;
         try {
-            nacl = new NaCl(this.secretKey, otherKey);
+            nacl = new NaCl(this.privateKey, otherKey);
         } catch (Error e) {
             throw new InvalidKeyException(e.toString());
         }
