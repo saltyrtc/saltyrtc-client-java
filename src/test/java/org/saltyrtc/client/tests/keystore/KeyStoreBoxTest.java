@@ -6,7 +6,7 @@
  * copied, modified, or distributed except according to those terms.
  */
 
-package org.saltyrtc.client.tests;
+package org.saltyrtc.client.tests.keystore;
 
 import static org.junit.Assert.*;
 

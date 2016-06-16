@@ -6,7 +6,7 @@
  * copied, modified, or distributed except according to those terms.
  */
 
-package org.saltyrtc.client.tests;
+package org.saltyrtc.client.tests.nonce;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
