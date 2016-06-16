@@ -12,6 +12,9 @@ import org.junit.Test;
 import org.saltyrtc.client.exceptions.SerializationError;
 import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.helpers.MessageReader;
+import org.saltyrtc.client.helpers.RandomHelper;
+import org.saltyrtc.client.messages.ClientAuth;
+import org.saltyrtc.client.messages.ClientHello;
 import org.saltyrtc.client.messages.Message;
 import org.saltyrtc.client.messages.ResponderServerAuth;
 import org.saltyrtc.client.messages.ServerHello;
@@ -25,9 +28,18 @@ import static org.junit.Assert.assertFalse;
 
 public class MessageTest {
 
+    /**
+     * Serialize and deserialize a message.
+     */
+    private <T extends Message> T roundTrip(T original) throws ValidationError, SerializationError {
+        final byte[] bytes = original.toBytes();
+        //noinspection unchecked
+        return (T) MessageReader.read(bytes);
+    }
+
     @Test
     public void testServerHelloRoundtrip() throws SerializationError, ValidationError {
-        final ServerHello original = new ServerHello(new byte[32]);
+        final ServerHello original = new ServerHello(RandomHelper.pseudoRandomBytes(32));
         final ServerHello returned = roundTrip(original);
         assertArrayEquals(original.getKey(), returned.getKey());
     }
@@ -44,18 +56,27 @@ public class MessageTest {
     }
 
     @Test
+    public void testClientHelloRoundtrip() throws SerializationError, ValidationError {
+        final ClientHello original = new ClientHello(RandomHelper.pseudoRandomBytes(32));
+        final ClientHello returned = roundTrip(original);
+        assertArrayEquals(original.getKey(), returned.getKey());
+    }
+
+    @Test
+    public void testClientAuthRoundtrip() throws SerializationError, ValidationError {
+        final ClientAuth original = new ClientAuth(RandomHelper.pseudoRandomBytes(16));
+        final ClientAuth returned = roundTrip(original);
+        assertArrayEquals(original.getYourCookie(), returned.getYourCookie());
+    }
+
+    @Test
     public void testResponderServerAuthRoundtrip() throws SerializationError, ValidationError {
-        final ResponderServerAuth original = new ResponderServerAuth(new byte[16], false);
+        final ResponderServerAuth original = new ResponderServerAuth(
+                RandomHelper.pseudoRandomBytes(16), false);
         final ResponderServerAuth returned = roundTrip(original);
         assertArrayEquals(original.getYourCookie(), returned.getYourCookie());
         assertFalse(original.isInitiatorConnected());
         assertFalse(returned.isInitiatorConnected());
-    }
-
-    private <T extends Message> T roundTrip(T original) throws ValidationError, SerializationError {
-        final byte[] bytes = original.toBytes();
-        //noinspection unchecked
-        return (T) MessageReader.read(bytes);
     }
 
 }

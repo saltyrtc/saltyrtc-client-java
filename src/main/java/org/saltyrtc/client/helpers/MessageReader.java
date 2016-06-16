@@ -14,6 +14,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.msgpack.jackson.dataformat.MessagePackFactory;
 import org.saltyrtc.client.exceptions.SerializationError;
 import org.saltyrtc.client.exceptions.ValidationError;
+import org.saltyrtc.client.messages.ClientAuth;
+import org.saltyrtc.client.messages.ClientHello;
 import org.saltyrtc.client.messages.Message;
 import org.saltyrtc.client.messages.ResponderServerAuth;
 import org.saltyrtc.client.messages.ServerHello;
@@ -57,6 +59,8 @@ public class MessageReader {
         switch (type) {
             case "server-hello":
                 return new ServerHello(map);
+            case "client-hello":
+                return new ClientHello(map);
             case "server-auth":
                 if (map.containsKey("initiator_connected")) {
                     return new ResponderServerAuth(map);
@@ -64,6 +68,8 @@ public class MessageReader {
                     // TODO
                     throw new UnsupportedOperationException();
                 }
+            case "client-auth":
+                return new ClientAuth(map);
             default:
                 throw new ValidationError("Unknown message type: " + type);
         }
