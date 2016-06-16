@@ -31,7 +31,7 @@ import static org.junit.Assert.assertEquals;
 @RunWith(Parameterized.class)
 public class MessageTypeTest {
 
-    @Parameterized.Parameters
+    @Parameterized.Parameters(name = "{index}: {1}")
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][] {
                 { ServerHello.class, "server-hello" },
