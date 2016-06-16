@@ -15,6 +15,8 @@ import java.util.Map;
 
 public class ServerHello extends Message {
 
+    public static String TYPE = "server-hello";
+
     private byte[] key;
 
     public ServerHello(byte[] key) {
@@ -22,7 +24,7 @@ public class ServerHello extends Message {
     }
 
     public ServerHello(Map<String, Object> map) {
-        validateType((String)map.get("type"));
+        ValidationHelper.validateType(map.get("type"), String.class, TYPE);
 
         // TODO: more validation
         this.key = (byte[])map.get("key");
@@ -30,11 +32,6 @@ public class ServerHello extends Message {
 
     public byte[] getKey() {
         return key;
-    }
-
-    @Override
-    public String getType() {
-        return "server-hello";
     }
 
     @Override

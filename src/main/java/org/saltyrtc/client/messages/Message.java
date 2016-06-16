@@ -20,20 +20,6 @@ import java.io.IOException;
 public abstract class Message {
 
     /**
-     * Return the message type as a string.
-     */
-    public abstract String getType();
-
-    /**
-     * Validate type based on the TYPE attribute.
-     */
-    protected void validateType(String type) {
-        if (!this.getType().equals(type)) {
-            throw new IllegalArgumentException("Type must be '" + this.getType() + "'");
-        }
-    }
-
-    /**
      * Write itself to the MessagePacker.
      */
     abstract void write(MessagePacker msgPacker) throws IOException;

@@ -15,6 +15,8 @@ import java.util.Map;
 
 public class ResponderServerAuth extends Message {
 
+    public static String TYPE = "server-auth";
+
     private byte[] yourCookie;
     private boolean initiatorConnected;
 
@@ -24,15 +26,11 @@ public class ResponderServerAuth extends Message {
     }
 
     public ResponderServerAuth(Map<String, Object> map) {
-        validateType((String)map.get("type"));
+        ValidationHelper.validateType(map.get("type"), String.class, TYPE);
 
         // TODO: more validation
         this.yourCookie = (byte[])map.get("your_cookie");
         this.initiatorConnected = (boolean)map.get("initiator_connected");
-    }
-
-    public String getType() {
-        return "server-auth";
     }
 
     public byte[] getYourCookie() {
