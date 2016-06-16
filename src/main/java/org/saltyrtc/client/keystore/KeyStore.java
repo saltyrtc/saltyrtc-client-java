@@ -15,7 +15,9 @@ import org.slf4j.Logger;
 import com.neilalexander.jnacl.NaCl;
 
 /**
- * Handles encrypting and decrypting messages for the peers.
+ * Handle encrypting and decrypting messages for the peers.
+ *
+ * This class uses NaCl asymmetric key encryption.
  */
 public class KeyStore {
 

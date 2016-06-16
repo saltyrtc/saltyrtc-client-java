@@ -56,6 +56,7 @@ public class KeyStoreTest {
         final byte[] nonce = {110, -111, 24, -87, 127, 91, 87, -121, 119, 13, -23, 14, -88, -12, -30, -73, -88, -112, -65, -76, -73, -11, 64, 37};
         final byte[] otherKey = {34, 81, 26, 50, -112, 8, -78, -80, 76, -66, -91, 31, 122, -98, 102, -24, -56, -40, -2, -115, -110, -23, 95, 47, 51, 25, 77, 59, 59, -11, -120, 100};
         final byte[] encrypted = {-39, -59, 107, -111, -84, 49, 71, -67, 63, -28, -94, 40, 48, 121, 68, -40, 63, 102, 9, 90, 97};
+        // Decrypt
         this.ks = new KeyStore(privateKey);
         final Box box = new Box(nonce, encrypted);
         final byte[] decrypted = this.ks.decrypt(box, otherKey);
