@@ -8,7 +8,10 @@
 
 package org.saltyrtc.client.messages;
 
+import com.neilalexander.jnacl.NaCl;
+
 import org.msgpack.core.MessagePacker;
+import org.saltyrtc.client.exceptions.ValidationError;
 
 import java.io.IOException;
 import java.util.Map;
@@ -23,11 +26,9 @@ public class ServerHello extends Message {
         this.key = key;
     }
 
-    public ServerHello(Map<String, Object> map) {
-        ValidationHelper.validateType(map.get("type"), String.class, TYPE);
-
-        // TODO: more validation
-        this.key = (byte[])map.get("key");
+    public ServerHello(Map<String, Object> map) throws ValidationError {
+        ValidationHelper.validateType(map.get("type"), TYPE);
+        this.key = ValidationHelper.validateByteArray(map.get("key"), NaCl.PUBLICKEYBYTES, "Key");
     }
 
     public byte[] getKey() {

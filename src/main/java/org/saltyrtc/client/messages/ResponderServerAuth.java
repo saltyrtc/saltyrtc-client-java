@@ -9,6 +9,7 @@
 package org.saltyrtc.client.messages;
 
 import org.msgpack.core.MessagePacker;
+import org.saltyrtc.client.exceptions.ValidationError;
 
 import java.io.IOException;
 import java.util.Map;
@@ -16,6 +17,7 @@ import java.util.Map;
 public class ResponderServerAuth extends Message {
 
     public static String TYPE = "server-auth";
+    private static int COOKIE_LENGTH = 16;
 
     private byte[] yourCookie;
     private boolean initiatorConnected;
@@ -25,12 +27,10 @@ public class ResponderServerAuth extends Message {
         this.initiatorConnected = initiatorConnected;
     }
 
-    public ResponderServerAuth(Map<String, Object> map) {
-        ValidationHelper.validateType(map.get("type"), String.class, TYPE);
-
-        // TODO: more validation
-        this.yourCookie = (byte[])map.get("your_cookie");
-        this.initiatorConnected = (boolean)map.get("initiator_connected");
+    public ResponderServerAuth(Map<String, Object> map) throws ValidationError {
+        ValidationHelper.validateType(map.get("type"), TYPE);
+        this.yourCookie = ValidationHelper.validateByteArray(map.get("your_cookie"), COOKIE_LENGTH, "your_cookie");
+        this.initiatorConnected = ValidationHelper.validateBoolean(map.get("initiator_connected"), "initiator_connected");
     }
 
     public byte[] getYourCookie() {

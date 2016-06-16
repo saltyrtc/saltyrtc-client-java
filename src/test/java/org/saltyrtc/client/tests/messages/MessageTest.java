@@ -11,6 +11,7 @@ package org.saltyrtc.client.tests.messages;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.saltyrtc.client.exceptions.SerializationError;
+import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.messages.MessageReader;
 import org.saltyrtc.client.messages.ResponderServerAuth;
 import org.saltyrtc.client.messages.ServerHello;
@@ -26,8 +27,8 @@ import static org.junit.Assert.assertFalse;
 public class MessageTest {
 
     @Test
-    public void testServerHelloSerializationRoundtrip() throws SerializationError {
-        final ServerHello out = new ServerHello(new byte[] { 0x01, 0x02, 0x03, 0x04 });
+    public void testServerHelloSerializationRoundtrip() throws SerializationError, ValidationError {
+        final ServerHello out = new ServerHello(new byte[32]);
         final byte[] bytes = out.toBytes();
         final ServerHello in = (ServerHello) MessageReader.read(bytes);
         assertArrayEquals(out.getKey(), in.getKey());
@@ -39,15 +40,14 @@ public class MessageTest {
         map.put("type", "client-hello");
         try {
             new ServerHello(map);
-        } catch (IllegalArgumentException e) {
+        } catch (ValidationError e) {
             assertEquals("Type must be 'server-hello'", e.getMessage());
         }
     }
 
     @Test
-    public void testResponderServerAuthSerializationRoundtrip() throws SerializationError {
-        final ResponderServerAuth out = new ResponderServerAuth(
-                new byte[] { 0x01, 0x02, 0x03, 0x04 }, false);
+    public void testResponderServerAuthSerializationRoundtrip() throws SerializationError, ValidationError {
+        final ResponderServerAuth out = new ResponderServerAuth(new byte[16], false);
         final byte[] bytes = out.toBytes();
         final ResponderServerAuth in = (ResponderServerAuth) MessageReader.read(bytes);
         assertArrayEquals(out.getYourCookie(), in.getYourCookie());

@@ -12,30 +12,27 @@ import org.junit.Test;
 import org.msgpack.core.MessageBufferPacker;
 import org.msgpack.core.MessagePack;
 import org.saltyrtc.client.exceptions.SerializationError;
+import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.messages.MessageReader;
-import org.saltyrtc.client.messages.ResponderServerAuth;
-import org.saltyrtc.client.messages.ServerHello;
 
 import java.io.IOException;
 
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 
 public class MessageReaderTest {
 
     @Test(expected=SerializationError.class)
-    public void testEmptyBytes() throws SerializationError {
+    public void testEmptyBytes() throws SerializationError, ValidationError {
         MessageReader.read(new byte[] { });
     }
 
     @Test(expected=SerializationError.class)
-    public void testInvalidBytes() throws SerializationError {
+    public void testInvalidBytes() throws SerializationError, ValidationError {
         MessageReader.read(new byte[] { 0x01 });
     }
 
     @Test
-    public void testEmptyDict() {
+    public void testEmptyDict() throws ValidationError {
         try {
             MessageReader.read(new byte[]{(byte) (0x80 & 0xf0)});
         } catch (SerializationError e) {
@@ -44,18 +41,18 @@ public class MessageReaderTest {
     }
 
     @Test
-    public void testUnknownType() throws IOException {
+    public void testUnknownType() throws IOException, SerializationError {
         MessageBufferPacker packer = new MessagePack.PackerConfig().newBufferPacker();
         packer.packMapHeader(1).packString("type").packString("hack-the-planet");
         try {
             MessageReader.read(packer.toByteArray());
-        } catch (SerializationError e) {
+        } catch (ValidationError e) {
             assertEquals("Unknown message type: hack-the-planet", e.getMessage());
         }
     }
 
     @Test
-    public void testInvalidType() throws IOException {
+    public void testInvalidType() throws IOException, ValidationError {
         MessageBufferPacker packer = new MessagePack.PackerConfig().newBufferPacker();
         packer.packMapHeader(1).packString("type").packInt(1);
         try {

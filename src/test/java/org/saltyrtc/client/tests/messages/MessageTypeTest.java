@@ -11,6 +11,7 @@ package org.saltyrtc.client.tests.messages;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.messages.ResponderServerAuth;
 import org.saltyrtc.client.messages.ServerHello;
 
@@ -62,7 +63,7 @@ public class MessageTypeTest {
         } catch (InvocationTargetException e) {
             // Because of the use of reflection, the IllegalArgumentException we want
             // is wrapped inside an InvocationTargetException.
-            assertEquals(IllegalArgumentException.class, e.getCause().getClass());
+            assertEquals(ValidationError.class, e.getCause().getClass());
             assertEquals("Type must be '" + this.type + "'", e.getCause().getMessage());
         }
     }

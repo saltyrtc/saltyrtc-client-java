@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.msgpack.jackson.dataformat.MessagePackFactory;
 import org.saltyrtc.client.exceptions.SerializationError;
+import org.saltyrtc.client.exceptions.ValidationError;
 
 import java.io.IOException;
 import java.util.Map;
@@ -27,10 +28,9 @@ public class MessageReader {
      * @param bytes Messagepack bytes.
      * @return Message subclass instance.
      * @throws SerializationError Thrown if deserialization fails.
-     * @throws IllegalArgumentException Thrown if type field is not present,
-     *  is not a string or contains an unknown type.
+     * @throws ValidationError Thrown if message can be deserialized but is invalid.
      */
-    public static Message read(byte[] bytes) throws SerializationError {
+    public static Message read(byte[] bytes) throws SerializationError, ValidationError {
         // Unpack data into map
         ObjectMapper objectMapper = new ObjectMapper(new MessagePackFactory());
         Map<String, Object> map = null;
@@ -62,7 +62,7 @@ public class MessageReader {
                     throw new UnsupportedOperationException();
                 }
             default:
-                throw new SerializationError("Unknown message type: " + type);
+                throw new ValidationError("Unknown message type: " + type);
         }
     }
 }
