@@ -12,6 +12,7 @@ import org.junit.Test;
 import org.saltyrtc.client.exceptions.SerializationError;
 import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.helpers.MessageReader;
+import org.saltyrtc.client.messages.Message;
 import org.saltyrtc.client.messages.ResponderServerAuth;
 import org.saltyrtc.client.messages.ServerHello;
 
@@ -25,11 +26,10 @@ import static org.junit.Assert.assertFalse;
 public class MessageTest {
 
     @Test
-    public void testServerHelloSerializationRoundtrip() throws SerializationError, ValidationError {
-        final ServerHello out = new ServerHello(new byte[32]);
-        final byte[] bytes = out.toBytes();
-        final ServerHello in = (ServerHello) MessageReader.read(bytes);
-        assertArrayEquals(out.getKey(), in.getKey());
+    public void testServerHelloRoundtrip() throws SerializationError, ValidationError {
+        final ServerHello original = new ServerHello(new byte[32]);
+        final ServerHello returned = roundTrip(original);
+        assertArrayEquals(original.getKey(), returned.getKey());
     }
 
     @Test
@@ -44,13 +44,18 @@ public class MessageTest {
     }
 
     @Test
-    public void testResponderServerAuthSerializationRoundtrip() throws SerializationError, ValidationError {
-        final ResponderServerAuth out = new ResponderServerAuth(new byte[16], false);
-        final byte[] bytes = out.toBytes();
-        final ResponderServerAuth in = (ResponderServerAuth) MessageReader.read(bytes);
-        assertArrayEquals(out.getYourCookie(), in.getYourCookie());
-        assertFalse(in.isInitiatorConnected());
-        assertFalse(out.isInitiatorConnected());
+    public void testResponderServerAuthRoundtrip() throws SerializationError, ValidationError {
+        final ResponderServerAuth original = new ResponderServerAuth(new byte[16], false);
+        final ResponderServerAuth returned = roundTrip(original);
+        assertArrayEquals(original.getYourCookie(), returned.getYourCookie());
+        assertFalse(original.isInitiatorConnected());
+        assertFalse(returned.isInitiatorConnected());
+    }
+
+    private <T extends Message> T roundTrip(T original) throws ValidationError, SerializationError {
+        final byte[] bytes = original.toBytes();
+        //noinspection unchecked
+        return (T) MessageReader.read(bytes);
     }
 
 }
