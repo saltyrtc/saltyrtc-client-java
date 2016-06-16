@@ -6,7 +6,7 @@
  * copied, modified, or distributed except according to those terms.
  */
 
-package org.saltyrtc.client.messages;
+package org.saltyrtc.client.helpers;
 
 import org.saltyrtc.client.exceptions.ValidationError;
 

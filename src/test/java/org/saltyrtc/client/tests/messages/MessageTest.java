@@ -9,14 +9,12 @@
 package org.saltyrtc.client.tests.messages;
 
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.saltyrtc.client.exceptions.SerializationError;
 import org.saltyrtc.client.exceptions.ValidationError;
-import org.saltyrtc.client.messages.MessageReader;
+import org.saltyrtc.client.helpers.MessageReader;
 import org.saltyrtc.client.messages.ResponderServerAuth;
 import org.saltyrtc.client.messages.ServerHello;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 

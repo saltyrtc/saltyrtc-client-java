@@ -13,7 +13,7 @@ import org.msgpack.core.MessageBufferPacker;
 import org.msgpack.core.MessagePack;
 import org.saltyrtc.client.exceptions.SerializationError;
 import org.saltyrtc.client.exceptions.ValidationError;
-import org.saltyrtc.client.messages.MessageReader;
+import org.saltyrtc.client.helpers.MessageReader;
 
 import java.io.IOException;
 

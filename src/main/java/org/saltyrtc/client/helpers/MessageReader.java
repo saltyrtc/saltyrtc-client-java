@@ -6,7 +6,7 @@
  * copied, modified, or distributed except according to those terms.
  */
 
-package org.saltyrtc.client.messages;
+package org.saltyrtc.client.helpers;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,6 +14,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.msgpack.jackson.dataformat.MessagePackFactory;
 import org.saltyrtc.client.exceptions.SerializationError;
 import org.saltyrtc.client.exceptions.ValidationError;
+import org.saltyrtc.client.messages.Message;
+import org.saltyrtc.client.messages.ResponderServerAuth;
+import org.saltyrtc.client.messages.ServerHello;
 
 import java.io.IOException;
 import java.util.Map;

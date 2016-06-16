@@ -10,6 +10,7 @@ package org.saltyrtc.client.messages;
 
 import org.msgpack.core.MessagePacker;
 import org.saltyrtc.client.exceptions.ValidationError;
+import org.saltyrtc.client.helpers.ValidationHelper;
 
 import java.io.IOException;
 import java.util.Map;

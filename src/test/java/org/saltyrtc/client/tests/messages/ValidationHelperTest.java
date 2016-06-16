@@ -10,7 +10,7 @@ package org.saltyrtc.client.tests.messages;
 
 import org.junit.Test;
 import org.saltyrtc.client.exceptions.ValidationError;
-import org.saltyrtc.client.messages.ValidationHelper;
+import org.saltyrtc.client.helpers.ValidationHelper;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
