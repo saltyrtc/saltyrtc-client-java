@@ -6,7 +6,7 @@
  * copied, modified, or distributed except according to those terms.
  */
 
-package org.saltyrtc.client.tests.messages;
+package org.saltyrtc.client.tests.helpers;
 
 import org.junit.Test;
 import org.msgpack.core.MessageBufferPacker;
