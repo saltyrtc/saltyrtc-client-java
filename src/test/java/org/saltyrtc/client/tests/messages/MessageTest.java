@@ -15,6 +15,7 @@ import org.saltyrtc.client.helpers.MessageReader;
 import org.saltyrtc.client.helpers.RandomHelper;
 import org.saltyrtc.client.messages.ClientAuth;
 import org.saltyrtc.client.messages.ClientHello;
+import org.saltyrtc.client.messages.DropResponder;
 import org.saltyrtc.client.messages.InitiatorServerAuth;
 import org.saltyrtc.client.messages.Message;
 import org.saltyrtc.client.messages.NewInitiator;
@@ -111,6 +112,24 @@ public class MessageTest {
     @Test
     public void testNewResponderValidation() throws SerializationError, ValidationError {
         final NewResponder original = new NewResponder(0xff + 1);
+        try {
+            roundTrip(original);
+            fail("No ValidationError thrown");
+        } catch (ValidationError e) {
+            assertEquals("id must be < 255", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testDropResponderRoundtrip() throws SerializationError, ValidationError {
+        final DropResponder original = new DropResponder(42);
+        final DropResponder returned = roundTrip(original);
+        assertEquals(original.getId(), returned.getId());
+    }
+
+    @Test
+    public void testDropResponderValidation() throws SerializationError, ValidationError {
+        final DropResponder original = new DropResponder(0xff + 1);
         try {
             roundTrip(original);
             fail("No ValidationError thrown");

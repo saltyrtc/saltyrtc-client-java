@@ -14,6 +14,7 @@ import org.junit.runners.Parameterized;
 import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.messages.ClientAuth;
 import org.saltyrtc.client.messages.ClientHello;
+import org.saltyrtc.client.messages.DropResponder;
 import org.saltyrtc.client.messages.InitiatorServerAuth;
 import org.saltyrtc.client.messages.NewInitiator;
 import org.saltyrtc.client.messages.NewResponder;
@@ -46,6 +47,7 @@ public class MessageTypeTest {
                 { ResponderServerAuth.class, "server-auth" },
                 { NewInitiator.class, "new-initiator" },
                 { NewResponder.class, "new-responder" },
+                { DropResponder.class, "drop-responder" },
                 { Restart.class, "restart" }
         });
     }

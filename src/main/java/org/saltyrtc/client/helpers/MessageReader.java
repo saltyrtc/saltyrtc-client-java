@@ -16,6 +16,7 @@ import org.saltyrtc.client.exceptions.SerializationError;
 import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.messages.ClientAuth;
 import org.saltyrtc.client.messages.ClientHello;
+import org.saltyrtc.client.messages.DropResponder;
 import org.saltyrtc.client.messages.InitiatorServerAuth;
 import org.saltyrtc.client.messages.Message;
 import org.saltyrtc.client.messages.NewInitiator;
@@ -77,6 +78,8 @@ public class MessageReader {
                 return new NewInitiator(map);
             case "new-responder":
                 return new NewResponder(map);
+            case "drop-responder":
+                return new DropResponder(map);
             case "restart":
                 return new Restart(map);
             default:
