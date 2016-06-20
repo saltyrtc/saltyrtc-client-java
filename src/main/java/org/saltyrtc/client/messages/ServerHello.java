@@ -40,7 +40,7 @@ public class ServerHello extends Message {
     public void write(MessagePacker packer) throws IOException {
         packer.packMapHeader(2)
                 .packString("type")
-                    .packString("server-hello")
+                    .packString(TYPE)
                 .packString("key")
                     .packBinaryHeader(this.key.length)
                     .writePayload(this.key);

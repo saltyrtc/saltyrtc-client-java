@@ -47,7 +47,7 @@ public class InitiatorServerAuth extends Message {
     public void write(MessagePacker packer) throws IOException {
         packer.packMapHeader(3)
                 .packString("type")
-                    .packString("server-auth")
+                    .packString(TYPE)
                 .packString("your_cookie")
                     .packBinaryHeader(this.yourCookie.length)
                     .writePayload(this.yourCookie)
