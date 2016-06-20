@@ -8,14 +8,20 @@
 
 package org.saltyrtc.client.signaling;
 
+import org.java_websocket.WebSocketImpl;
 import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.cookie.CookiePair;
+import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.keystore.AuthToken;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.nonce.CombinedSequence;
 import org.saltyrtc.client.signaling.state.SignalingState;
 import org.slf4j.Logger;
 import org.webrtc.DataChannel;
+
+import java.net.URI;
+import java.util.concurrent.Callable;
+import java.util.concurrent.FutureTask;
 
 import javax.net.ssl.SSLContext;
 
@@ -72,5 +78,39 @@ public abstract class Signaling {
 
     public byte[] getAuthToken() {
         return this.authToken.getAuthToken();
+    }
+
+    /**
+     * Connect to the SaltyRTC server.
+     */
+    public FutureTask<Void> connect() {
+        return new FutureTask<>(
+            new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    initWebsocket();
+                    final boolean connected = Signaling.this.ws.connectBlocking();
+                    if (!connected) {
+                        Signaling.this.getLogger().error("Connecting to server failed");
+                        throw new ConnectionException("Connecting to server failed");
+                    }
+                    return null;
+                }
+            }
+        );
+    }
+
+    private void initWebsocket() {
+        final String baseUrl = this.protocol + "://" + this.host + ":" + this.port + "/";
+        final String path = this.permanentKey.getPublicKeyHex();
+        final URI uri = URI.create(baseUrl + path);
+        WebSocketImpl.DEBUG = this.saltyRTC.getDebug();
+        this.ws = new WsClient(uri, this);
+
+        final String STORETYPE = "JKS";
+        final String KEYSTORE = "keystore.jks";
+        final String STOREPASSWORD = "storepassword";
+        final String KEYPASSWORD = "keypassword";
+
     }
 }

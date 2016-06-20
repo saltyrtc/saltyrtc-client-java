@@ -18,13 +18,15 @@ import java.nio.ByteBuffer;
 
 public class WsClient extends WebSocketClient {
 
-    public boolean DEBUG = true;
-
     // Logger
     private static final Logger LOG = org.slf4j.LoggerFactory.getLogger(WsClient.class);
 
-    public WsClient(URI serverURI) {
+    // Reference to signaling class
+    private Signaling signaling;
+
+    public WsClient(URI serverURI, Signaling signaling) {
         super(serverURI, new Draft_17());
+        this.signaling = signaling;
     }
 
     @Override

@@ -9,6 +9,7 @@
 package org.saltyrtc.client.signaling;
 
 import org.saltyrtc.client.SaltyRTC;
+import org.saltyrtc.client.keystore.AuthToken;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.slf4j.Logger;
 
@@ -33,5 +34,6 @@ public class InitiatorSignaling extends Signaling {
     public InitiatorSignaling(SaltyRTC saltyRTC, String host, int port,
                               KeyStore permanentKey, SSLContext sslContext) {
         super(saltyRTC, host, port, permanentKey, sslContext);
+        this.authToken = new AuthToken();
     }
 }

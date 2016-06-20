@@ -15,6 +15,8 @@ import org.saltyrtc.client.signaling.Signaling;
 import org.saltyrtc.client.signaling.state.SignalingState;
 import org.slf4j.Logger;
 
+import java.util.concurrent.FutureTask;
+
 import javax.net.ssl.SSLContext;
 
 /**
@@ -23,6 +25,8 @@ import javax.net.ssl.SSLContext;
 public class SaltyRTC {
 
     private static final Logger LOG = org.slf4j.LoggerFactory.getLogger(SaltyRTC.class);
+
+    protected boolean debug = false;
 
     protected Signaling signaling;
 
@@ -71,5 +75,20 @@ public class SaltyRTC {
 
     public SignalingState getSignalingState() {
         return this.signaling.state;
+    }
+
+    /**
+     * Connect to the SaltyRTC server.
+     */
+    public FutureTask<Void> connect() {
+        return this.signaling.connect();
+    }
+
+    public void setDebug(boolean debug) {
+        this.debug = debug;
+    }
+
+    public boolean getDebug() {
+        return debug;
     }
 }
