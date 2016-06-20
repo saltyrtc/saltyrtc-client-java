@@ -12,6 +12,7 @@ import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.signaling.InitiatorSignaling;
 import org.saltyrtc.client.signaling.ResponderSignaling;
 import org.saltyrtc.client.signaling.Signaling;
+import org.saltyrtc.client.signaling.state.SignalingState;
 import org.slf4j.Logger;
 
 /**
@@ -64,5 +65,9 @@ public class SaltyRTC {
 
     public byte[] getAuthToken() {
         return this.signaling.getAuthToken();
+    }
+
+    public SignalingState getSignalingState() {
+        return this.signaling.state;
     }
 }
