@@ -6,14 +6,11 @@
  * copied, modified, or distributed except according to those terms.
  */
 
-package org.saltyrtc.client.signaling;
+package org.saltyrtc.client.signaling.state;
 
-public enum SignalingState {
-    New,
-    WsConnecting,
-    ServerHandshake,
-    PeerHandshake,
-    Open,
-    Closing,
-    Closed,
+public enum InitiatorHandshakeState {
+    NEW,
+    TOKEN_SENT,
+    KEY_SENT,
+    AUTH_RECEIVED,
 }
