@@ -18,8 +18,8 @@ public class Initiator extends Peer {
 
     public InitiatorHandshakeState handshakeState;
 
-    public Initiator() {
-        super();
+    public Initiator(byte[] permanentKey) {
+        super(permanentKey);
         this.connected = false;
         this.handshakeState = InitiatorHandshakeState.NEW;
     }

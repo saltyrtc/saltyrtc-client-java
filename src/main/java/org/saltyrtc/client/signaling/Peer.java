@@ -11,6 +11,11 @@ public abstract class Peer {
         this.csn = new CombinedSequence();
     }
 
+    public Peer(byte[] permanentKey) {
+        this();
+        this.permanentKey = permanentKey;
+    }
+
     public byte[] getPermanentKey() {
         return permanentKey;
     }
