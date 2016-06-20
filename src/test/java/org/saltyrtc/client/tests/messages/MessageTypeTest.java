@@ -12,15 +12,19 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.saltyrtc.client.exceptions.ValidationError;
+import org.saltyrtc.client.messages.Auth;
 import org.saltyrtc.client.messages.ClientAuth;
 import org.saltyrtc.client.messages.ClientHello;
 import org.saltyrtc.client.messages.DropResponder;
 import org.saltyrtc.client.messages.InitiatorServerAuth;
+import org.saltyrtc.client.messages.Key;
 import org.saltyrtc.client.messages.NewInitiator;
 import org.saltyrtc.client.messages.NewResponder;
 import org.saltyrtc.client.messages.ResponderServerAuth;
 import org.saltyrtc.client.messages.Restart;
+import org.saltyrtc.client.messages.SendError;
 import org.saltyrtc.client.messages.ServerHello;
+import org.saltyrtc.client.messages.Token;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -48,6 +52,10 @@ public class MessageTypeTest {
                 { NewInitiator.class, "new-initiator" },
                 { NewResponder.class, "new-responder" },
                 { DropResponder.class, "drop-responder" },
+                { SendError.class, "send-error" },
+                { Token.class, "token" },
+                { Key.class, "key" },
+                { Auth.class, "auth" },
                 { Restart.class, "restart" }
         });
     }

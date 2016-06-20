@@ -14,16 +14,20 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.msgpack.jackson.dataformat.MessagePackFactory;
 import org.saltyrtc.client.exceptions.SerializationError;
 import org.saltyrtc.client.exceptions.ValidationError;
+import org.saltyrtc.client.messages.Auth;
 import org.saltyrtc.client.messages.ClientAuth;
 import org.saltyrtc.client.messages.ClientHello;
 import org.saltyrtc.client.messages.DropResponder;
 import org.saltyrtc.client.messages.InitiatorServerAuth;
+import org.saltyrtc.client.messages.Key;
 import org.saltyrtc.client.messages.Message;
 import org.saltyrtc.client.messages.NewInitiator;
 import org.saltyrtc.client.messages.NewResponder;
 import org.saltyrtc.client.messages.ResponderServerAuth;
 import org.saltyrtc.client.messages.Restart;
+import org.saltyrtc.client.messages.SendError;
 import org.saltyrtc.client.messages.ServerHello;
+import org.saltyrtc.client.messages.Token;
 
 import java.io.IOException;
 import java.util.Map;
@@ -80,6 +84,14 @@ public class MessageReader {
                 return new NewResponder(map);
             case "drop-responder":
                 return new DropResponder(map);
+            case "send-error":
+                return new SendError(map);
+            case "token":
+                return new Token(map);
+            case "key":
+                return new Key(map);
+            case "auth":
+                return new Auth(map);
             case "restart":
                 return new Restart(map);
             default:

@@ -13,16 +13,20 @@ import org.saltyrtc.client.exceptions.SerializationError;
 import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.helpers.MessageReader;
 import org.saltyrtc.client.helpers.RandomHelper;
+import org.saltyrtc.client.messages.Auth;
 import org.saltyrtc.client.messages.ClientAuth;
 import org.saltyrtc.client.messages.ClientHello;
 import org.saltyrtc.client.messages.DropResponder;
 import org.saltyrtc.client.messages.InitiatorServerAuth;
+import org.saltyrtc.client.messages.Key;
 import org.saltyrtc.client.messages.Message;
 import org.saltyrtc.client.messages.NewInitiator;
 import org.saltyrtc.client.messages.NewResponder;
 import org.saltyrtc.client.messages.ResponderServerAuth;
 import org.saltyrtc.client.messages.Restart;
+import org.saltyrtc.client.messages.SendError;
 import org.saltyrtc.client.messages.ServerHello;
+import org.saltyrtc.client.messages.Token;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -136,6 +140,34 @@ public class MessageTest {
         } catch (ValidationError e) {
             assertEquals("id must be < 255", e.getMessage());
         }
+    }
+
+    @Test
+    public void testSendErrorRoundtrip() throws SerializationError, ValidationError {
+        final SendError original = new SendError(RandomHelper.pseudoRandomBytes(32));
+        final SendError returned = roundTrip(original);
+        assertArrayEquals(original.getHash(), returned.getHash());
+    }
+
+    @Test
+    public void testTokenRoundtrip() throws SerializationError, ValidationError {
+        final Token original = new Token(RandomHelper.pseudoRandomBytes(32));
+        final Token returned = roundTrip(original);
+        assertArrayEquals(original.getKey(), returned.getKey());
+    }
+
+    @Test
+    public void testKeyRoundtrip() throws SerializationError, ValidationError {
+        final Key original = new Key(RandomHelper.pseudoRandomBytes(32));
+        final Key returned = roundTrip(original);
+        assertArrayEquals(original.getKey(), returned.getKey());
+    }
+
+    @Test
+    public void testAuthRoundtrip() throws SerializationError, ValidationError {
+        final Auth original = new Auth(RandomHelper.pseudoRandomBytes(32));
+        final Auth returned = roundTrip(original);
+        assertArrayEquals(original.getYourCookie(), returned.getYourCookie());
     }
 
     @Test
