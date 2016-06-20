@@ -15,6 +15,8 @@ import org.slf4j.Logger;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.net.ssl.SSLContext;
+
 public class InitiatorSignaling extends Signaling {
 
     // Logging
@@ -28,7 +30,8 @@ public class InitiatorSignaling extends Signaling {
     // Once the handshake is done, this is the chosen responder
     private Responder responder;
 
-    public InitiatorSignaling(SaltyRTC saltyRTC, String host, int port, KeyStore permanentKey) {
-        super(saltyRTC, host, port, permanentKey);
+    public InitiatorSignaling(SaltyRTC saltyRTC, String host, int port,
+                              KeyStore permanentKey, SSLContext sslContext) {
+        super(saltyRTC, host, port, permanentKey, sslContext);
     }
 }

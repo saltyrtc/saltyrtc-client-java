@@ -15,6 +15,8 @@ import org.saltyrtc.client.signaling.Signaling;
 import org.saltyrtc.client.signaling.state.SignalingState;
 import org.slf4j.Logger;
 
+import javax.net.ssl.SSLContext;
+
 /**
  * The main class used to create a P2P connection through a SaltyRTC signaling server.
  */
@@ -31,9 +33,9 @@ public class SaltyRTC {
      * @param host The SaltyRTC server host.
      * @param port The SaltyRTC server port.
      */
-    public SaltyRTC(KeyStore permanentKey, String host, int port) {
+    public SaltyRTC(KeyStore permanentKey, String host, int port, SSLContext sslContext) {
         validateHost(host);
-        this.signaling = new InitiatorSignaling(this, host, port, permanentKey);
+        this.signaling = new InitiatorSignaling(this, host, port, permanentKey, sslContext);
     }
 
     /**
@@ -43,11 +45,11 @@ public class SaltyRTC {
      * @param host The SaltyRTC server host.
      * @param port The SaltyRTC server port.
      */
-    public SaltyRTC(KeyStore permanentKey, String host, int port,
+    public SaltyRTC(KeyStore permanentKey, String host, int port, SSLContext sslContext,
                     byte[] initiatorPublicKey, byte[] authToken) {
         validateHost(host);
         this.signaling = new ResponderSignaling(
-                this, host, port, permanentKey, initiatorPublicKey, authToken);
+                this, host, port, permanentKey, sslContext, initiatorPublicKey, authToken);
     }
 
     private void validateHost(String host) {

@@ -12,6 +12,8 @@ import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.slf4j.Logger;
 
+import javax.net.ssl.SSLContext;
+
 public class ResponderSignaling extends Signaling {
 
     // Logging
@@ -22,9 +24,10 @@ public class ResponderSignaling extends Signaling {
     private Initiator initiator;
     private byte[] authToken;
 
-    public ResponderSignaling(SaltyRTC saltyRTC, String host, int port, KeyStore permanentKey,
+    public ResponderSignaling(SaltyRTC saltyRTC, String host, int port,
+                              KeyStore permanentKey, SSLContext sslContext,
                               byte[] initiatorPublicKey, byte[] authToken) {
-        super(saltyRTC, host, port, permanentKey);
+        super(saltyRTC, host, port, permanentKey, sslContext);
         this.initiator = new Initiator(initiatorPublicKey);
         this.authToken = authToken;
     }

@@ -17,6 +17,8 @@ import org.saltyrtc.client.signaling.state.SignalingState;
 import org.slf4j.Logger;
 import org.webrtc.DataChannel;
 
+import javax.net.ssl.SSLContext;
+
 public abstract class Signaling {
 
     protected static String SALTYRTC_WS_SUBPROTOCOL = "saltyrtc-1.0";
@@ -32,6 +34,7 @@ public abstract class Signaling {
     protected int port;
     protected String protocol = "wss";
     protected WsClient ws;
+    protected SSLContext sslContext;
 
     // WebRTC / ORTC
     protected DataChannel dc;
@@ -54,11 +57,13 @@ public abstract class Signaling {
     protected CookiePair cookiePair;
     protected CombinedSequence serverCsn = new CombinedSequence();
 
-    public Signaling(SaltyRTC saltyRTC, String host, int port, KeyStore permanentKey) {
+    public Signaling(SaltyRTC saltyRTC, String host, int port,
+                     KeyStore permanentKey, SSLContext sslContext) {
         this.saltyRTC = saltyRTC;
         this.host = host;
         this.port = port;
         this.permanentKey = permanentKey;
+        this.sslContext = sslContext;
     }
 
     public byte[] getPublicPermanentKey() {
