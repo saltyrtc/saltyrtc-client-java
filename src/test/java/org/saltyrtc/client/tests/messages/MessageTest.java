@@ -18,6 +18,7 @@ import org.saltyrtc.client.messages.ClientHello;
 import org.saltyrtc.client.messages.InitiatorServerAuth;
 import org.saltyrtc.client.messages.Message;
 import org.saltyrtc.client.messages.NewInitiator;
+import org.saltyrtc.client.messages.NewResponder;
 import org.saltyrtc.client.messages.ResponderServerAuth;
 import org.saltyrtc.client.messages.Restart;
 import org.saltyrtc.client.messages.ServerHello;
@@ -29,6 +30,7 @@ import static java.util.Arrays.asList;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
 
 public class MessageTest {
 
@@ -97,6 +99,24 @@ public class MessageTest {
         final NewInitiator original = new NewInitiator();
         // There are no real fields in this message, so let's just ensure that there are no exceptions
         roundTrip(original);
+    }
+
+    @Test
+    public void testNewResponderRoundtrip() throws SerializationError, ValidationError {
+        final NewResponder original = new NewResponder(42);
+        final NewResponder returned = roundTrip(original);
+        assertEquals(original.getId(), returned.getId());
+    }
+
+    @Test
+    public void testNewResponderValidation() throws SerializationError, ValidationError {
+        final NewResponder original = new NewResponder(0xff + 1);
+        try {
+            roundTrip(original);
+            fail("No ValidationError thrown");
+        } catch (ValidationError e) {
+            assertEquals("id must be < 255", e.getMessage());
+        }
     }
 
     @Test

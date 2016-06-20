@@ -16,6 +16,7 @@ import org.saltyrtc.client.messages.ClientAuth;
 import org.saltyrtc.client.messages.ClientHello;
 import org.saltyrtc.client.messages.InitiatorServerAuth;
 import org.saltyrtc.client.messages.NewInitiator;
+import org.saltyrtc.client.messages.NewResponder;
 import org.saltyrtc.client.messages.ResponderServerAuth;
 import org.saltyrtc.client.messages.Restart;
 import org.saltyrtc.client.messages.ServerHello;
@@ -44,6 +45,7 @@ public class MessageTypeTest {
                 { InitiatorServerAuth.class, "server-auth" },
                 { ResponderServerAuth.class, "server-auth" },
                 { NewInitiator.class, "new-initiator" },
+                { NewResponder.class, "new-responder" },
                 { Restart.class, "restart" }
         });
     }

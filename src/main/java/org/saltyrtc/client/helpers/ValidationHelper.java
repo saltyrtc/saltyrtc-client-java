@@ -73,4 +73,18 @@ public class ValidationHelper {
         }
         return (Boolean) value;
     }
+
+    public static Integer validateInteger(Object value, int min, int max, String name) throws ValidationError {
+        if (!(value instanceof Integer)) {
+            throw new ValidationError(name + " must be an Integer");
+        }
+        final Integer number = (Integer) value;
+        if (number < min) {
+            throw new ValidationError(name + " must be > " + min);
+        }
+        if (number > max) {
+            throw new ValidationError(name + " must be < " + max);
+        }
+        return number;
+    }
 }

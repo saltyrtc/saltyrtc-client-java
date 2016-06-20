@@ -19,6 +19,7 @@ import org.saltyrtc.client.messages.ClientHello;
 import org.saltyrtc.client.messages.InitiatorServerAuth;
 import org.saltyrtc.client.messages.Message;
 import org.saltyrtc.client.messages.NewInitiator;
+import org.saltyrtc.client.messages.NewResponder;
 import org.saltyrtc.client.messages.ResponderServerAuth;
 import org.saltyrtc.client.messages.Restart;
 import org.saltyrtc.client.messages.ServerHello;
@@ -74,6 +75,8 @@ public class MessageReader {
                 return new ClientAuth(map);
             case "new-initiator":
                 return new NewInitiator(map);
+            case "new-responder":
+                return new NewResponder(map);
             case "restart":
                 return new Restart(map);
             default:

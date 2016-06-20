@@ -137,4 +137,41 @@ public class ValidationHelperTest {
         }
     }
 
+    @Test
+    public void testValidateInteger() throws ValidationError {
+        Object value = 42;
+        final Integer validated = ValidationHelper.validateInteger(value, 0, 100, "Number");
+        assertEquals(Integer.valueOf(42), validated);
+    }
+
+    @Test
+    public void testValidateIntegerTypeFails() {
+        try {
+            ValidationHelper.validateInteger("yo", 0, 100, "Number");
+            fail("No ValidationError thrown");
+        } catch (ValidationError e) {
+            assertEquals("Number must be an Integer", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testValidateIntegerRangeMinFails() {
+        try {
+            ValidationHelper.validateInteger(3, 5, 7, "Number");
+            fail("No ValidationError thrown");
+        } catch (ValidationError e) {
+            assertEquals("Number must be > 5", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testValidateIntegerRangeMaxFails() {
+        try {
+            ValidationHelper.validateInteger(8, 5, 7, "Number");
+            fail("No ValidationError thrown");
+        } catch (ValidationError e) {
+            assertEquals("Number must be < 7", e.getMessage());
+        }
+    }
+
 }
