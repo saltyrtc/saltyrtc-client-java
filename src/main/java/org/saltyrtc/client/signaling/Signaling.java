@@ -60,4 +60,12 @@ public abstract class Signaling {
         this.port = port;
         this.permanentKey = permanentKey;
     }
+
+    public byte[] getPublicPermanentKey() {
+        return this.permanentKey.getPublicKey();
+    }
+
+    public byte[] getAuthToken() {
+        return this.authToken.getAuthToken();
+    }
 }

@@ -57,4 +57,12 @@ public class SaltyRTC {
             throw new IllegalArgumentException("SaltyRTC host should not contain protocol");
         }
     }
+
+    public byte[] getPublicPermanentKey() {
+        return this.signaling.getPublicPermanentKey();
+    }
+
+    public byte[] getAuthToken() {
+        return this.signaling.getAuthToken();
+    }
 }
