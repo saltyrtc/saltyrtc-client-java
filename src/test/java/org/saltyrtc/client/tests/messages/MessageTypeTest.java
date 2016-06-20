@@ -15,7 +15,9 @@ import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.messages.ClientAuth;
 import org.saltyrtc.client.messages.ClientHello;
 import org.saltyrtc.client.messages.InitiatorServerAuth;
+import org.saltyrtc.client.messages.NewInitiator;
 import org.saltyrtc.client.messages.ResponderServerAuth;
+import org.saltyrtc.client.messages.Restart;
 import org.saltyrtc.client.messages.ServerHello;
 
 import java.lang.reflect.Constructor;
@@ -40,7 +42,9 @@ public class MessageTypeTest {
                 { ClientHello.class, "client-hello" },
                 { ClientAuth.class, "client-auth" },
                 { InitiatorServerAuth.class, "server-auth" },
-                { ResponderServerAuth.class, "server-auth" }
+                { ResponderServerAuth.class, "server-auth" },
+                { NewInitiator.class, "new-initiator" },
+                { Restart.class, "restart" }
         });
     }
 

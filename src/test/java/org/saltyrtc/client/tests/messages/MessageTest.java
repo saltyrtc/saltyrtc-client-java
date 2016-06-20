@@ -17,7 +17,9 @@ import org.saltyrtc.client.messages.ClientAuth;
 import org.saltyrtc.client.messages.ClientHello;
 import org.saltyrtc.client.messages.InitiatorServerAuth;
 import org.saltyrtc.client.messages.Message;
+import org.saltyrtc.client.messages.NewInitiator;
 import org.saltyrtc.client.messages.ResponderServerAuth;
+import org.saltyrtc.client.messages.Restart;
 import org.saltyrtc.client.messages.ServerHello;
 
 import java.util.HashMap;
@@ -90,4 +92,17 @@ public class MessageTest {
         assertFalse(returned.isInitiatorConnected());
     }
 
+    @Test
+    public void testNewInitiatorRoundtrip() throws SerializationError, ValidationError {
+        final NewInitiator original = new NewInitiator();
+        // There are no real fields in this message, so let's just ensure that there are no exceptions
+        roundTrip(original);
+    }
+
+    @Test
+    public void testRestartRoundtrip() throws SerializationError, ValidationError {
+        final Restart original = new Restart();
+        // There are no real fields in this message, so let's just ensure that there are no exceptions
+        roundTrip(original);
+    }
 }
