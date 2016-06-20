@@ -16,6 +16,7 @@ import org.saltyrtc.client.exceptions.SerializationError;
 import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.messages.ClientAuth;
 import org.saltyrtc.client.messages.ClientHello;
+import org.saltyrtc.client.messages.InitiatorServerAuth;
 import org.saltyrtc.client.messages.Message;
 import org.saltyrtc.client.messages.ResponderServerAuth;
 import org.saltyrtc.client.messages.ServerHello;
@@ -65,8 +66,7 @@ public class MessageReader {
                 if (map.containsKey("initiator_connected")) {
                     return new ResponderServerAuth(map);
                 } else if (map.containsKey("responders")) {
-                    // TODO
-                    throw new UnsupportedOperationException();
+                    return new InitiatorServerAuth(map);
                 }
             case "client-auth":
                 return new ClientAuth(map);

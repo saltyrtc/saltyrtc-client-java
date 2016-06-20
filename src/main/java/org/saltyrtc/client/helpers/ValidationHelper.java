@@ -10,6 +10,8 @@ package org.saltyrtc.client.helpers;
 
 import org.saltyrtc.client.exceptions.ValidationError;
 
+import java.util.List;
+
 public class ValidationHelper {
 
     public static String validateType(Object value, String expected) throws ValidationError {
@@ -23,6 +25,15 @@ public class ValidationHelper {
         return type;
     }
 
+    /**
+     * This is suitable for validating messagepack bin format family.
+     *
+     * @param value The deserialized object.
+     * @param expectedLength Expected length for this fixed-length binary data.
+     * @param name Name of field, used in error messages.
+     * @return Validated data
+     * @throws ValidationError if validation fails
+     */
     public static byte[] validateByteArray(Object value, int expectedLength, String name) throws ValidationError {
         if (!(value instanceof byte[])) {
             throw new ValidationError(name + " must be a byte array");
@@ -33,6 +44,27 @@ public class ValidationHelper {
                     name + " must be " + expectedLength + " bytes long, not " + key.length);
         }
         return key;
+    }
+
+    /**
+     * This is suitable for validating MessagePack array format family.
+     *
+     * Currently the function only supports integer arrays, but could be made generic in the future.
+     *
+     * Note that array types in MessagePack don't have a fixed type,
+     * so an array is always deserialized as Object[].
+     */
+    @SuppressWarnings("unchecked")
+    public static List<Integer> validateIntegerList(Object values, Class type, String name) throws ValidationError {
+        if (!(values instanceof List)) {
+            throw new ValidationError(name + " must be a list");
+        }
+        for (Object element : (List) values) {
+            if (!type.isInstance(element)) {
+                throw new ValidationError(name + " must be a " + type.getSimpleName() + " list");
+            }
+        }
+        return (List<Integer>) values;
     }
 
     public static Boolean validateBoolean(Object value, String name) throws ValidationError {

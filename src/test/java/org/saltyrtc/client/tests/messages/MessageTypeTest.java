@@ -14,6 +14,7 @@ import org.junit.runners.Parameterized;
 import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.messages.ClientAuth;
 import org.saltyrtc.client.messages.ClientHello;
+import org.saltyrtc.client.messages.InitiatorServerAuth;
 import org.saltyrtc.client.messages.ResponderServerAuth;
 import org.saltyrtc.client.messages.ServerHello;
 
@@ -37,7 +38,8 @@ public class MessageTypeTest {
         return Arrays.asList(new Object[][] {
                 { ServerHello.class, "server-hello" },
                 { ClientHello.class, "client-hello" },
-                { ClientAuth.class, "client-hello" },
+                { ClientAuth.class, "client-auth" },
+                { InitiatorServerAuth.class, "server-auth" },
                 { ResponderServerAuth.class, "server-auth" }
         });
     }

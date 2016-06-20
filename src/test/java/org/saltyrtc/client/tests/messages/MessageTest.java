@@ -15,12 +15,14 @@ import org.saltyrtc.client.helpers.MessageReader;
 import org.saltyrtc.client.helpers.RandomHelper;
 import org.saltyrtc.client.messages.ClientAuth;
 import org.saltyrtc.client.messages.ClientHello;
+import org.saltyrtc.client.messages.InitiatorServerAuth;
 import org.saltyrtc.client.messages.Message;
 import org.saltyrtc.client.messages.ResponderServerAuth;
 import org.saltyrtc.client.messages.ServerHello;
 
 import java.util.HashMap;
 import java.util.Map;
+import static java.util.Arrays.asList;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -67,6 +69,15 @@ public class MessageTest {
         final ClientAuth original = new ClientAuth(RandomHelper.pseudoRandomBytes(16));
         final ClientAuth returned = roundTrip(original);
         assertArrayEquals(original.getYourCookie(), returned.getYourCookie());
+    }
+
+    @Test
+    public void testInitiatorServerAuthRoundtrip() throws SerializationError, ValidationError {
+        final InitiatorServerAuth original = new InitiatorServerAuth(
+                RandomHelper.pseudoRandomBytes(16), asList(1, 2, 3));
+        final InitiatorServerAuth returned = roundTrip(original);
+        assertArrayEquals(original.getYourCookie(), returned.getYourCookie());
+        assertArrayEquals(original.getResponders().toArray(), returned.getResponders().toArray());
     }
 
     @Test
