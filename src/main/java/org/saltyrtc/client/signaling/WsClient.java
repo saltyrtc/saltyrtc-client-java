@@ -15,6 +15,8 @@ import org.slf4j.Logger;
 
 import java.net.URI;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Map;
 
 public class WsClient extends WebSocketClient {
 
@@ -24,8 +26,16 @@ public class WsClient extends WebSocketClient {
     // Reference to signaling class
     private Signaling signaling;
 
-    public WsClient(URI serverURI, Signaling signaling) {
-        super(serverURI, new Draft_17());
+    /**
+     * Create a new WebSocket client instance.
+     *
+     * @param serverURI URI to the WebSocket server
+     * @param headers Map of additional HTTP headers to be sent to the server
+     * @param connectTimeout Connect timeout (probably in ms)
+     * @param signaling Reference to Signaling instance
+     */
+    public WsClient(URI serverURI, Map<String, String> headers, int connectTimeout, Signaling signaling) {
+        super(serverURI, new Draft_17(), headers, connectTimeout);
         this.signaling = signaling;
     }
 

@@ -21,6 +21,8 @@ import org.slf4j.Logger;
 import org.webrtc.DataChannel;
 
 import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.FutureTask;
 
@@ -29,6 +31,7 @@ import javax.net.ssl.SSLContext;
 public abstract class Signaling {
 
     protected static String SALTYRTC_WS_SUBPROTOCOL = "saltyrtc-1.0";
+    protected static int SALTYRTC_WS_CONNECT_TIMEOUT = 2000;
     protected static int SALTYRTC_ADDR_UNKNOWN = 0x00;
     protected static int SALTYRTC_ADDR_SERVER = 0x00;
     protected static int SALTYRTC_ADDR_INITIATOR = 0x01;
@@ -111,7 +114,9 @@ public abstract class Signaling {
         WebSocketImpl.DEBUG = this.saltyRTC.getDebug();
 
         // Create WebSocket client instance
-        this.ws = new WsClient(uri, this);
+        final Map<String, String> headers = new HashMap<>();
+        headers.put("Sec-WebSocket-Protocol", SALTYRTC_WS_SUBPROTOCOL);
+        this.ws = new WsClient(uri, headers, SALTYRTC_WS_CONNECT_TIMEOUT, this);
 
         // Set up TLS
         this.ws.setWebSocketFactory(new DefaultSSLWebSocketClientFactory(this.sslContext));
