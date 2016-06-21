@@ -78,7 +78,8 @@ public class MessageTypeTest {
         try {
             // Find the constructor that takes a map and invoke it.
             for (Constructor ctor : this.klass.getConstructors()) {
-                if (ctor.getParameterCount() == 1 && ctor.getParameters()[0].getType() == Map.class) {
+                final Class[] paramTypes = ctor.getParameterTypes();
+                if (paramTypes.length == 1 && paramTypes[0] == Map.class) {
                     ctor.newInstance(map);
                 }
             }
