@@ -24,6 +24,15 @@ import static junit.framework.TestCase.assertEquals;
 
 public class ConnectionTest {
 
+    // Set this to `true` to enable verbose debug output
+    static boolean DEBUG = false;
+
+    static {
+        if (DEBUG) {
+            System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "debug");
+        }
+    }
+
     @Test
     public void testWsConnect() throws Exception {
         // Create new SSL context
@@ -37,8 +46,10 @@ public class ConnectionTest {
                 initiator.getPublicPermanentKey(), initiator.getAuthToken());
 
         // Enable debug mode
-        initiator.setDebug(true);
-        responder.setDebug(true);
+        if (DEBUG) {
+            initiator.setDebug(true);
+            responder.setDebug(true);
+        }
 
         // Signaling state should still be NEW
         assertEquals(SignalingState.NEW, initiator.getSignalingState());
@@ -47,14 +58,19 @@ public class ConnectionTest {
         // Create a new executor pool
         ExecutorService threadpool = Executors.newFixedThreadPool(4);
 
-        // Connect initiator to server
-        FutureTask<Void> connectFuture = initiator.connect();
+        // Connect server
+        FutureTask<Void> initiatorConnect = initiator.connect();
+        FutureTask<Void> responderConnect = responder.connect();
         System.out.println("Executing future...");
-        threadpool.execute(connectFuture);
-        System.out.println("Executed...");
+        threadpool.execute(initiatorConnect);
+        threadpool.execute(responderConnect);
 
-        // Wait until initiator is connected
-        connectFuture.get();
-        System.out.println("Connected!");
+        // Wait until both are connected
+        initiatorConnect.get();
+        System.out.println("Initiator connected");
+        assertEquals(SignalingState.SERVER_HANDSHAKE, initiator.getSignalingState());
+        responderConnect.get();
+        System.out.println("Responder connected");
+        assertEquals(SignalingState.SERVER_HANDSHAKE, responder.getSignalingState());
     }
 }
