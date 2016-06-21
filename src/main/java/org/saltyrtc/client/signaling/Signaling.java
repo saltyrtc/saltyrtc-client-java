@@ -9,6 +9,7 @@
 package org.saltyrtc.client.signaling;
 
 import org.java_websocket.WebSocketImpl;
+import org.java_websocket.client.DefaultSSLWebSocketClientFactory;
 import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.cookie.CookiePair;
 import org.saltyrtc.client.exceptions.ConnectionException;
@@ -101,16 +102,18 @@ public abstract class Signaling {
     }
 
     private void initWebsocket() {
+        // Build connection URL
         final String baseUrl = this.protocol + "://" + this.host + ":" + this.port + "/";
         final String path = this.permanentKey.getPublicKeyHex();
         final URI uri = URI.create(baseUrl + path);
+
+        // Set debug mode
         WebSocketImpl.DEBUG = this.saltyRTC.getDebug();
+
+        // Create WebSocket client instance
         this.ws = new WsClient(uri, this);
 
-        final String STORETYPE = "JKS";
-        final String KEYSTORE = "keystore.jks";
-        final String STOREPASSWORD = "storepassword";
-        final String KEYPASSWORD = "keypassword";
-
+        // Set up TLS
+        this.ws.setWebSocketFactory(new DefaultSSLWebSocketClientFactory(this.sslContext));
     }
 }

@@ -14,9 +14,6 @@ import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.signaling.state.SignalingState;
 import org.saltyrtc.client.tests.Config;
 
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
@@ -30,8 +27,7 @@ public class ConnectionTest {
     @Test
     public void testWsConnect() throws Exception {
         // Create new SSL context
-        SSLContext sslContext = SSLContext.getInstance("TLS");
-        sslContext.init(null, null, null);
+        SSLContext sslContext = SSLContext.getDefault();
 
         // Create SaltyRTC instances for initiator and responder
         final SaltyRTC initiator = new SaltyRTC(
