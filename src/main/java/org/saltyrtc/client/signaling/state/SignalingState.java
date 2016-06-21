@@ -16,4 +16,5 @@ public enum SignalingState {
     OPEN,
     CLOSING,
     CLOSED,
+    ERROR,
 }

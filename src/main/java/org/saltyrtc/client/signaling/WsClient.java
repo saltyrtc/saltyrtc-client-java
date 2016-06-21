@@ -11,6 +11,7 @@ package org.saltyrtc.client.signaling;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.drafts.Draft_17;
 import org.java_websocket.handshake.ServerHandshake;
+import org.saltyrtc.client.signaling.state.SignalingState;
 import org.slf4j.Logger;
 
 import java.net.URI;
@@ -51,12 +52,13 @@ public class WsClient extends WebSocketClient {
 
     @Override
     public void onMessage(ByteBuffer bytes) {
-        LOG.debug("New bytes message: " + bytes.toString());
+        LOG.debug("New bytes message (" + bytes.array().length + " bytes)");
     }
 
     @Override
     public void onClose(int code, String reason, boolean remote) {
         LOG.debug("Connection closed with code " + code + ": " + reason);
+        this.signaling.state = SignalingState.CLOSED; // TODO don't set this on handover
     }
 
     @Override

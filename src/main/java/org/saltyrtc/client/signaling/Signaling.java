@@ -93,8 +93,12 @@ public abstract class Signaling {
                 @Override
                 public Void call() throws Exception {
                     initWebsocket();
+                    Signaling.this.state = SignalingState.WS_CONNECTING;
                     final boolean connected = Signaling.this.ws.connectBlocking();
-                    if (!connected) {
+                    if (connected) {
+                        Signaling.this.state = SignalingState.SERVER_HANDSHAKE;
+                    } else {
+                        Signaling.this.state = SignalingState.ERROR;
                         Signaling.this.getLogger().error("Connecting to server failed");
                         throw new ConnectionException("Connecting to server failed");
                     }
