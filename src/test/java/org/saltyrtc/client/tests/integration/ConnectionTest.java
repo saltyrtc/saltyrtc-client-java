@@ -14,11 +14,16 @@ import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.signaling.state.SignalingState;
 import org.saltyrtc.client.tests.Config;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileReader;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
 
+import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
 
 import static junit.framework.TestCase.assertEquals;
 
@@ -36,7 +41,29 @@ public class ConnectionTest {
     @Test
     public void testWsConnect() throws Exception {
         // Create new SSL context
-        SSLContext sslContext = SSLContext.getDefault();
+        SSLContext sslContext;
+
+        // If a file called "saltyrtc.jks" exists, we use it
+        File kf = new File("saltyrtc.jks");
+        if (kf.exists() && !kf.isDirectory()) {
+            System.err.println("Using saltyrtc.jks as TLS keystore");
+
+            // Initialize KeyStore
+            final String password = "saltyrtc";
+            java.security.KeyStore ks = java.security.KeyStore.getInstance("JKS");
+            ks.load(new FileInputStream(kf), password.toCharArray());
+
+            // Initialize TrustManager
+            TrustManagerFactory tmf = TrustManagerFactory.getInstance("SunX509");
+            tmf.init(ks);
+
+            // Initialize SSLContext
+            sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, tmf.getTrustManagers(), null);
+        } else {
+            System.err.println("Using default SSLContext");
+            sslContext = SSLContext.getDefault();
+        }
 
         // Create SaltyRTC instances for initiator and responder
         final SaltyRTC initiator = new SaltyRTC(
