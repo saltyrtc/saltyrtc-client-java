@@ -1,5 +1,10 @@
 # SaltyRTC Java Client
 
+[![Travis](https://img.shields.io/travis/saltyrtc/saltyrtc-client-java/master.svg)](https://travis-ci.org/saltyrtc/saltyrtc-client-java)
+[![Java Version](https://img.shields.io/badge/java-7%2B-yellow.svg)](https://github.com/saltyrtc/saltyrtc-client-java)
+[![License](https://img.shields.io/badge/license-MIT%20%2F%20Apache%202.0-blue.svg)](https://github.com/saltyrtc/saltyrtc-client-java)
+
+
 This is a [SaltyRTC](https://github.com/saltyrtc/saltyrtc-meta) implementation
 for Java 7+.
 
