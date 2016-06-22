@@ -10,6 +10,9 @@ package org.saltyrtc.client.signaling;
 
 import org.java_websocket.WebSocketImpl;
 import org.java_websocket.client.DefaultSSLWebSocketClientFactory;
+import org.java_websocket.client.WebSocketClient;
+import org.java_websocket.drafts.Draft_17;
+import org.java_websocket.handshake.ServerHandshake;
 import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.cookie.CookiePair;
 import org.saltyrtc.client.exceptions.ConnectionException;
@@ -21,6 +24,7 @@ import org.slf4j.Logger;
 import org.webrtc.DataChannel;
 
 import java.net.URI;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -43,7 +47,7 @@ public abstract class Signaling {
     protected String host;
     protected int port;
     protected String protocol = "wss";
-    protected WsClient ws;
+    protected WebSocketClient ws;
     protected SSLContext sslContext;
 
     // WebRTC / ORTC
@@ -142,7 +146,34 @@ public abstract class Signaling {
         // Create WebSocket client instance
         final Map<String, String> headers = new HashMap<>();
         headers.put("Sec-WebSocket-Protocol", SALTYRTC_WS_SUBPROTOCOL);
-        this.ws = new WsClient(uri, headers, SALTYRTC_WS_CONNECT_TIMEOUT, this);
+        this.ws = new WebSocketClient(uri, new Draft_17(), headers, SALTYRTC_WS_CONNECT_TIMEOUT) {
+            @Override
+            public void onOpen(ServerHandshake handshakedata) {
+                getLogger().debug("Connection opened");
+            }
+
+            @Override
+            public void onMessage(String message) {
+                getLogger().debug("New string message: " + message);
+            }
+
+            @Override
+            public void onMessage(ByteBuffer bytes) {
+                getLogger().debug("New bytes message (" + bytes.array().length + " bytes)");
+            }
+
+            @Override
+            public void onClose(int code, String reason, boolean remote) {
+                getLogger().debug("Connection closed with code " + code + ": " + reason);
+                state = SignalingState.CLOSED; // TODO don't set this on handover
+            }
+
+            @Override
+            public void onError(Exception ex) {
+                getLogger().error("A WebSocket error occured: " + ex.getMessage());
+                ex.printStackTrace();
+            }
+        };
 
         // Set up TLS
         this.ws.setWebSocketFactory(new DefaultSSLWebSocketClientFactory(this.sslContext));
