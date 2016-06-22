@@ -10,109 +10,113 @@ package org.saltyrtc.client.tests.events;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.saltyrtc.client.events.Event;
 import org.saltyrtc.client.events.EventHandler;
 import org.saltyrtc.client.events.EventRegistry;
-import org.saltyrtc.client.events.EventType;
 
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class EventRegistryTest {
 
-    private EventHandler<String> handler1;
-    private EventHandler<String> handler2;
+    private EventRegistry<MessageEvent> registry;
+    private List<String> messages;
+    private EventHandler<MessageEvent> adder;
+    private EventHandler<MessageEvent> clearer;
+
+    class MessageEvent implements Event {
+        private String message;
+        public String getMessage() { return this.message; }
+        public MessageEvent(String message) { this.message = message; }
+    }
 
     @Before
-    public void setUp() throws Exception {
-        this.handler1 = new EventHandler<String>() {
+    public void setUp() {
+        this.registry = new EventRegistry<>();
+        this.messages = new ArrayList<>();
+        this.adder = new EventHandler<MessageEvent>() {
             @Override
-            public boolean handle(EventType type, String event) {
+            public boolean handle(MessageEvent event) {
+                messages.add(event.getMessage());
                 return false;
             }
         };
-        this.handler2 = new EventHandler<String>() {
+        this.clearer = new EventHandler<MessageEvent>() {
             @Override
-            public boolean handle(EventType type, String event) {
-                return true;
+            public boolean handle(MessageEvent event) {
+                messages.clear();
+                return false;
             }
         };
     }
 
     @Test
-    public void testRegister() {
-        final EventRegistry registry = new EventRegistry();
-        registry.register(EventType.CONNECTED, this.handler1);
-        final Set<EventHandler> handlers = registry.get(EventType.CONNECTED);
-        assertEquals(1, handlers.size());
-        assertTrue(handlers.contains(this.handler1));
-
-        // Re-register same handler
-        registry.register(EventType.CONNECTED, this.handler1);
-        assertEquals(1, handlers.size());
-
-        // Add another handler
-        registry.register(EventType.CONNECTED, this.handler2);
-        assertEquals(2, handlers.size());
+    public void testRegistry() {
+        this.registry.register(this.adder);
+        assertEquals(0, messages.size());
+        this.registry.notifyHandlers(new MessageEvent("hello"));
+        assertEquals(1, messages.size());
+        assertEquals("hello", messages.get(0));
     }
 
     @Test
-    public void testRegisterMultiple() {
-        final EventRegistry registry = new EventRegistry();
-        final EventType[] types = new EventType[] { EventType.CONNECTED, EventType.DATA };
-        registry.register(types, this.handler1);
-        assertEquals(1, registry.get(EventType.CONNECTED).size());
-        assertEquals(1, registry.get(EventType.DATA).size());
-        assertEquals(0, registry.get(EventType.HANDOVER).size());
-    }
+    public void testRegisterTwice() {
+        // Register same handler twice
+        this.registry.register(this.adder);
+        this.registry.register(this.adder);
 
-    @Test
-    public void testUnregister() {
-        final EventRegistry registry = new EventRegistry();
-        final EventType[] types = new EventType[] { EventType.CONNECTED, EventType.DATA };
-        registry.register(types, this.handler1);
-        assertEquals(1, registry.get(EventType.CONNECTED).size());
-        assertEquals(1, registry.get(EventType.DATA).size());
-        assertEquals(0, registry.get(EventType.HANDOVER).size());
-        registry.unregister(EventType.DATA, this.handler1);
-        assertEquals(1, registry.get(EventType.CONNECTED).size());
-        assertEquals(0, registry.get(EventType.DATA).size());
-        assertEquals(0, registry.get(EventType.HANDOVER).size());
-    }
+        // Messages should still be empty
+        assertEquals(0, messages.size());
 
-    @Test
-    public void testUnregisterMultiple() {
-        final EventRegistry registry = new EventRegistry();
-        final EventType[] types = new EventType[] {
-                EventType.CONNECTED,
-                EventType.DATA,
-                EventType.HANDOVER
-        };
-        registry.register(types, this.handler1);
-        assertEquals(1, registry.get(EventType.CONNECTED).size());
-        assertEquals(1, registry.get(EventType.DATA).size());
-        assertEquals(1, registry.get(EventType.HANDOVER).size());
-        registry.unregister(EventType.DATA, this.handler1);
-        assertEquals(1, registry.get(EventType.CONNECTED).size());
-        assertEquals(0, registry.get(EventType.DATA).size());
-        assertEquals(1, registry.get(EventType.HANDOVER).size());
-        registry.unregister(types, this.handler1);
-        assertEquals(0, registry.get(EventType.CONNECTED).size());
-        assertEquals(0, registry.get(EventType.DATA).size());
-        assertEquals(0, registry.get(EventType.HANDOVER).size());
+        // Call adder twice
+        this.registry.notifyHandlers(new MessageEvent("hello"));
+        this.registry.notifyHandlers(new MessageEvent("hello"));
+
+        // There should be 2 messages, not 4
+        assertEquals(2, messages.size());
+
+        // Add clearer, notify handler
+        this.registry.register(this.clearer);
+        this.registry.notifyHandlers(new MessageEvent("hello"));
+
+        // The order of the handlers is not guaranteed, so there should be 0 or 1 messages
+        assertTrue(messages.size() == 0 || messages.size() == 1);
     }
 
     @Test
     public void testClear() {
-        final EventRegistry registry = new EventRegistry();
-        registry.register(EventType.DATA, this.handler1);
-        registry.register(EventType.DATA, this.handler2);
-        assertEquals(2, registry.get(EventType.DATA).size());
-        registry.clear(EventType.DATA);
-        assertEquals(0, registry.get(EventType.DATA).size());
+        // Register and call handler
+        this.registry.register(this.adder);
+        this.registry.notifyHandlers(new MessageEvent("hello"));
+        this.registry.notifyHandlers(new MessageEvent("hello"));
+        assertEquals(2, messages.size());
+
+        // Clear handlers
+        this.registry.clear();
+        this.registry.notifyHandlers(new MessageEvent("hello"));
+        assertEquals(2, messages.size());
     }
 
+    @Test
+    public void testRemoveItself() {
+        // Register and call handler
+        this.registry.register(new EventHandler<MessageEvent>() {
+            private int counter = 0;
+            @Override
+            public boolean handle(MessageEvent event) {
+                EventRegistryTest.this.messages.add("hi");
+                return ++counter >= 2;
+            }
+        });
+        // Counter is 1
+        this.registry.notifyHandlers(new MessageEvent("hello"));
+        // Counter is 2, remove itself
+        this.registry.notifyHandlers(new MessageEvent("hello"));
+        // Handler is gone
+        this.registry.notifyHandlers(new MessageEvent("hello"));
+        assertEquals(2, messages.size());
+    }
 }

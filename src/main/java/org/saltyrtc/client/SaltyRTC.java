@@ -8,6 +8,8 @@
 
 package org.saltyrtc.client;
 
+import org.saltyrtc.client.events.ConnectedEvent;
+import org.saltyrtc.client.events.EventRegistry;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.signaling.InitiatorSignaling;
 import org.saltyrtc.client.signaling.ResponderSignaling;
@@ -24,11 +26,19 @@ import javax.net.ssl.SSLContext;
  */
 public class SaltyRTC {
 
+    /**
+     * Collection of all possible events.
+     */
+    private class Events {
+        public EventRegistry<ConnectedEvent> connected = new EventRegistry<>();
+    }
+
     private static final Logger LOG = org.slf4j.LoggerFactory.getLogger(SaltyRTC.class);
 
     protected boolean debug = false;
 
     protected Signaling signaling;
+    protected Events events = new Events();
 
     /**
      * Create a SaltyRTC instance as initiator.
@@ -56,6 +66,9 @@ public class SaltyRTC {
                 this, host, port, permanentKey, sslContext, initiatorPublicKey, authToken);
     }
 
+    /**
+     * Validate the specified host, throw an IllegalArgumentException if it's invalid.
+     */
     private void validateHost(String host) {
         if (host.endsWith("/")) {
             throw new IllegalArgumentException("SaltyRTC host may not end with a slash");
@@ -73,6 +86,9 @@ public class SaltyRTC {
         return this.signaling.getAuthToken();
     }
 
+    /**
+     * Return the current signaling state.
+     */
     public SignalingState getSignalingState() {
         return this.signaling.state;
     }
@@ -87,8 +103,8 @@ public class SaltyRTC {
     public void setDebug(boolean debug) {
         this.debug = debug;
     }
-
     public boolean getDebug() {
         return debug;
     }
+
 }

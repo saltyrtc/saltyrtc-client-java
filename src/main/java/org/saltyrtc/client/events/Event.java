@@ -9,8 +9,7 @@
 package org.saltyrtc.client.events;
 
 /**
- * All event handlers need to implement this interface.
+ * All events need to implement this interface.
  */
-public interface EventHandler<E extends Event> {
-    boolean handle(E event);
+public interface Event {
 }

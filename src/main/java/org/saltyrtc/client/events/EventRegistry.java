@@ -8,81 +8,51 @@
 
 package org.saltyrtc.client.events;
 
+import java.util.HashSet;
 import java.util.Set;
 
 /**
- * An event registry for all SaltyRTC related events.
+ * A registry for event handlers of a specific type.
  */
-public class EventRegistry {
+public class EventRegistry<E extends Event> {
 
-    private EventHandlerMap handlers = new EventHandlerMap();
-
-    /**
-     * Register a new event handler for the specified event type.
-     *
-     * @param type The event type.
-     * @param handler The event handler.
-     */
-    public void register(EventType type, EventHandler handler) {
-        this.handlers.get(type).add(handler);
-    }
+    private final Set<EventHandler<E>> handlers = new HashSet<>();
 
     /**
-     * Register a new event handler for multiple event types.
-     *
-     * @param types The list of event types.
-     * @param handler The event handler.
+     * Register a new event handler.
      */
-    public void register(EventType[] types, EventHandler handler) {
-        for (EventType type : types) {
-            this.handlers.get(type).add(handler);
-        }
+    public void register(EventHandler<E> handler) {
+        this.handlers.add(handler);
     }
 
     /**
      * Unregister an event handler.
-     *
-     * @param type The event type.
-     * @param handler The event handler.
-     * @return Boolean indicating whether the handler was previously registered or not.
      */
-    public boolean unregister(EventType type, EventHandler handler) {
-        return this.handlers.get(type).remove(handler);
+    public void unregister(EventHandler<E> handler) {
+        this.handlers.remove(handler);
     }
 
     /**
-     * Unregister an event handler from multiple events.
-     *
-     * @param types The list of event types.
-     * @param handler The event handler.
+     * Unregister all event handlers.
      */
-    public void unregister(EventType[] types, EventHandler handler) {
-        for (EventType type : types) {
-            this.handlers.get(type).remove(handler);
+    public void clear() {
+        this.handlers.clear();
+    }
+
+    /**
+     * Notify all handlers about the specified event.
+     *
+     * @param event Event instance containing more details.
+     */
+    public void notifyHandlers(E event) {
+        synchronized (this.handlers) {
+            for (EventHandler<E> handler : this.handlers) {
+                final boolean removeHandler = handler.handle(event);
+                if (removeHandler) {
+                    this.unregister(handler);
+                }
+            }
         }
-    }
-
-    /**
-     * Unregister all event handlers for the specified type.
-     *
-     * @param type The event type.
-     * @return The number of event handlers that were removed.
-     */
-    public int clear(EventType type) {
-        final Set handlerSet = this.handlers.get(type);
-        final int count = handlerSet.size();
-        handlerSet.clear();
-        return count;
-    }
-
-    /**
-     * Get all event handlers for the specified event.
-     *
-     * @param type The event type.
-     * @return The set of event handlers registered for this event.
-     */
-    public Set<EventHandler> get(EventType type) {
-        return this.handlers.get(type);
     }
 
 }

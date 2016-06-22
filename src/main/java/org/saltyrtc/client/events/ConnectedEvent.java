@@ -9,8 +9,7 @@
 package org.saltyrtc.client.events;
 
 /**
- * All event handlers need to implement this interface.
+ * SaltyRTC has successfully connected to the server.
  */
-public interface EventHandler<E extends Event> {
-    boolean handle(E event);
+public class ConnectedEvent implements Event {
 }

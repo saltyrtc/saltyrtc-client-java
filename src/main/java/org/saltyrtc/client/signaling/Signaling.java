@@ -152,6 +152,7 @@ public abstract class Signaling {
 
     /**
      * Connect to WebSocket.
+     *
      * @return boolean indicating whether connecting succeeded or not.
      */
     private boolean connectWebsocket() throws InterruptedException {
