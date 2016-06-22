@@ -58,13 +58,6 @@ public class KeyStore {
     }
 
     /**
-     * Return public keys as hex string.
-     */
-    public String getPublicKeyHex() {
-        return NaCl.asHex(this.publicKey);
-    }
-
-    /**
      * Encrypt data for the peer. Return Box.
      *
      * @param data Bytes to be encrypted.

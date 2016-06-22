@@ -32,12 +32,6 @@ public class KeyStoreTest {
     }
 
     @Test
-    public void testPublicKeyHex() {
-        final String pk = this.ks.getPublicKeyHex();
-        assertEquals(pk.length(), 64);
-    }
-
-    @Test
     public void testEncrypt() throws CryptoFailedException, InvalidKeyException {
         final byte[] in = "hello".getBytes();
         final byte[] nonce = new byte[NaCl.NONCEBYTES];
