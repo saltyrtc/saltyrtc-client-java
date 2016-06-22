@@ -8,6 +8,8 @@
 
 package org.saltyrtc.client.signaling;
 
+import com.neilalexander.jnacl.NaCl;
+
 import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.keystore.AuthToken;
 import org.saltyrtc.client.keystore.KeyStore;
@@ -35,5 +37,12 @@ public class InitiatorSignaling extends Signaling {
                               KeyStore permanentKey, SSLContext sslContext) {
         super(saltyRTC, host, port, permanentKey, sslContext);
         this.authToken = new AuthToken();
+    }
+
+    /**
+     * The initiator needs to use its own public permanent key as connection path.
+     */
+    protected String getWebsocketPath() {
+        return NaCl.asHex(this.permanentKey.getPublicKey());
     }
 }

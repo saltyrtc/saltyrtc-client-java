@@ -108,11 +108,18 @@ public abstract class Signaling {
         );
     }
 
+    /**
+     * Return the WebSocket path.
+     */
+    protected abstract String getWebsocketPath();
+
+    /**
+     * Initialize the WebSocket including TLS configuration.
+     */
     private void initWebsocket() {
         // Build connection URL
         final String baseUrl = this.protocol + "://" + this.host + ":" + this.port + "/";
-        final String path = this.permanentKey.getPublicKeyHex();
-        final URI uri = URI.create(baseUrl + path);
+        final URI uri = URI.create(baseUrl + this.getWebsocketPath());
 
         // Set debug mode
         WebSocketImpl.DEBUG = this.saltyRTC.getDebug();
@@ -124,5 +131,7 @@ public abstract class Signaling {
 
         // Set up TLS
         this.ws.setWebSocketFactory(new DefaultSSLWebSocketClientFactory(this.sslContext));
+
+        getLogger().debug("Opening a WebSocket connection to " + uri);
     }
 }

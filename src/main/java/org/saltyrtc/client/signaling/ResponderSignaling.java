@@ -8,6 +8,8 @@
 
 package org.saltyrtc.client.signaling;
 
+import com.neilalexander.jnacl.NaCl;
+
 import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.slf4j.Logger;
@@ -18,7 +20,7 @@ public class ResponderSignaling extends Signaling {
 
     // Logging
     protected Logger getLogger() {
-        return org.slf4j.LoggerFactory.getLogger(InitiatorSignaling.class);
+        return org.slf4j.LoggerFactory.getLogger(ResponderSignaling.class);
     }
 
     private Initiator initiator;
@@ -30,6 +32,13 @@ public class ResponderSignaling extends Signaling {
         super(saltyRTC, host, port, permanentKey, sslContext);
         this.initiator = new Initiator(initiatorPublicKey);
         this.authToken = authToken;
+    }
+
+    /**
+     * The responder needs to use the initiator public permanent key as connection path.
+     */
+    protected String getWebsocketPath() {
+        return NaCl.asHex(this.initiator.getPermanentKey());
     }
 
 }
