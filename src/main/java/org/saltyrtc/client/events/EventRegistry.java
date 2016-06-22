@@ -9,6 +9,7 @@
 package org.saltyrtc.client.events;
 
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 
 /**
@@ -46,10 +47,12 @@ public class EventRegistry<E extends Event> {
      */
     public void notifyHandlers(E event) {
         synchronized (this.handlers) {
-            for (EventHandler<E> handler : this.handlers) {
+            Iterator<EventHandler<E>> i = this.handlers.iterator();
+            while (i.hasNext()) {
+                final EventHandler<E> handler = i.next();
                 final boolean removeHandler = handler.handle(event);
                 if (removeHandler) {
-                    this.unregister(handler);
+                    i.remove();
                 }
             }
         }
