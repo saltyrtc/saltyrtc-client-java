@@ -9,6 +9,7 @@
 package org.saltyrtc.client;
 
 import org.saltyrtc.client.events.ConnectedEvent;
+import org.saltyrtc.client.events.ConnectionErrorEvent;
 import org.saltyrtc.client.events.EventRegistry;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.signaling.InitiatorSignaling;
@@ -26,19 +27,17 @@ import javax.net.ssl.SSLContext;
  */
 public class SaltyRTC {
 
-    /**
-     * Collection of all possible events.
-     */
-    private class Events {
-        public EventRegistry<ConnectedEvent> connected = new EventRegistry<>();
-    }
-
+    // Logger
     private static final Logger LOG = org.slf4j.LoggerFactory.getLogger(SaltyRTC.class);
 
+    // Whether to enable debug mode
     protected boolean debug = false;
 
+    // Reference to signaling class
     protected Signaling signaling;
-    protected Events events = new Events();
+
+    // Event registry
+    public final SaltyRTC.Events events = new SaltyRTC.Events();
 
     /**
      * Create a SaltyRTC instance as initiator.
@@ -105,6 +104,14 @@ public class SaltyRTC {
     }
     public boolean getDebug() {
         return debug;
+    }
+
+    /**
+     * Collection of all possible events.
+     */
+    public static class Events {
+        public EventRegistry<ConnectedEvent> connected = new EventRegistry<>();
+        public EventRegistry<ConnectionErrorEvent> connectionError = new EventRegistry<>();
     }
 
 }

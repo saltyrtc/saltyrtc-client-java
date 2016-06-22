@@ -15,6 +15,7 @@ import org.java_websocket.drafts.Draft_17;
 import org.java_websocket.handshake.ServerHandshake;
 import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.cookie.CookiePair;
+import org.saltyrtc.client.events.ConnectionErrorEvent;
 import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.keystore.AuthToken;
 import org.saltyrtc.client.keystore.KeyStore;
@@ -172,6 +173,9 @@ public abstract class Signaling {
             public void onError(Exception ex) {
                 getLogger().error("A WebSocket error occured: " + ex.getMessage());
                 ex.printStackTrace();
+                saltyRTC.events.connectionError.notifyHandlers(
+                        new ConnectionErrorEvent(SignalingChannel.WEBSOCKET)
+                );
             }
         };
 
