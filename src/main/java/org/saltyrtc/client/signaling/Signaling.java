@@ -94,13 +94,7 @@ public abstract class Signaling {
                 public Void call() throws InterruptedException, ConnectionException {
                     resetConnection();
                     initWebsocket();
-                    Signaling.this.state = SignalingState.WS_CONNECTING;
-                    final boolean connected = Signaling.this.ws.connectBlocking();
-                    if (connected) {
-                        Signaling.this.state = SignalingState.SERVER_HANDSHAKE;
-                    } else {
-                        Signaling.this.state = SignalingState.ERROR;
-                        Signaling.this.getLogger().error("Connecting to server failed");
+                    if (!connectWebsocket()) {
                         throw new ConnectionException("Connecting to server failed");
                     }
                     return null;
@@ -153,6 +147,22 @@ public abstract class Signaling {
         // Set up TLS
         this.ws.setWebSocketFactory(new DefaultSSLWebSocketClientFactory(this.sslContext));
 
-        getLogger().debug("Opening a WebSocket connection to " + uri);
+        getLogger().debug("Initialize WebSocket connection to " + uri);
+    }
+
+    /**
+     * Connect to WebSocket.
+     * @return boolean indicating whether connecting succeeded or not.
+     */
+    private boolean connectWebsocket() throws InterruptedException {
+        Signaling.this.state = SignalingState.WS_CONNECTING;
+        final boolean connected = Signaling.this.ws.connectBlocking();
+        if (connected) {
+            Signaling.this.state = SignalingState.SERVER_HANDSHAKE;
+        } else {
+            Signaling.this.state = SignalingState.ERROR;
+            Signaling.this.getLogger().error("Connecting to server failed");
+        }
+        return connected;
     }
 }
