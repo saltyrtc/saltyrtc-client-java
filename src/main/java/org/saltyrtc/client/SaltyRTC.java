@@ -9,6 +9,7 @@
 package org.saltyrtc.client;
 
 import org.saltyrtc.client.events.ConnectedEvent;
+import org.saltyrtc.client.events.ConnectionClosedEvent;
 import org.saltyrtc.client.events.ConnectionErrorEvent;
 import org.saltyrtc.client.events.EventRegistry;
 import org.saltyrtc.client.keystore.KeyStore;
@@ -112,6 +113,7 @@ public class SaltyRTC {
     public static class Events {
         public EventRegistry<ConnectedEvent> connected = new EventRegistry<>();
         public EventRegistry<ConnectionErrorEvent> connectionError = new EventRegistry<>();
+        public EventRegistry<ConnectionClosedEvent> connectionClosed = new EventRegistry<>();
     }
 
 }

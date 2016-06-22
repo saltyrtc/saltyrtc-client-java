@@ -10,12 +10,18 @@ package org.saltyrtc.client.tests.integration;
 
 import org.junit.Test;
 import org.saltyrtc.client.SaltyRTC;
+import org.saltyrtc.client.events.ConnectedEvent;
+import org.saltyrtc.client.events.ConnectionClosedEvent;
+import org.saltyrtc.client.events.ConnectionErrorEvent;
+import org.saltyrtc.client.events.EventHandler;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.signaling.state.SignalingState;
 import org.saltyrtc.client.tests.Config;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
@@ -24,14 +30,13 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 
 import static junit.framework.TestCase.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class ConnectionTest {
 
-    // Set this to `true` to enable verbose debug output
-    static boolean DEBUG = false;
-
     static {
-        if (DEBUG) {
+        if (Config.VERBOSE) {
             System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "debug");
         }
     }
@@ -71,7 +76,7 @@ public class ConnectionTest {
                 initiator.getPublicPermanentKey(), initiator.getAuthToken());
 
         // Enable debug mode
-        if (DEBUG) {
+        if (Config.VERBOSE) {
             initiator.setDebug(true);
             responder.setDebug(true);
         }
@@ -82,6 +87,35 @@ public class ConnectionTest {
 
         // Create a new executor pool
         ExecutorService threadpool = Executors.newFixedThreadPool(4);
+
+        // Register event handlers
+        final Map<String, Boolean> eventsCalled = new HashMap<>();
+        eventsCalled.put("initiatorConnected", false); eventsCalled.put("initiatorError", false);
+        eventsCalled.put("responderConnected", false); eventsCalled.put("responderError", false);
+        initiator.events.connected.register(new EventHandler<ConnectedEvent>() {
+            @Override
+            public boolean handle(ConnectedEvent event) {
+                eventsCalled.put("initiatorConnected", true); return false;
+            }
+        });
+        initiator.events.connectionError.register(new EventHandler<ConnectionErrorEvent>() {
+            @Override
+            public boolean handle(ConnectionErrorEvent event) {
+                eventsCalled.put("initiatorError", true); return false;
+            }
+        });
+        responder.events.connected.register(new EventHandler<ConnectedEvent>() {
+            @Override
+            public boolean handle(ConnectedEvent event) {
+                eventsCalled.put("responderConnected", true); return false;
+            }
+        });
+        responder.events.connectionError.register(new EventHandler<ConnectionErrorEvent>() {
+            @Override
+            public boolean handle(ConnectionErrorEvent event) {
+                eventsCalled.put("responderError", true); return false;
+            }
+        });
 
         // Connect server
         FutureTask<Void> initiatorConnect = initiator.connect();
@@ -97,5 +131,13 @@ public class ConnectionTest {
         responderConnect.get();
         System.out.println("Responder connected");
         assertEquals(SignalingState.SERVER_HANDSHAKE, responder.getSignalingState());
+
+        // Test if event handlers were called.
+        // As this is only the first stage of the connection process,
+        // no ConnectionEvents should be sent out yet.
+        assertFalse(eventsCalled.get("initiatorConnected"));
+        assertFalse(eventsCalled.get("initiatorError"));
+        assertFalse(eventsCalled.get("responderConnected"));
+        assertFalse(eventsCalled.get("responderError"));
     }
 }

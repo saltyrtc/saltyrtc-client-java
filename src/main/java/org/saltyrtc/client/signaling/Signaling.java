@@ -15,6 +15,7 @@ import org.java_websocket.drafts.Draft_17;
 import org.java_websocket.handshake.ServerHandshake;
 import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.cookie.CookiePair;
+import org.saltyrtc.client.events.ConnectionClosedEvent;
 import org.saltyrtc.client.events.ConnectionErrorEvent;
 import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.keystore.AuthToken;
@@ -150,7 +151,7 @@ public abstract class Signaling {
         this.ws = new WebSocketClient(uri, new Draft_17(), headers, SALTYRTC_WS_CONNECT_TIMEOUT) {
             @Override
             public void onOpen(ServerHandshake handshakedata) {
-                getLogger().debug("Connection opened");
+                getLogger().debug("WebSocket connection open");
             }
 
             @Override
@@ -164,8 +165,35 @@ public abstract class Signaling {
             }
 
             @Override
-            public void onClose(int code, String reason, boolean remote) {
-                getLogger().debug("Connection closed with code " + code + ": " + reason);
+            public void onClose(int closeCode, String reason, boolean remote) {
+                getLogger().debug("WebSocket connection closed with code " + closeCode + ": " + reason);
+                if (closeCode == CloseCode.HANDOVER) {
+                    getLogger().info("Handover to data channel");
+                } else {
+                    switch (closeCode) {
+                        case CloseCode.GOING_AWAY:
+                            getLogger().error("Server is being shut down");
+                            break;
+                        case CloseCode.SUBPROTOCOL_ERROR:
+                            getLogger().error("No shared sub-protocol could be found");
+                            break;
+                        case CloseCode.PATH_FULL:
+                            getLogger().error("Path full (no free responder byte)");
+                            break;
+                        case CloseCode.PROTOCOL_ERROR:
+                            getLogger().error("Protocol error"); // TODO handle?
+                            break;
+                        case CloseCode.INTERNAL_ERROR:
+                            getLogger().error("Internal server error");
+                            break;
+                        case CloseCode.DROPPED:
+                            getLogger().warn("Dropped by initiator");
+                            break;
+                    }
+                    saltyRTC.events.connectionClosed.notifyHandlers(
+                            new ConnectionClosedEvent(SignalingChannel.WEBSOCKET)
+                    );
+                }
                 state = SignalingState.CLOSED; // TODO don't set this on handover
             }
 

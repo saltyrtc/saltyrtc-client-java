@@ -15,32 +15,32 @@ public class CloseCode {
     /**
      * The endpoint is going away.
      */
-    public static int GoingAway = 1001;
+    public static final int GOING_AWAY = 1001;
 
     /**
      * No shared sub-protocol could be found.
      */
-    public static int SubprotocolError = 1002;
+    public static final int SUBPROTOCOL_ERROR = 1002;
 
     /**
      * No free responder byte.
      */
-    public static int PathFull = 3000;
+    public static final int PATH_FULL = 3000;
 
     /**
      * Invalid message, invalid path length, ...
      */
-    public static int ProtocolError = 3001;
+    public static final int PROTOCOL_ERROR = 3001;
 
     /**
      * Syntax error, ...
      */
-    public static int InternalError = 3002;
+    public static final int INTERNAL_ERROR = 3002;
 
     /**
      * Handover to data channel.
      */
-    public static int Handover = 3003;
+    public static final int HANDOVER = 3003;
 
     /**
      * Dropped by initiator.
@@ -49,5 +49,5 @@ public class CloseCode {
      *
      * For a responder, it means that an initiator requested to drop the responder.
      */
-    public static int Dropped = 3004;
+    public static final int DROPPED = 3004;
 }
