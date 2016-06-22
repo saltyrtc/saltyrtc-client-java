@@ -45,7 +45,7 @@ public class ConnectionTest {
 
         // If a file called "saltyrtc.jks" exists, we use it
         File kf = new File("saltyrtc.jks");
-        if (kf.exists() && !kf.isDirectory()) {
+        if (!Config.IGNORE_JKS && kf.exists() && !kf.isDirectory()) {
             System.err.println("Using saltyrtc.jks as TLS keystore");
 
             // Initialize KeyStore

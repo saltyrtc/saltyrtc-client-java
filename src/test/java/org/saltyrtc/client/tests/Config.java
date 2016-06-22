@@ -14,4 +14,5 @@ package org.saltyrtc.client.tests;
 public class Config {
     public static String SALTYRTC_HOST = "localhost";
     public static int SALTYRTC_PORT = 8765;
+    public static boolean IGNORE_JKS = false;
 }
