@@ -91,7 +91,8 @@ public abstract class Signaling {
         return new FutureTask<>(
             new Callable<Void>() {
                 @Override
-                public Void call() throws Exception {
+                public Void call() throws InterruptedException, ConnectionException {
+                    resetConnection();
                     initWebsocket();
                     Signaling.this.state = SignalingState.WS_CONNECTING;
                     final boolean connected = Signaling.this.ws.connectBlocking();
@@ -106,6 +107,26 @@ public abstract class Signaling {
                 }
             }
         );
+    }
+
+    /**
+     * Reset / close the connection.
+     *
+     * - Close WebSocket if still open.
+     * - Set `ws` attribute to null.
+     * - Set `state` attribute to `NEW`
+     * - Reset server CSN
+     */
+    protected void resetConnection() throws InterruptedException {
+        this.state = SignalingState.NEW;
+        this.serverCsn = new CombinedSequence();
+
+        // Close websocket instance
+        if (this.ws != null) {
+            getLogger().debug("Disconnecting WebSocket");
+            this.ws.closeBlocking();
+            this.ws = null;
+        }
     }
 
     /**
