@@ -22,12 +22,12 @@ public abstract class Message {
     /**
      * Return its own message type.
      */
-    abstract String getType();
+    public abstract String getType();
 
     /**
      * Write itself to the MessagePacker.
      */
-    abstract void write(MessagePacker msgPacker) throws IOException;
+    public abstract void write(MessagePacker msgPacker) throws IOException;
 
     /**
      * Return messagepacked byte array.
