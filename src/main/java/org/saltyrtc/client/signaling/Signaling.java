@@ -92,8 +92,12 @@ public abstract class Signaling {
 
     /**
      * Connect to the SaltyRTC server.
+     *
+     * The future will resolve once the WebSocket connection to the server is established.
+     * This does not yet mean that the handshake is done. For that, you need to wait for the
+     * `ConnectedEvent`.
      */
-    public FutureTask<Void> connect() {
+    public FutureTask<Void> initConnection() {
         return new FutureTask<>(
             new Callable<Void>() {
                 @Override
@@ -130,6 +134,30 @@ public abstract class Signaling {
                 this.ws.close();
             }
             this.ws = null;
+        }
+    }
+
+    /**
+     * Disconnect from the SaltyRTC server.
+     *
+     * This operation is asynchronous, once the connection is closed, the
+     * `ConnectionClosedEvent` will be emitted.
+     */
+    public void disconnect() {
+        this.state = SignalingState.CLOSING;
+        switch (this.channel) {
+            case WEBSOCKET:
+                // Close websocket instance
+                if (this.ws != null) {
+                    getLogger().debug("Disconnecting WebSocket");
+                    this.ws.close();
+                    this.ws = null;
+                    // The status will be changed to CLOSED in the `onClose`
+                    // implementation of the WebSocket instance.
+                }
+                break;
+            case DATA_CHANNEL:
+                throw new UnsupportedOperationException("Not yet implemented");
         }
     }
 

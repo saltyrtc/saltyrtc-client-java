@@ -95,9 +95,23 @@ public class SaltyRTC {
 
     /**
      * Connect to the SaltyRTC server.
+     *
+     * The future will resolve once the WebSocket connection to the server is established.
+     * This does not yet mean that the handshake is done. For that, you need to wait for the
+     * `ConnectedEvent`.
      */
     public FutureTask<Void> connect() {
-        return this.signaling.connect();
+        return this.signaling.initConnection();
+    }
+
+    /**
+     * Disconnect from the SaltyRTC server.
+     *
+     * This operation is asynchronous, once the connection is closed, the
+     * `ConnectionClosedEvent` will be emitted.
+     */
+    public void disconnect() {
+        this.signaling.disconnect();
     }
 
     public void setDebug(boolean debug) {
