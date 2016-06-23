@@ -54,4 +54,9 @@ public class ResponderServerAuth extends Message {
                     .packBoolean(this.initiatorConnected);
     }
 
+    @Override
+    public String getType() {
+        return TYPE;
+    }
+
 }

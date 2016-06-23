@@ -20,6 +20,11 @@ import java.io.IOException;
 public abstract class Message {
 
     /**
+     * Return its own message type.
+     */
+    abstract String getType();
+
+    /**
      * Write itself to the MessagePacker.
      */
     abstract void write(MessagePacker msgPacker) throws IOException;

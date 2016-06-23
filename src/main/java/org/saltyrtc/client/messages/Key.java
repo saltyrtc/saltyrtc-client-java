@@ -45,4 +45,10 @@ public class Key extends Message {
                     .packBinaryHeader(this.key.length)
                     .writePayload(this.key);
     }
+
+    @Override
+    public String getType() {
+        return TYPE;
+    }
+
 }

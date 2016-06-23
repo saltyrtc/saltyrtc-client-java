@@ -42,4 +42,10 @@ public class DropResponder extends Message {
                 .packString("id")
                     .packInt(this.id);
     }
+
+    @Override
+    public String getType() {
+        return TYPE;
+    }
+
 }

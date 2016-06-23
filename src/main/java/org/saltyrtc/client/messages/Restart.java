@@ -31,4 +31,9 @@ public class Restart extends Message {
                 .packString("type")
                     .packString(TYPE);
     }
+
+    @Override
+    public String getType() {
+        return TYPE;
+    }
 }

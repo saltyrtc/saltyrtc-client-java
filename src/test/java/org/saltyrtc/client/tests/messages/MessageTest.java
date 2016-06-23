@@ -176,4 +176,10 @@ public class MessageTest {
         // There are no real fields in this message, so let's just ensure that there are no exceptions
         roundTrip(original);
     }
+
+    @Test
+    public void testGetType() {
+        final Auth auth = new Auth(RandomHelper.pseudoRandomBytes(32));
+        assertEquals("auth", auth.getType());
+    }
 }

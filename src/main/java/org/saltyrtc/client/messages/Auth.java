@@ -45,4 +45,10 @@ public class Auth extends Message {
                     .packBinaryHeader(this.yourCookie.length)
                     .writePayload(this.yourCookie);
     }
+
+    @Override
+    public String getType() {
+        return TYPE;
+    }
+
 }

@@ -58,4 +58,9 @@ public class InitiatorServerAuth extends Message {
         }
     }
 
+    @Override
+    public String getType() {
+        return TYPE;
+    }
+
 }

@@ -43,4 +43,10 @@ public class SendError extends Message {
                     .packBinaryHeader(this.hash.length)
                     .writePayload(this.hash);
     }
+
+    @Override
+    public String getType() {
+        return TYPE;
+    }
+
 }

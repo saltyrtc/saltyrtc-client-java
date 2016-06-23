@@ -45,4 +45,9 @@ public class ClientAuth extends Message {
                     .writePayload(this.yourCookie);
     }
 
+    @Override
+    public String getType() {
+        return TYPE;
+    }
+
 }

@@ -8,8 +8,6 @@
 
 package org.saltyrtc.client.messages;
 
-import com.neilalexander.jnacl.NaCl;
-
 import org.msgpack.core.MessagePacker;
 import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.helpers.ValidationHelper;
@@ -44,4 +42,10 @@ public class NewResponder extends Message {
                 .packString("id")
                     .packInt(this.id);
     }
+
+    @Override
+    public String getType() {
+        return TYPE;
+    }
+
 }

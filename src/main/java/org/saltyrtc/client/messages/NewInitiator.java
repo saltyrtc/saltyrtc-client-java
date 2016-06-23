@@ -31,4 +31,10 @@ public class NewInitiator extends Message {
                 .packString("type")
                     .packString(TYPE);
     }
+
+    @Override
+    public String getType() {
+        return TYPE;
+    }
+
 }
