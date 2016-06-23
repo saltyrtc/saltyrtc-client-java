@@ -117,14 +117,18 @@ public abstract class Signaling {
      * - Set `state` attribute to `NEW`
      * - Reset server CSN
      */
-    protected void resetConnection() throws InterruptedException {
+    protected void resetConnection() {
         this.state = SignalingState.NEW;
         this.serverCsn = new CombinedSequence();
 
         // Close websocket instance
         if (this.ws != null) {
             getLogger().debug("Disconnecting WebSocket");
-            this.ws.closeBlocking();
+            try {
+                this.ws.closeBlocking();
+            } catch (InterruptedException e) {
+                this.ws.close();
+            }
             this.ws = null;
         }
     }
@@ -157,6 +161,8 @@ public abstract class Signaling {
             @Override
             public void onMessage(String message) {
                 getLogger().debug("New string message: " + message);
+                getLogger().error("Protocol error: Received string message, but only binary messages are valid.");
+                Signaling.this.resetConnection();
             }
 
             @Override
