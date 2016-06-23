@@ -8,6 +8,8 @@
 
 package org.saltyrtc.client.nonce;
 
+import org.saltyrtc.client.helpers.UnsignedHelper;
+
 import java.nio.ByteBuffer;
 
 /**
@@ -59,13 +61,13 @@ public class DataChannelNonce extends Nonce {
         buf.get(cookie, 0, COOKIE_LENGTH);
         validateCookie(cookie);
 
-        final int channelId = ((int)buf.getShort()) & 0x0000FFFF;
+        final int channelId = UnsignedHelper.readUnsignedShort(buf.getShort());
         validateChannelId(channelId);
 
-        final int overflow = ((int)buf.getShort()) & 0x0000FFFF;
+        final int overflow = UnsignedHelper.readUnsignedShort(buf.getShort());
         validateOverflow(overflow);
 
-        final long sequence = ((long)buf.getInt()) & 0x00000000FFFFFFFFL;
+        final long sequence = UnsignedHelper.readUnsignedInt(buf.getInt());
         validateSequence(sequence);
 
         this.cookie = cookie;

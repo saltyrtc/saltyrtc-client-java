@@ -87,36 +87,6 @@ public class DataChannelNonceTest {
         new DataChannelNonce(ByteBuffer.wrap(new byte[] { 0x0 }));
     }
 
-    /**
-     * Test the unsigned 16 bit arithmetic used to implement the nonce en-/decoding.
-     */
-    @Test
-    public void testArithmeticShort() {
-        byte hi = -128; // 0x80
-        byte lo = 1; // 0x01
-        byte[] bytes = new byte[] { hi, lo };
-        ByteBuffer buf = ByteBuffer.wrap(bytes);
-        short val = buf.getShort();
-        assertNotEquals((0x80 << 8) + 1, val);
-        int unsigned = ((int)val) & 0xFFFF;
-        assertEquals((0x80 << 8) + 1, unsigned);
-    }
-
-    /**
-     * Test the unsigned 32 bit arithmetic used to implement the nonce en-/decoding.
-     */
-    @Test
-    public void testArithmeticInt() {
-        byte hi = -128; // 0x80
-        byte lo = 1; // 0x01
-        byte[] bytes = new byte[] { hi, 0, 0, lo };
-        ByteBuffer buf = ByteBuffer.wrap(bytes);
-        int val = buf.getInt();
-        assertNotEquals(2147483649L, val);
-        long unsigned = ((long)val) & 0xFFFFFFFFL;
-        assertEquals(2147483649L, unsigned);
-    }
-
     @Test
     public void testNonceBytesConstructor() {
         byte[] bytes = new byte[] {
