@@ -128,7 +128,7 @@ public class DataChannelNonceTest {
             -128, 0, 0, 3,
         };
         final DataChannelNonce nonce = new DataChannelNonce(ByteBuffer.wrap(bytes));
-        byte[] bytesAgain = nonce.toBuffer().array();
+        byte[] bytesAgain = nonce.toBytes();
         assertArrayEquals(bytes, bytesAgain);
     }
 

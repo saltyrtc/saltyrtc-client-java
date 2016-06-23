@@ -77,7 +77,7 @@ public class DataChannelNonce extends Nonce {
     }
 
     @Override
-    public ByteBuffer toBuffer() {
+    public byte[] toBytes() {
         // Pack data
         ByteBuffer buffer = ByteBuffer.allocate(Nonce.TOTAL_LENGTH);
         buffer.put(this.cookie);
@@ -85,10 +85,8 @@ public class DataChannelNonce extends Nonce {
         buffer.putShort(UnsignedHelper.getUnsignedShort(this.overflow));
         buffer.putInt(UnsignedHelper.getUnsignedInt(this.sequence));
 
-        // Flip offset and remaining length for reading
-        buffer.flip();
-
-        return buffer;
+        // Return underlying array
+        return buffer.array();
     }
 
     /**

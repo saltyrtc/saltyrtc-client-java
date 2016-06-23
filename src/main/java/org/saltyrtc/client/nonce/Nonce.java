@@ -24,7 +24,7 @@ abstract class Nonce {
     /**
      * Convert nonce to bytes.
      */
-    public abstract ByteBuffer toBuffer();
+    public abstract byte[] toBytes();
 
     /**
      * A cookie should be 16 bytes long.

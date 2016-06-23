@@ -99,7 +99,7 @@ public class SignalingChannelNonceTest {
             -128, 0, 0, 3,
         };
         final SignalingChannelNonce nonce = new SignalingChannelNonce(ByteBuffer.wrap(bytes));
-        byte[] bytesAgain = nonce.toBuffer().array();
+        byte[] bytesAgain = nonce.toBytes();
         assertArrayEquals(bytes, bytesAgain);
     }
 
