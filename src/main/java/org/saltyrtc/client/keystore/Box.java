@@ -63,19 +63,16 @@ public class Box {
     }
 
     /**
-     * Return a ByteBuffer containing nonce and data.
+     * Return a byte array containing nonce and data.
      */
-    public ByteBuffer toBuffer() {
+    public byte[] toBytes() {
         // Pack data
         // Note: 'allocateDirect' does NOT work, DO NOT CHANGE!
         ByteBuffer box = ByteBuffer.allocate(this.getSize());
         box.put(this.nonce);
         box.put(this.data);
 
-        // Flip offset and remaining length for reading
-        box.flip();
-
-        // Return box as byte buffer
-        return box;
+        // Return underlying array
+        return box.array();
     }
 }

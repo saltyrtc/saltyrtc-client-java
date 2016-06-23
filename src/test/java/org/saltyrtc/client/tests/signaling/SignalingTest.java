@@ -23,7 +23,7 @@ import static org.junit.Assert.assertTrue;
 public class SignalingTest {
 
     @Test
-    public void testWsPath() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    public void testWsPath() throws Exception {
         // Create signaling instances for initiator and responder
         final InitiatorSignaling initiator = new InitiatorSignaling(
                 null, Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, new KeyStore(), null);

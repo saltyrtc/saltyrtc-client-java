@@ -19,6 +19,7 @@ import org.saltyrtc.client.signaling.Signaling;
 import org.saltyrtc.client.signaling.state.SignalingState;
 import org.slf4j.Logger;
 
+import java.security.InvalidKeyException;
 import java.util.concurrent.FutureTask;
 
 import javax.net.ssl.SSLContext;
@@ -58,9 +59,11 @@ public class SaltyRTC {
      * @param permanentKey A KeyStore instance containing the permanent key.
      * @param host The SaltyRTC server host.
      * @param port The SaltyRTC server port.
+     * @throws InvalidKeyException Either the public key or the auth token is invalid.
      */
     public SaltyRTC(KeyStore permanentKey, String host, int port, SSLContext sslContext,
-                    byte[] initiatorPublicKey, byte[] authToken) {
+                    byte[] initiatorPublicKey, byte[] authToken)
+                    throws InvalidKeyException {
         validateHost(host);
         this.signaling = new ResponderSignaling(
                 this, host, port, permanentKey, sslContext, initiatorPublicKey, authToken);
@@ -100,7 +103,7 @@ public class SaltyRTC {
      * This does not yet mean that the handshake is done. For that, you need to wait for the
      * `ConnectedEvent`.
      */
-    public FutureTask<Void> connect() {
+    public FutureTask<Void> initConnection() {
         return this.signaling.initConnection();
     }
 

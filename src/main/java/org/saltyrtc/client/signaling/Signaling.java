@@ -14,13 +14,26 @@ import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.drafts.Draft_17;
 import org.java_websocket.handshake.ServerHandshake;
 import org.saltyrtc.client.SaltyRTC;
+import org.saltyrtc.client.cookie.Cookie;
 import org.saltyrtc.client.cookie.CookiePair;
 import org.saltyrtc.client.events.ConnectionClosedEvent;
 import org.saltyrtc.client.events.ConnectionErrorEvent;
 import org.saltyrtc.client.exceptions.ConnectionException;
+import org.saltyrtc.client.exceptions.CryptoFailedException;
+import org.saltyrtc.client.exceptions.InvalidKeyException;
+import org.saltyrtc.client.exceptions.ProtocolException;
+import org.saltyrtc.client.exceptions.SerializationError;
+import org.saltyrtc.client.exceptions.ValidationError;
+import org.saltyrtc.client.helpers.ArrayHelper;
+import org.saltyrtc.client.helpers.MessageReader;
 import org.saltyrtc.client.keystore.AuthToken;
+import org.saltyrtc.client.keystore.Box;
 import org.saltyrtc.client.keystore.KeyStore;
+import org.saltyrtc.client.messages.Message;
+import org.saltyrtc.client.messages.ServerHello;
 import org.saltyrtc.client.nonce.CombinedSequence;
+import org.saltyrtc.client.nonce.SignalingChannelNonce;
+import org.saltyrtc.client.signaling.state.ServerHandshakeState;
 import org.saltyrtc.client.signaling.state.SignalingState;
 import org.slf4j.Logger;
 import org.webrtc.DataChannel;
@@ -37,10 +50,10 @@ import javax.net.ssl.SSLContext;
 public abstract class Signaling {
 
     protected static String SALTYRTC_WS_SUBPROTOCOL = "saltyrtc-1.0";
-    protected static int SALTYRTC_WS_CONNECT_TIMEOUT = 2000;
-    protected static int SALTYRTC_ADDR_UNKNOWN = 0x00;
-    protected static int SALTYRTC_ADDR_SERVER = 0x00;
-    protected static int SALTYRTC_ADDR_INITIATOR = 0x01;
+    protected static short SALTYRTC_WS_CONNECT_TIMEOUT = 2000;
+    protected static short SALTYRTC_ADDR_UNKNOWN = 0x00;
+    protected static short SALTYRTC_ADDR_SERVER = 0x00;
+    protected static short SALTYRTC_ADDR_INITIATOR = 0x01;
 
     // Logger
     protected abstract Logger getLogger();
@@ -58,6 +71,7 @@ public abstract class Signaling {
     // Connection state
     public SignalingState state = SignalingState.NEW;
     public SignalingChannel channel = SignalingChannel.WEBSOCKET;
+    protected ServerHandshakeState serverHandshakeState = ServerHandshakeState.NEW;
 
     // Reference to main class
     protected SaltyRTC saltyRTC;
@@ -69,7 +83,7 @@ public abstract class Signaling {
     protected AuthToken authToken;
 
     // Signaling
-    protected int address = SALTYRTC_ADDR_UNKNOWN;
+    protected short address = SALTYRTC_ADDR_UNKNOWN;
     protected CookiePair cookiePair;
     protected CombinedSequence serverCsn = new CombinedSequence();
 
@@ -123,6 +137,7 @@ public abstract class Signaling {
      */
     protected void resetConnection() {
         this.state = SignalingState.NEW;
+        this.serverHandshakeState = ServerHandshakeState.NEW;
         this.serverCsn = new CombinedSequence();
 
         // Close websocket instance
@@ -169,7 +184,7 @@ public abstract class Signaling {
     /**
      * Initialize the WebSocket including TLS configuration.
      */
-    private void initWebsocket() {
+    protected void initWebsocket() {
         // Build connection URL
         final String baseUrl = this.protocol + "://" + this.host + ":" + this.port + "/";
         final URI uri = URI.create(baseUrl + this.getWebsocketPath());
@@ -194,8 +209,27 @@ public abstract class Signaling {
             }
 
             @Override
-            public void onMessage(ByteBuffer bytes) {
-                getLogger().debug("New bytes message (" + bytes.array().length + " bytes)");
+            public void onMessage(ByteBuffer buffer) {
+                getLogger().debug("New binary message (" + buffer.array().length + " bytes)");
+                try {
+                    switch (Signaling.this.state) {
+                        case SERVER_HANDSHAKE:
+                            Signaling.this.onServerHandshakeMessage(buffer);
+                            break;
+                        case PEER_HANDSHAKE:
+                            Signaling.this.onPeerHandshakeMessage(buffer);
+                            break;
+                        default:
+                            getLogger().warn("Received message in " + Signaling.this.state.name() +
+                                             " signaling state. Ignoring.");
+                    }
+                } catch (ValidationError | SerializationError e) {
+                    getLogger().error("Protocol error: Invalid message: " + e.getMessage());
+                    Signaling.this.resetConnection();
+                } catch (ProtocolException e) {
+                    getLogger().error("Protocol error: " + e.getMessage());
+                    Signaling.this.resetConnection();
+                }
             }
 
             @Override
@@ -252,7 +286,7 @@ public abstract class Signaling {
      *
      * @return boolean indicating whether connecting succeeded or not.
      */
-    private boolean connectWebsocket() throws InterruptedException {
+    protected boolean connectWebsocket() throws InterruptedException {
         Signaling.this.state = SignalingState.WS_CONNECTING;
         final boolean connected = Signaling.this.ws.connectBlocking();
         if (connected) {
@@ -263,4 +297,127 @@ public abstract class Signaling {
         }
         return connected;
     }
+
+    /**
+     * Message received during server handshake.
+     *
+     * @param buffer The ByteBuffer containing the raw message bytes.
+     */
+    protected void onServerHandshakeMessage(ByteBuffer buffer) throws ValidationError, SerializationError, ProtocolException {
+        // Parse nonce
+        final SignalingChannelNonce nonce = new SignalingChannelNonce(buffer);
+        assert buffer.position() == SignalingChannelNonce.TOTAL_LENGTH;
+
+        // Get payload bytes
+        final byte[] payload = new byte[buffer.remaining()];
+        buffer.get(payload);
+
+        switch (this.serverHandshakeState) {
+            case NEW:
+                // Expect server-hello
+                Message msg = MessageReader.read(payload);
+                if (msg instanceof ServerHello) {
+                    getLogger().debug("Received server-hello");
+                    // TODO: Validate nonce
+                    this.handleServerHello((ServerHello) msg, nonce);
+                    this.sendClientHello();
+                } else {
+                    throw new ProtocolException("Expected server-hello message, but got " + msg.getType());
+                }
+        }
+    }
+
+    protected void handleServerHello(ServerHello msg, SignalingChannelNonce nonce) {
+        // Store server public key
+        this.serverKey = msg.getKey();
+
+        // Generate cookie
+        Cookie ourCookie;
+        final Cookie serverCookie = nonce.getCookie();
+        do {
+            ourCookie = new Cookie();
+        } while (ourCookie.equals(serverCookie));
+        this.cookiePair = new CookiePair(ourCookie, serverCookie);
+    }
+
+    protected abstract void sendClientHello() throws ProtocolException;
+
+    /**
+     * Message received during peer handshake.
+     *
+     * @param buffer The ByteBuffer containing the raw message bytes.
+     */
+    protected void onPeerHandshakeMessage(ByteBuffer buffer) {
+
+    }
+
+    /**
+     * Build an optionally encrypted msgpacked message.
+     *
+     * @param msg The `Message` to be sent.
+     * @param receiver The receiver byte.
+     * @param encrypt Whether to encrypt the message.
+     * @return
+     */
+    public byte[] buildPacket(Message msg, short receiver, boolean encrypt) throws ProtocolException {
+        // Choose proper combined sequence number
+        final CombinedSequence csn = this.getNextCsn(receiver);
+
+        // Create nonce
+        final byte[] cookie = this.cookiePair.getOurs().getBytes();
+        final SignalingChannelNonce nonce = new SignalingChannelNonce(
+            cookie, this.address, receiver,
+            csn.getOverflow(), csn.getSequenceNumber());
+        final byte[] nonceBytes = nonce.toBytes();
+
+        // Encode message
+        final byte[] payload = msg.toBytes();
+
+        // Non encrypted messages can be created by concatenation
+        if (!encrypt) {
+            return ArrayHelper.concat(nonceBytes, payload);
+        }
+
+        // Otherwise, encrypt packet
+        final Box box;
+        try {
+            if (receiver == SALTYRTC_ADDR_SERVER) {
+                box = this.encryptForServer(payload, nonceBytes);
+            } else if (receiver == SALTYRTC_ADDR_INITIATOR || isResponderByte(receiver)) {
+                box = this.encryptForPeer(receiver, msg.getType(), payload, nonceBytes);
+            } else {
+                throw new ProtocolException("Bad receiver byte: " + receiver);
+            }
+        } catch (CryptoFailedException | InvalidKeyException e) {
+            e.printStackTrace();
+            throw new ProtocolException("Encrypting failed: " + e.getMessage());
+        }
+        return box.toBytes();
+    }
+
+    /**
+     * Choose proper combined sequence number
+     */
+    protected abstract CombinedSequence getNextCsn(short receiver) throws ProtocolException;
+
+    /**
+     * Return `true` if receiver byte is a valid responder byte.
+     */
+    protected boolean isResponderByte(short receiver) {
+        return receiver >= 0x02 && receiver <= 0xff;
+    }
+
+    /**
+     * Encrypt data for the server.
+     */
+    protected Box encryptForServer(byte[] payload, byte[] nonce)
+            throws CryptoFailedException, InvalidKeyException {
+        return this.permanentKey.encrypt(payload, nonce, this.serverKey);
+    }
+
+    /**
+     * Encrypt data for the specified peer.
+     */
+    protected abstract Box encryptForPeer(short receiver, String messageType, byte[] payload, byte[] nonce)
+        throws CryptoFailedException, InvalidKeyException, ProtocolException;
 }

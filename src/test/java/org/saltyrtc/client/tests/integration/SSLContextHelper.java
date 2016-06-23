@@ -30,7 +30,7 @@ public class SSLContextHelper {
         // If a file called "saltyrtc.jks" exists, we use it
         File kf = new File("saltyrtc.jks");
         if (!Config.IGNORE_JKS && kf.exists() && !kf.isDirectory()) {
-            System.err.println("Using saltyrtc.jks as TLS keystore");
+            System.out.println("Using saltyrtc.jks as TLS keystore");
 
             // Initialize KeyStore
             final String password = "saltyrtc";
@@ -51,7 +51,7 @@ public class SSLContextHelper {
             sslContext = SSLContext.getInstance("TLS");
             sslContext.init(null, tmf.getTrustManagers(), null);
         } else {
-            System.err.println("Using default SSLContext");
+            System.out.println("Using default SSLContext");
             sslContext = SSLContext.getDefault();
         }
 

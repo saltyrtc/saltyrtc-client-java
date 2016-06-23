@@ -15,5 +15,8 @@ public class Config {
     public static String SALTYRTC_HOST = "localhost";
     public static int SALTYRTC_PORT = 8765;
     public static boolean IGNORE_JKS = false;
+    // Show debug output
+    public static boolean DEBUG = true;
+    // Show verbose output, e.g. websocket frames
     public static boolean VERBOSE = false;
 }
