@@ -10,6 +10,8 @@ package org.saltyrtc.client.nonce;
 
 import com.neilalexander.jnacl.NaCl;
 
+import java.nio.ByteBuffer;
+
 abstract class Nonce {
 
     protected byte[] cookie;
@@ -18,6 +20,11 @@ abstract class Nonce {
 
     public static int COOKIE_LENGTH = 16;
     public static int TOTAL_LENGTH = NaCl.NONCEBYTES;
+
+    /**
+     * Convert nonce to bytes.
+     */
+    public abstract ByteBuffer toBuffer();
 
     /**
      * A cookie should be 16 bytes long.

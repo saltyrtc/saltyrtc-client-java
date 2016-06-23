@@ -76,6 +76,21 @@ public class DataChannelNonce extends Nonce {
         this.sequence = sequence;
     }
 
+    @Override
+    public ByteBuffer toBuffer() {
+        // Pack data
+        ByteBuffer buffer = ByteBuffer.allocate(Nonce.TOTAL_LENGTH);
+        buffer.put(this.cookie);
+        buffer.putShort(UnsignedHelper.getUnsignedShort(this.channelId));
+        buffer.putShort(UnsignedHelper.getUnsignedShort(this.overflow));
+        buffer.putInt(UnsignedHelper.getUnsignedInt(this.sequence));
+
+        // Flip offset and remaining length for reading
+        buffer.flip();
+
+        return buffer;
+    }
+
     /**
      * A channel id should be an uint16.
      */

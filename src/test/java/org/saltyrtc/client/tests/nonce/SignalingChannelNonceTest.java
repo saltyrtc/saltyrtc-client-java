@@ -14,6 +14,7 @@ import org.saltyrtc.client.nonce.SignalingChannelNonce;
 
 import java.nio.ByteBuffer;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -72,7 +73,7 @@ public class SignalingChannelNonceTest {
             -126,
             // Overflow (0x8002)
             -128, 2,
-            // Sequence (0x80000003
+            // Sequence (0x80000003)
             -128, 0, 0, 3,
         };
         final SignalingChannelNonce nonce = new SignalingChannelNonce(ByteBuffer.wrap(bytes));
@@ -80,6 +81,26 @@ public class SignalingChannelNonceTest {
         assertEquals(0x81, nonce.getSource());
         assertEquals(0x82, nonce.getDestination());
         assertEquals(0x80000003L, nonce.getSequence());
+    }
+
+    @Test
+    public void testByteConversionRoundtrip() {
+        byte[] bytes = new byte[] {
+            // Cookie
+            0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+            0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
+            // Source (0x81)
+            -127,
+            // Destination (0x82)
+            -126,
+            // Overflow (0x8002)
+            -128, 2,
+            // Sequence (0x80000003)
+            -128, 0, 0, 3,
+        };
+        final SignalingChannelNonce nonce = new SignalingChannelNonce(ByteBuffer.wrap(bytes));
+        byte[] bytesAgain = nonce.toBuffer().array();
+        assertArrayEquals(bytes, bytesAgain);
     }
 
 }

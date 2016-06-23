@@ -84,6 +84,22 @@ public class SignalingChannelNonce extends Nonce {
         this.sequence = sequence;
     }
 
+    @Override
+    public ByteBuffer toBuffer() {
+        // Pack data
+        ByteBuffer buffer = ByteBuffer.allocate(Nonce.TOTAL_LENGTH);
+        buffer.put(this.cookie);
+        buffer.put(UnsignedHelper.getUnsignedByte(this.source));
+        buffer.put(UnsignedHelper.getUnsignedByte(this.destination));
+        buffer.putShort(UnsignedHelper.getUnsignedShort(this.overflow));
+        buffer.putInt(UnsignedHelper.getUnsignedInt(this.sequence));
+
+        // Flip offset and remaining length for reading
+        buffer.flip();
+
+        return buffer;
+    }
+
     /**
      * A source byte should be an uint8.
      */

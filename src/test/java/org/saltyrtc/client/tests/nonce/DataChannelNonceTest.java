@@ -14,6 +14,7 @@ import org.saltyrtc.client.nonce.DataChannelNonce;
 
 import java.nio.ByteBuffer;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.fail;
@@ -97,7 +98,7 @@ public class DataChannelNonceTest {
             -128, 1,
             // Overflow (0x8002)
             -128, 2,
-            // Sequence (0x80000003
+            // Sequence (0x80000003)
             -128, 0, 0, 3,
         };
         final DataChannelNonce nonce = new DataChannelNonce(ByteBuffer.wrap(bytes));
@@ -111,6 +112,24 @@ public class DataChannelNonceTest {
         final DataChannelNonce nonce = new DataChannelNonce(cookie, 0, 0x8000, 42L);
         // (0x8000 << 32) + 42 = 140737488355370
         assertEquals(140737488355370L, nonce.getCombinedSequence());
+    }
+
+    @Test
+    public void testByteConversionRoundtrip() {
+        byte[] bytes = new byte[] {
+            // Cookie
+            0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+            0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
+            // Data channel id (0x8001)
+            -128, 1,
+            // Overflow (0x8002)
+            -128, 2,
+            // Sequence (0x80000003)
+            -128, 0, 0, 3,
+        };
+        final DataChannelNonce nonce = new DataChannelNonce(ByteBuffer.wrap(bytes));
+        byte[] bytesAgain = nonce.toBuffer().array();
+        assertArrayEquals(bytes, bytesAgain);
     }
 
 }
