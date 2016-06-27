@@ -362,18 +362,15 @@ public abstract class Signaling {
      * @param buffer The ByteBuffer containing the raw message bytes.
      */
     protected void onServerHandshakeMessage(ByteBuffer buffer) throws ValidationError, SerializationError, ProtocolException {
-        // Parse nonce
-        final SignalingChannelNonce nonce = new SignalingChannelNonce(buffer);
-        assert buffer.position() == SignalingChannelNonce.TOTAL_LENGTH;
+        // Parse buffer
+        final Box box = new Box(buffer, SignalingChannelNonce.TOTAL_LENGTH);
 
-        // Get payload bytes
-        final byte[] data = new byte[buffer.remaining()];
-        buffer.get(data);
+        // Parse nonce
+        final SignalingChannelNonce nonce = new SignalingChannelNonce(ByteBuffer.wrap(box.getNonce()));
 
         // Decrypt if necessary
         final byte[] payload;
         if (this.serverHandshakeState != ServerHandshakeState.NEW) {
-            final Box box = new Box(nonce.toBytes(), data);
             try {
                 payload = this.permanentKey.decrypt(box, this.serverKey);
             } catch (CryptoFailedException | InvalidKeyException e) {
@@ -381,7 +378,7 @@ public abstract class Signaling {
                 throw new ProtocolException("Could not decrypt server message");
             }
         } else {
-            payload = data;
+            payload = box.getData();
         }
 
         // Handle message
