@@ -343,6 +343,17 @@ public abstract class Signaling {
     }
 
     /**
+     * Build an encrypted msgpacked message.
+     *
+     * @param msg The `Message` to be sent.
+     * @param receiver The receiver byte.
+     * @return Encrypted msgpacked bytes, ready to send.
+     */
+    public byte[] buildPacket(Message msg, short receiver) throws ProtocolException {
+        return this.buildPacket(msg, receiver, true);
+    }
+
+    /**
      * Message received during server handshake.
      *
      * @param buffer The ByteBuffer containing the raw message bytes.
