@@ -299,6 +299,50 @@ public abstract class Signaling {
     }
 
     /**
+     * Build an optionally encrypted msgpacked message.
+     *
+     * @param msg The `Message` to be sent.
+     * @param receiver The receiver byte.
+     * @param encrypt Whether to encrypt the message.
+     * @return Encrypted msgpacked bytes, ready to send.
+     */
+    public byte[] buildPacket(Message msg, short receiver, boolean encrypt) throws ProtocolException {
+        // Choose proper combined sequence number
+        final CombinedSequence csn = this.getNextCsn(receiver);
+
+        // Create nonce
+        final byte[] cookie = this.cookiePair.getOurs().getBytes();
+        final SignalingChannelNonce nonce = new SignalingChannelNonce(
+                cookie, this.address, receiver,
+                csn.getOverflow(), csn.getSequenceNumber());
+        final byte[] nonceBytes = nonce.toBytes();
+
+        // Encode message
+        final byte[] payload = msg.toBytes();
+
+        // Non encrypted messages can be created by concatenation
+        if (!encrypt) {
+            return ArrayHelper.concat(nonceBytes, payload);
+        }
+
+        // Otherwise, encrypt packet
+        final Box box;
+        try {
+            if (receiver == SALTYRTC_ADDR_SERVER) {
+                box = this.encryptForServer(payload, nonceBytes);
+            } else if (receiver == SALTYRTC_ADDR_INITIATOR || isResponderByte(receiver)) {
+                box = this.encryptForPeer(receiver, msg.getType(), payload, nonceBytes);
+            } else {
+                throw new ProtocolException("Bad receiver byte: " + receiver);
+            }
+        } catch (CryptoFailedException | InvalidKeyException e) {
+            e.printStackTrace();
+            throw new ProtocolException("Encrypting failed: " + e.getMessage());
+        }
+        return box.toBytes();
+    }
+
+    /**
      * Message received during server handshake.
      *
      * @param buffer The ByteBuffer containing the raw message bytes.
@@ -327,6 +371,9 @@ public abstract class Signaling {
         }
     }
 
+    /**
+     * Handle an incoming server-hello message.
+     */
     protected void handleServerHello(ServerHello msg, SignalingChannelNonce nonce) {
         // Store server public key
         this.serverKey = msg.getKey();
@@ -340,59 +387,16 @@ public abstract class Signaling {
         this.cookiePair = new CookiePair(ourCookie, serverCookie);
     }
 
+    /**
+     * Send a client-hello message to the server.
+     */
     protected abstract void sendClientHello() throws ProtocolException;
 
     /**
      * Message received during peer handshake.
-     *
-     * @param buffer The ByteBuffer containing the raw message bytes.
      */
     protected void onPeerHandshakeMessage(ByteBuffer buffer) {
 
-    }
-
-    /**
-     * Build an optionally encrypted msgpacked message.
-     *
-     * @param msg The `Message` to be sent.
-     * @param receiver The receiver byte.
-     * @param encrypt Whether to encrypt the message.
-     * @return
-     */
-    public byte[] buildPacket(Message msg, short receiver, boolean encrypt) throws ProtocolException {
-        // Choose proper combined sequence number
-        final CombinedSequence csn = this.getNextCsn(receiver);
-
-        // Create nonce
-        final byte[] cookie = this.cookiePair.getOurs().getBytes();
-        final SignalingChannelNonce nonce = new SignalingChannelNonce(
-            cookie, this.address, receiver,
-            csn.getOverflow(), csn.getSequenceNumber());
-        final byte[] nonceBytes = nonce.toBytes();
-
-        // Encode message
-        final byte[] payload = msg.toBytes();
-
-        // Non encrypted messages can be created by concatenation
-        if (!encrypt) {
-            return ArrayHelper.concat(nonceBytes, payload);
-        }
-
-        // Otherwise, encrypt packet
-        final Box box;
-        try {
-            if (receiver == SALTYRTC_ADDR_SERVER) {
-                box = this.encryptForServer(payload, nonceBytes);
-            } else if (receiver == SALTYRTC_ADDR_INITIATOR || isResponderByte(receiver)) {
-                box = this.encryptForPeer(receiver, msg.getType(), payload, nonceBytes);
-            } else {
-                throw new ProtocolException("Bad receiver byte: " + receiver);
-            }
-        } catch (CryptoFailedException | InvalidKeyException e) {
-            e.printStackTrace();
-            throw new ProtocolException("Encrypting failed: " + e.getMessage());
-        }
-        return box.toBytes();
     }
 
     /**
