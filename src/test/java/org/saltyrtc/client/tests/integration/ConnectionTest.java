@@ -192,7 +192,7 @@ public class ConnectionTest {
         // Connect server
         FutureTask<Void> initiatorConnect = initiator.initConnection();
         FutureTask<Void> responderConnect = responder.initConnection();
-        System.out.println("Executing future...");
+        System.out.println("Executing futures...");
         threadpool.execute(initiatorConnect);
         Thread.sleep(1000);
         threadpool.execute(responderConnect);
@@ -251,7 +251,7 @@ public class ConnectionTest {
         // Connect server
         FutureTask<Void> responderConnect = responder.initConnection();
         FutureTask<Void> initiatorConnect = initiator.initConnection();
-        System.out.println("Executing future...");
+        System.out.println("Executing futures...");
         threadpool.execute(responderConnect);
         Thread.sleep(1000);
         threadpool.execute(initiatorConnect);
@@ -280,6 +280,53 @@ public class ConnectionTest {
         // Signaling state should be CLOSED
         assertEquals(SignalingState.CLOSED, responder.getSignalingState());
         assertEquals(SignalingState.CLOSED, initiator.getSignalingState());
+    }
+
+    @Test
+    public void testConnectionSpeed() throws Exception {
+        // Max 1s for handshake
+        final int MAX_DURATION = 1000;
+
+        // Latches to test connection state
+        final CountDownLatch connectedPeers = new CountDownLatch(2);
+        responder.events.connected.register(new EventHandler<ConnectedEvent>() {
+            @Override
+            public boolean handle(ConnectedEvent event) {
+                connectedPeers.countDown();
+                return true;
+            }
+        });
+        initiator.events.connected.register(new EventHandler<ConnectedEvent>() {
+            @Override
+            public boolean handle(ConnectedEvent event) {
+                connectedPeers.countDown();
+                return true;
+            }
+        });
+
+        // Connect server
+        FutureTask<Void> initiatorConnect = initiator.initConnection();
+        FutureTask<Void> responderConnect = responder.initConnection();
+        System.out.println("Executing futures...");
+        final long startTime = System.nanoTime();
+        threadpool.execute(initiatorConnect);
+        threadpool.execute(responderConnect);
+
+        // Wait for full handshake
+        final boolean bothConnected = connectedPeers.await(2 * MAX_DURATION, TimeUnit.MILLISECONDS);
+        final long endTime = System.nanoTime();
+        assertTrue(bothConnected);
+        assertFalse(eventsCalled.get("responderError"));
+        assertFalse(eventsCalled.get("initiatorError"));
+        long durationMs = (endTime - startTime) / 1000 / 1000;
+        System.out.println("Full handshake took " + durationMs + " milliseconds");
+
+        // Disconnect
+        responder.disconnect();
+        initiator.disconnect();
+
+        assertTrue("Duration time (" + durationMs + "ms) should be less than " + MAX_DURATION + "ms",
+                   durationMs < MAX_DURATION);
     }
 
 }
