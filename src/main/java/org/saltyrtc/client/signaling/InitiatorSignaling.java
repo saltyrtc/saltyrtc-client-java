@@ -345,13 +345,11 @@ public class InitiatorSignaling extends Signaling {
      * A responder repeats our cookie.
      */
     protected void handleAuth(Auth msg, Responder responder) throws ProtocolException {
-        // Verify the cookie
-        final Cookie repeatedCookie = new Cookie(msg.getYourCookie());
-        if (!repeatedCookie.equals(this.cookiePair.getOurs())) {
-            getLogger().debug("Peer repeated cookie: " + Arrays.toString(msg.getYourCookie()));
-            getLogger().debug("Our cookie: " + Arrays.toString(this.cookiePair.getOurs().getBytes()));
-            throw new ProtocolException("Peer repeated cookie does not match our cookie");
-        }
+        // Validate cookie
+        validateRepeatedCookie(msg);
+
+        // OK!
+        getLogger().info("Responder 0x" + NaCl.asHex(new int[] { responder.getId() }) + " authenticated");
 
         // Store responder details and session key
         this.responder = responder;

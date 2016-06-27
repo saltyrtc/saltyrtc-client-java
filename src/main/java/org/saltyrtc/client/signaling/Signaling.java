@@ -30,6 +30,7 @@ import org.saltyrtc.client.helpers.MessageReader;
 import org.saltyrtc.client.keystore.AuthToken;
 import org.saltyrtc.client.keystore.Box;
 import org.saltyrtc.client.keystore.KeyStore;
+import org.saltyrtc.client.messages.Auth;
 import org.saltyrtc.client.messages.ClientAuth;
 import org.saltyrtc.client.messages.InitiatorServerAuth;
 import org.saltyrtc.client.messages.Message;
@@ -44,6 +45,7 @@ import org.webrtc.DataChannel;
 
 import java.net.URI;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -490,6 +492,21 @@ public abstract class Signaling {
      */
     protected boolean isResponderId(short receiver) {
         return receiver >= 0x02 && receiver <= 0xff;
+    }
+
+    /**
+     * Validate a repeated cookie in an Auth message.
+     * @param msg The Auth message
+     * @throws ProtocolException Thrown if repeated cookie does not match our own cookie.
+     */
+    protected void validateRepeatedCookie(Auth msg) throws ProtocolException {
+        // Verify the cookie
+        final Cookie repeatedCookie = new Cookie(msg.getYourCookie());
+        if (!repeatedCookie.equals(this.cookiePair.getOurs())) {
+            getLogger().debug("Peer repeated cookie: " + Arrays.toString(msg.getYourCookie()));
+            getLogger().debug("Our cookie: " + Arrays.toString(this.cookiePair.getOurs().getBytes()));
+            throw new ProtocolException("Peer repeated cookie does not match our cookie");
+        }
     }
 
     /**
