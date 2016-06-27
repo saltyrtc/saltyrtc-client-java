@@ -12,5 +12,4 @@ public enum InitiatorHandshakeState {
     NEW,
     TOKEN_SENT,
     KEY_SENT,
-    AUTH_RECEIVED,
 }

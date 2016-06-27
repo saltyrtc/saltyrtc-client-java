@@ -12,6 +12,7 @@ import com.neilalexander.jnacl.NaCl;
 
 import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.cookie.Cookie;
+import org.saltyrtc.client.events.ConnectedEvent;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
 import org.saltyrtc.client.exceptions.InternalServerException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
@@ -19,17 +20,22 @@ import org.saltyrtc.client.exceptions.OverflowException;
 import org.saltyrtc.client.exceptions.ProtocolException;
 import org.saltyrtc.client.exceptions.SerializationError;
 import org.saltyrtc.client.exceptions.ValidationError;
+import org.saltyrtc.client.helpers.MessageReader;
 import org.saltyrtc.client.keystore.AuthToken;
 import org.saltyrtc.client.keystore.Box;
 import org.saltyrtc.client.keystore.KeyStore;
+import org.saltyrtc.client.messages.Auth;
 import org.saltyrtc.client.messages.ClientHello;
+import org.saltyrtc.client.messages.Key;
 import org.saltyrtc.client.messages.Message;
+import org.saltyrtc.client.messages.NewInitiator;
 import org.saltyrtc.client.messages.ResponderServerAuth;
 import org.saltyrtc.client.messages.Token;
 import org.saltyrtc.client.nonce.CombinedSequence;
 import org.saltyrtc.client.nonce.SignalingChannelNonce;
 import org.saltyrtc.client.signaling.state.InitiatorHandshakeState;
 import org.saltyrtc.client.signaling.state.ServerHandshakeState;
+import org.saltyrtc.client.signaling.state.SignalingState;
 import org.slf4j.Logger;
 
 import java.util.Arrays;
@@ -97,7 +103,7 @@ public class ResponderSignaling extends Signaling {
                     throw new ProtocolException(
                             "Trying to encrypt for initiator using session key, but session key is null");
                 }
-                return this.permanentKey.encrypt(payload, nonce, this.initiator.sessionKey);
+                return this.sessionKey.encrypt(payload, nonce, this.initiator.sessionKey);
         }
     }
 
@@ -126,7 +132,7 @@ public class ResponderSignaling extends Signaling {
             throw new ProtocolException("Invalid nonce destination: " + nonce.getDestination());
         }
         this.address = nonce.getDestination();
-        getLogger().debug("Server assigned address " + NaCl.asHex(new int[] { this.address }));
+        getLogger().debug("Server assigned address 0x" + NaCl.asHex(new int[] { this.address }));
 
         // Validate cookie
         final Cookie cookie = new Cookie(msg.getYourCookie());
@@ -164,6 +170,139 @@ public class ResponderSignaling extends Signaling {
     protected void onPeerHandshakeMessage(Box box, SignalingChannelNonce nonce)
             throws ProtocolException, ValidationError, SerializationError, InternalServerException {
 
+        // Validate nonce destination
+        if (nonce.getDestination() != this.address) {
+            throw new ProtocolException("Message destination does not match our address");
+        }
+
+        final byte[] payload;
+        if (nonce.getSource() == SALTYRTC_ADDR_SERVER) {
+            // Nonce claims to come from server.
+            // Try to decrypt data accordingly.
+            try {
+                payload = this.permanentKey.decrypt(box, this.serverKey);
+            } catch (CryptoFailedException | InvalidKeyException e) {
+                e.printStackTrace();
+                throw new ProtocolException("Could not decrypt server message");
+            }
+
+            final Message msg = MessageReader.read(payload);
+            if (msg instanceof NewInitiator) {
+                getLogger().debug("Received new-initiator");
+                handleNewInitiator((NewInitiator) msg);
+            } else {
+                throw new ProtocolException("Got unexpected server message: " + msg.getType());
+            }
+        } else if (nonce.getSource() == SALTYRTC_ADDR_INITIATOR) {
+            // Decrypt. The key messages are encrypted with a different key than the rest.
+            if (this.initiator.handshakeState == InitiatorHandshakeState.TOKEN_SENT) {
+                // Expect a key message, encrypted with the permanent keys
+                try {
+                    payload = this.permanentKey.decrypt(box, this.initiator.getPermanentKey());
+                } catch (CryptoFailedException | InvalidKeyException e) {
+                    e.printStackTrace();
+                    throw new ProtocolException("Could not decrypt key message");
+                }
+            } else {
+                // Otherwise, it must be encrypted with the session key.
+                try {
+                    payload = this.sessionKey.decrypt(box, this.initiator.getSessionKey());
+                } catch (CryptoFailedException | InvalidKeyException e) {
+                    e.printStackTrace();
+                    throw new ProtocolException("Could not decrypt message using session key");
+                }
+            }
+
+            // Dispatch message
+            final Message msg = MessageReader.read(payload);
+            switch (this.initiator.handshakeState) {
+                case NEW:
+                    throw new ProtocolException("Unexpected " + msg.getType() + " message");
+                case TOKEN_SENT:
+                    // Expect a key message
+                    if (msg instanceof Key) {
+                        getLogger().debug("Received key");
+                        handleKey((Key) msg);
+                        sendKey();
+                    } else {
+                        throw new ProtocolException("Expected key message, but got " + msg.getType());
+                    }
+                    break;
+                case KEY_SENT:
+                    // Expect an auth message
+                    if (msg instanceof Auth) {
+                        getLogger().debug("Received auth");
+                        handleAuth((Auth) msg);
+                        sendAuth(nonce);
+                    } else {
+                        throw new ProtocolException("Expected auth message, but got " + msg.getType());
+                    }
+
+                    // We're connected!
+                    this.state = SignalingState.OPEN;
+                    this.saltyRTC.events.connected.notifyHandlers(new ConnectedEvent());
+
+                    break;
+                default:
+                    throw new InternalServerException("Unknown initiator handshake state");
+            }
+        } else {
+            throw new ProtocolException("Message source is neither the server nor the initiator");
+        }
     }
 
+    /**
+     * A new responder wants to connect.
+     */
+    protected void handleNewInitiator(NewInitiator msg) throws ProtocolException {
+        // Initiator changed, send token
+        this.sendToken();
+    }
+
+    /**
+     * The initiator sends his public session key.
+     */
+    protected void handleKey(Key msg) throws ProtocolException {
+        this.initiator.setSessionKey(msg.getKey());
+    }
+
+    /**
+     * Send our public session key to the initiator.
+     */
+    protected void sendKey() throws ProtocolException {
+        // Generate our own session key
+        this.sessionKey = new KeyStore();
+        final Key msg = new Key(this.sessionKey.getPublicKey());
+        final byte[] packet = this.buildPacket(msg, SALTYRTC_ADDR_INITIATOR);
+        getLogger().debug("Sending key");
+        this.ws.send(packet);
+        this.initiator.handshakeState = InitiatorHandshakeState.KEY_SENT;
+    }
+
+    /**
+     * The initiator repeats our cookie.
+     */
+    protected void handleAuth(Auth msg) throws ProtocolException {
+        // Validate cookie
+        validateRepeatedCookie(msg);
+
+        // OK!
+        getLogger().info("Initiator authenticated");
+    }
+
+    /**
+     * Repeat the initiator's cookie.
+     */
+    protected void sendAuth(SignalingChannelNonce nonce) throws ProtocolException {
+        // Ensure that cookies are different
+        if (nonce.getCookie().equals(this.cookiePair.getOurs())) {
+            throw new ProtocolException("Their cookie and our cookie are the same");
+        }
+
+        // Send auth
+        final Auth msg = new Auth(nonce.getCookieBytes());
+        final byte[] packet = this.buildPacket(msg, SALTYRTC_ADDR_INITIATOR);
+        getLogger().debug("Sending auth");
+        this.ws.send(packet);
+    }
 }

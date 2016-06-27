@@ -184,13 +184,13 @@ public class InitiatorSignaling extends Signaling {
     @Override
     protected void onPeerHandshakeMessage(Box box, SignalingChannelNonce nonce)
             throws ProtocolException, ValidationError, SerializationError, InternalServerException {
-        final byte[] payload;
 
         // Validate nonce destination
         if (nonce.getDestination() != this.address) {
             throw new ProtocolException("Message destination does not match our address");
         }
 
+        final byte[] payload;
         if (nonce.getSource() == SALTYRTC_ADDR_SERVER) {
             // Nonce claims to come from server.
             // Try to decrypt data accordingly.
@@ -203,6 +203,7 @@ public class InitiatorSignaling extends Signaling {
 
             final Message msg = MessageReader.read(payload);
             if (msg instanceof NewResponder) {
+                getLogger().debug("Received new-responder");
                 handleNewResponder((NewResponder) msg);
             } else {
                 throw new ProtocolException("Got unexpected server message: " + msg.getType());
@@ -227,6 +228,7 @@ public class InitiatorSignaling extends Signaling {
                     }
                     msg = MessageReader.read(payload);
                     if (msg instanceof Token) {
+                        getLogger().debug("Received token");
                         handleToken((Token) msg, responder);
                         sendKey(responder);
                     } else {
@@ -245,6 +247,7 @@ public class InitiatorSignaling extends Signaling {
 
                     msg = MessageReader.read(payload);
                     if (msg instanceof Key) {
+                        getLogger().debug("Received key");
                         handleKey((Key) msg, responder);
                         sendAuth(responder, nonce);
                     } else {
@@ -255,6 +258,8 @@ public class InitiatorSignaling extends Signaling {
                     // Expect auth message, encrypted with our public session key
                     // and responder private session key
                     try {
+                        // Note: The session key related to the responder is
+                        // responder.keyStore, not this.sessionKey!
                         payload = responder.getKeyStore().decrypt(box, responder.sessionKey);
                     } catch (CryptoFailedException | InvalidKeyException e) {
                         e.printStackTrace();
@@ -263,6 +268,7 @@ public class InitiatorSignaling extends Signaling {
 
                     msg = MessageReader.read(payload);
                     if (msg instanceof Auth) {
+                        getLogger().debug("Received auth");
                         handleAuth((Auth) msg, responder);
                         dropResponders();
                     } else {
@@ -278,7 +284,7 @@ public class InitiatorSignaling extends Signaling {
                     throw new InternalServerException("Unknown responder handshake state");
             }
         } else {
-            throw new ProtocolException("Message source is neither the server nor the initiator");
+            throw new ProtocolException("Message source is neither the server nor a responder");
         }
     }
 
@@ -326,7 +332,7 @@ public class InitiatorSignaling extends Signaling {
     }
 
     /**
-     * Send our public session key to the responder.
+     * Repeat the responder's cookie.
      */
     protected void sendAuth(Responder responder, SignalingChannelNonce nonce) throws ProtocolException {
         // Ensure that cookies are different
