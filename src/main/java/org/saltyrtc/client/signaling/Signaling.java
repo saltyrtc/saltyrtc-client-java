@@ -365,13 +365,27 @@ public abstract class Signaling {
         assert buffer.position() == SignalingChannelNonce.TOTAL_LENGTH;
 
         // Get payload bytes
-        final byte[] payload = new byte[buffer.remaining()];
-        buffer.get(payload);
+        final byte[] data = new byte[buffer.remaining()];
+        buffer.get(data);
 
+        // Decrypt if necessary
+        final byte[] payload;
+        if (this.serverHandshakeState != ServerHandshakeState.NEW) {
+            final Box box = new Box(nonce.toBytes(), data);
+            try {
+                payload = this.permanentKey.decrypt(box, this.serverKey);
+            } catch (CryptoFailedException | InvalidKeyException e) {
+                e.printStackTrace();
+                throw new ProtocolException("Could not decrypt server message");
+            }
+        } else {
+            payload = data;
+        }
+
+        Message msg = MessageReader.read(payload);
         switch (this.serverHandshakeState) {
             case NEW:
                 // Expect server-hello
-                Message msg = MessageReader.read(payload);
                 if (msg instanceof ServerHello) {
                     getLogger().debug("Received server-hello");
                     // TODO: Validate nonce
