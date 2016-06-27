@@ -215,12 +215,19 @@ public abstract class Signaling {
             public void onMessage(ByteBuffer buffer) {
                 getLogger().debug("New binary message (" + buffer.array().length + " bytes)");
                 try {
+                    // Parse buffer
+                    final Box box = new Box(buffer, SignalingChannelNonce.TOTAL_LENGTH);
+
+                    // Parse nonce
+                    final SignalingChannelNonce nonce = new SignalingChannelNonce(ByteBuffer.wrap(box.getNonce()));
+
+                    // Dispatch message
                     switch (Signaling.this.state) {
                         case SERVER_HANDSHAKE:
-                            Signaling.this.onServerHandshakeMessage(buffer);
+                            Signaling.this.onServerHandshakeMessage(box, nonce);
                             break;
                         case PEER_HANDSHAKE:
-                            Signaling.this.onPeerHandshakeMessage(buffer);
+                            Signaling.this.onPeerHandshakeMessage(box, nonce);
                             break;
                         default:
                             getLogger().warn("Received message in " + Signaling.this.state.name() +
@@ -359,15 +366,10 @@ public abstract class Signaling {
     /**
      * Message received during server handshake.
      *
-     * @param buffer The ByteBuffer containing the raw message bytes.
+     * @param box The box containing raw nonce and payload bytes.
      */
-    protected void onServerHandshakeMessage(ByteBuffer buffer) throws ValidationError, SerializationError, ProtocolException {
-        // Parse buffer
-        final Box box = new Box(buffer, SignalingChannelNonce.TOTAL_LENGTH);
-
-        // Parse nonce
-        final SignalingChannelNonce nonce = new SignalingChannelNonce(ByteBuffer.wrap(box.getNonce()));
-
+    protected void onServerHandshakeMessage(Box box, SignalingChannelNonce nonce)
+            throws ValidationError, SerializationError, ProtocolException {
         // Decrypt if necessary
         final byte[] payload;
         if (this.serverHandshakeState != ServerHandshakeState.NEW) {
@@ -463,7 +465,7 @@ public abstract class Signaling {
     /**
      * Message received during peer handshake.
      */
-    protected void onPeerHandshakeMessage(ByteBuffer buffer) {
+    protected void onPeerHandshakeMessage(Box box, SignalingChannelNonce nonce) {
 
     }
 
