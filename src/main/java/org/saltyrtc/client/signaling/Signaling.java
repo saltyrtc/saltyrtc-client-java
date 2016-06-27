@@ -29,6 +29,7 @@ import org.saltyrtc.client.helpers.MessageReader;
 import org.saltyrtc.client.keystore.AuthToken;
 import org.saltyrtc.client.keystore.Box;
 import org.saltyrtc.client.keystore.KeyStore;
+import org.saltyrtc.client.messages.ClientAuth;
 import org.saltyrtc.client.messages.Message;
 import org.saltyrtc.client.messages.ServerHello;
 import org.saltyrtc.client.nonce.CombinedSequence;
@@ -224,7 +225,7 @@ public abstract class Signaling {
                                              " signaling state. Ignoring.");
                     }
                 } catch (ValidationError | SerializationError e) {
-                    getLogger().error("Protocol error: Invalid message: " + e.getMessage());
+                    getLogger().error("Protocol error: Invalid incoming message: " + e.getMessage());
                     Signaling.this.resetConnection();
                 } catch (ProtocolException e) {
                     getLogger().error("Protocol error: " + e.getMessage());
@@ -376,9 +377,11 @@ public abstract class Signaling {
                     // TODO: Validate nonce
                     this.handleServerHello((ServerHello) msg, nonce);
                     this.sendClientHello();
+                    this.sendClientAuth();
                 } else {
                     throw new ProtocolException("Expected server-hello message, but got " + msg.getType());
                 }
+                break;
         }
     }
 
@@ -402,6 +405,17 @@ public abstract class Signaling {
      * Send a client-hello message to the server.
      */
     protected abstract void sendClientHello() throws ProtocolException;
+
+    /**
+     * Send a client-auth message to the server.
+     */
+    protected void sendClientAuth() throws ProtocolException {
+        final ClientAuth msg = new ClientAuth(this.cookiePair.getTheirs().getBytes());
+        final byte[] packet = this.buildPacket(msg, Signaling.SALTYRTC_ADDR_SERVER);
+        getLogger().debug("Sending client-auth");
+        this.ws.send(packet);
+        this.serverHandshakeState = ServerHandshakeState.AUTH_SENT;
+    }
 
     /**
      * Message received during peer handshake.

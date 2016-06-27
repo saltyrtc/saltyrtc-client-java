@@ -20,6 +20,7 @@ import org.saltyrtc.client.keystore.Box;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.messages.ClientHello;
 import org.saltyrtc.client.nonce.CombinedSequence;
+import org.saltyrtc.client.signaling.state.ServerHandshakeState;
 import org.slf4j.Logger;
 
 import javax.net.ssl.SSLContext;
@@ -48,14 +49,6 @@ public class ResponderSignaling extends Signaling {
      */
     protected String getWebsocketPath() {
         return NaCl.asHex(this.initiator.getPermanentKey());
-    }
-
-    @Override
-    protected void sendClientHello() throws ProtocolException {
-        final ClientHello msg = new ClientHello(this.permanentKey.getPublicKey());
-        final byte[] packet = this.buildPacket(msg, Signaling.SALTYRTC_ADDR_SERVER, false);
-        getLogger().debug("Sending client-hello");
-        this.ws.send(packet);
     }
 
     @Override
@@ -95,6 +88,15 @@ public class ResponderSignaling extends Signaling {
                 }
                 return this.permanentKey.encrypt(payload, nonce, this.initiator.sessionKey);
         }
+    }
+
+    @Override
+    protected void sendClientHello() throws ProtocolException {
+        final ClientHello msg = new ClientHello(this.permanentKey.getPublicKey());
+        final byte[] packet = this.buildPacket(msg, Signaling.SALTYRTC_ADDR_SERVER, false);
+        getLogger().debug("Sending client-hello");
+        this.ws.send(packet);
+        this.serverHandshakeState = ServerHandshakeState.HELLO_SENT;
     }
 
 }

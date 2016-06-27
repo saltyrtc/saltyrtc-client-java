@@ -55,11 +55,6 @@ public class InitiatorSignaling extends Signaling {
     }
 
     @Override
-    protected void sendClientHello() throws ProtocolException {
-        // No-op as initiator.
-    }
-
-    @Override
     protected CombinedSequence getNextCsn(short receiver) throws ProtocolException {
         try {
             if (receiver == Signaling.SALTYRTC_ADDR_SERVER) {
@@ -109,5 +104,10 @@ public class InitiatorSignaling extends Signaling {
         } else {
             return responder.getKeyStore().encrypt(payload, nonce, responder.getSessionKey());
         }
+    }
+
+    @Override
+    protected void sendClientHello() throws ProtocolException {
+        // No-op as initiator.
     }
 }
