@@ -12,6 +12,7 @@ import com.neilalexander.jnacl.NaCl;
 
 import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.cookie.Cookie;
+import org.saltyrtc.client.events.ConnectedEvent;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
 import org.saltyrtc.client.exceptions.InternalServerException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
@@ -24,6 +25,7 @@ import org.saltyrtc.client.keystore.AuthToken;
 import org.saltyrtc.client.keystore.Box;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.messages.Auth;
+import org.saltyrtc.client.messages.DropResponder;
 import org.saltyrtc.client.messages.InitiatorServerAuth;
 import org.saltyrtc.client.messages.Key;
 import org.saltyrtc.client.messages.Message;
@@ -40,6 +42,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import javax.net.ssl.SSLContext;
 
@@ -251,6 +254,25 @@ public class InitiatorSignaling extends Signaling {
                 case KEY_RECEIVED:
                     // Expect auth message, encrypted with our public session key
                     // and responder private session key
+                    try {
+                        payload = responder.getKeyStore().decrypt(box, responder.sessionKey);
+                    } catch (CryptoFailedException | InvalidKeyException e) {
+                        e.printStackTrace();
+                        throw new ProtocolException("Could not decrypt auth message");
+                    }
+
+                    msg = MessageReader.read(payload);
+                    if (msg instanceof Auth) {
+                        handleAuth((Auth) msg, responder);
+                        dropResponders();
+                    } else {
+                        throw new ProtocolException("Expected auth message, but got " + msg.getType());
+                    }
+
+                    // We're connected!
+                    this.state = SignalingState.OPEN;
+                    this.saltyRTC.events.connected.notifyHandlers(new ConnectedEvent());
+
                     break;
                 default:
                     throw new InternalServerException("Unknown responder handshake state");
@@ -313,10 +335,45 @@ public class InitiatorSignaling extends Signaling {
         }
 
         // Send auth
-        final Auth msg = new Auth(nonce.getCookie().getBytes());
+        final Auth msg = new Auth(nonce.getCookieBytes());
         final byte[] packet = this.buildPacket(msg, responder.getId());
         getLogger().debug("Sending auth");
         this.ws.send(packet);
+    }
+
+    /**
+     * A responder repeats our cookie.
+     */
+    protected void handleAuth(Auth msg, Responder responder) throws ProtocolException {
+        // Verify the cookie
+        final Cookie repeatedCookie = new Cookie(msg.getYourCookie());
+        if (!repeatedCookie.equals(this.cookiePair.getOurs())) {
+            getLogger().debug("Peer repeated cookie: " + Arrays.toString(msg.getYourCookie()));
+            getLogger().debug("Our cookie: " + Arrays.toString(this.cookiePair.getOurs().getBytes()));
+            throw new ProtocolException("Peer repeated cookie does not match our cookie");
+        }
+
+        // Store responder details and session key
+        this.responder = responder;
+        this.sessionKey = responder.getKeyStore();
+
+        // Remove responder from responders list
+        this.responders.remove(responder.getId());
+    }
+
+    /**
+     * Drop all responders.
+     */
+    protected void dropResponders() throws ProtocolException {
+        getLogger().debug("Dropping " + this.responders.size() + " other responders");
+        final Set<Short> ids = this.responders.keySet();
+        for (short id : ids) {
+            final DropResponder msg = new DropResponder(id);
+            final byte[] packet = this.buildPacket(msg, id);
+            getLogger().debug("Sending drop-responder " + id);
+            this.ws.send(packet);
+            this.responders.remove(id);
+        }
     }
 
 }
