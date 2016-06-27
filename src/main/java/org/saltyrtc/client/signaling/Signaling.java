@@ -30,7 +30,9 @@ import org.saltyrtc.client.keystore.AuthToken;
 import org.saltyrtc.client.keystore.Box;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.messages.ClientAuth;
+import org.saltyrtc.client.messages.InitiatorServerAuth;
 import org.saltyrtc.client.messages.Message;
+import org.saltyrtc.client.messages.ResponderServerAuth;
 import org.saltyrtc.client.messages.ServerHello;
 import org.saltyrtc.client.nonce.CombinedSequence;
 import org.saltyrtc.client.nonce.SignalingChannelNonce;
@@ -396,6 +398,15 @@ public abstract class Signaling {
                     throw new ProtocolException("Expected server-hello message, but got " + msg.getType());
                 }
                 break;
+            case HELLO_SENT:
+                throw new ProtocolException("Received " + msg.getType() + " message before sending client-auth");
+            case AUTH_SENT:
+                // Expect server-auth
+                if (msg instanceof InitiatorServerAuth || msg instanceof ResponderServerAuth) {
+                    getLogger().debug("Received server-auth");
+                    // TODO: Validate nonce
+                    this.handleServerAuth(msg, nonce);
+                }
         }
     }
 
@@ -430,6 +441,15 @@ public abstract class Signaling {
         this.ws.send(packet);
         this.serverHandshakeState = ServerHandshakeState.AUTH_SENT;
     }
+
+    /**
+     * Handle an incoming server-auth message.
+     *
+     * Note that the message has not yet been casted to the correct subclass.
+     * That needs to be done (differently) in the initiator and
+     * responder signaling subclasses.
+     */
+    protected abstract void handleServerAuth(Message baseMsg, SignalingChannelNonce nonce) throws ProtocolException;
 
     /**
      * Message received during peer handshake.

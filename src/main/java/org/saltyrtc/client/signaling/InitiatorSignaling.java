@@ -11,6 +11,7 @@ package org.saltyrtc.client.signaling;
 import com.neilalexander.jnacl.NaCl;
 
 import org.saltyrtc.client.SaltyRTC;
+import org.saltyrtc.client.cookie.Cookie;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
 import org.saltyrtc.client.exceptions.OverflowException;
@@ -18,10 +19,14 @@ import org.saltyrtc.client.exceptions.ProtocolException;
 import org.saltyrtc.client.keystore.AuthToken;
 import org.saltyrtc.client.keystore.Box;
 import org.saltyrtc.client.keystore.KeyStore;
+import org.saltyrtc.client.messages.InitiatorServerAuth;
+import org.saltyrtc.client.messages.Message;
 import org.saltyrtc.client.nonce.CombinedSequence;
+import org.saltyrtc.client.nonce.SignalingChannelNonce;
 import org.saltyrtc.client.signaling.state.SignalingState;
 import org.slf4j.Logger;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -109,5 +114,40 @@ public class InitiatorSignaling extends Signaling {
     @Override
     protected void sendClientHello() throws ProtocolException {
         // No-op as initiator.
+    }
+
+    @Override
+    protected void handleServerAuth(Message baseMsg, SignalingChannelNonce nonce) throws ProtocolException {
+        // Cast to proper subtype
+        final InitiatorServerAuth msg;
+        try {
+            msg = (InitiatorServerAuth) baseMsg;
+        } catch (ClassCastException e) {
+            throw new ProtocolException("Could not cast message to InitiatorServerAuth");
+        }
+
+        // Set proper address
+        this.address = Signaling.SALTYRTC_ADDR_INITIATOR;
+        // TODO: validate nonce
+
+        // Validate cookie
+        final Cookie cookie = new Cookie(msg.getYourCookie());
+        if (!cookie.equals(this.cookiePair.getOurs())) {
+            getLogger().error("Bad repeated cookie in server-auth message");
+            getLogger().debug("Their response: " + Arrays.toString(msg.getYourCookie()) +
+                              ", our cookie: " + Arrays.toString(this.cookiePair.getOurs().getBytes()));
+            throw new ProtocolException("Bad repeated cookie in server-auth message");
+        }
+
+        // Store responders
+        for (int id : msg.getResponders()) {
+            if (id < 0) {
+                throw new ProtocolException("Responder id may not be smaller than 0");
+            } else if (id > 0xff) {
+                throw new ProtocolException("Responder id may not be larger than 255");
+            }
+            this.responders.put((short) id, new Responder((short) id));
+        }
+        getLogger().debug(this.responders.size() + " responder(s) connected.");
     }
 }
