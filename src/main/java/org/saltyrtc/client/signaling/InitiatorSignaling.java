@@ -10,7 +10,6 @@ package org.saltyrtc.client.signaling;
 
 import com.neilalexander.jnacl.NaCl;
 
-import org.omg.CORBA.DynAnyPackage.Invalid;
 import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.cookie.Cookie;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
@@ -24,6 +23,7 @@ import org.saltyrtc.client.helpers.MessageReader;
 import org.saltyrtc.client.keystore.AuthToken;
 import org.saltyrtc.client.keystore.Box;
 import org.saltyrtc.client.keystore.KeyStore;
+import org.saltyrtc.client.messages.Auth;
 import org.saltyrtc.client.messages.InitiatorServerAuth;
 import org.saltyrtc.client.messages.Key;
 import org.saltyrtc.client.messages.Message;
@@ -212,6 +212,7 @@ public class InitiatorSignaling extends Signaling {
             }
 
             // Dispatch message
+            final Message msg;
             switch (responder.handshakeState) {
                 case NEW:
                     // Expect token message, encrypted with authentication token
@@ -221,7 +222,7 @@ public class InitiatorSignaling extends Signaling {
                         e.printStackTrace();
                         throw new ProtocolException("Could not decrypt token message");
                     }
-                    final Message msg = MessageReader.read(payload);
+                    msg = MessageReader.read(payload);
                     if (msg instanceof Token) {
                         handleToken((Token) msg, responder);
                         sendKey(responder);
@@ -232,6 +233,20 @@ public class InitiatorSignaling extends Signaling {
                 case TOKEN_RECEIVED:
                     // Expect key message, encrypted with our public permanent key
                     // and responder private permanent key
+                    try {
+                        payload = this.permanentKey.decrypt(box, responder.permanentKey);
+                    } catch (CryptoFailedException | InvalidKeyException e) {
+                        e.printStackTrace();
+                        throw new ProtocolException("Could not decrypt key message");
+                    }
+
+                    msg = MessageReader.read(payload);
+                    if (msg instanceof Key) {
+                        handleKey((Key) msg, responder);
+                        sendAuth(responder, nonce);
+                    } else {
+                        throw new ProtocolException("Expected key message, but got " + msg.getType());
+                    }
                     break;
                 case KEY_RECEIVED:
                     // Expect auth message, encrypted with our public session key
@@ -277,6 +292,30 @@ public class InitiatorSignaling extends Signaling {
         final Key msg = new Key(responder.getKeyStore().getPublicKey());
         final byte[] packet = this.buildPacket(msg, responder.getId());
         getLogger().debug("Sending key");
+        this.ws.send(packet);
+    }
+
+    /**
+     * A responder sends his public session key.
+     */
+    protected void handleKey(Key msg, Responder responder) throws ProtocolException {
+        responder.setSessionKey(msg.getKey());
+        responder.handshakeState = ResponderHandshakeState.KEY_RECEIVED;
+    }
+
+    /**
+     * Send our public session key to the responder.
+     */
+    protected void sendAuth(Responder responder, SignalingChannelNonce nonce) throws ProtocolException {
+        // Ensure that cookies are different
+        if (nonce.getCookie().equals(this.cookiePair.getOurs())) {
+            throw new ProtocolException("Their cookie and our cookie are the same");
+        }
+
+        // Send auth
+        final Auth msg = new Auth(nonce.getCookie().getBytes());
+        final byte[] packet = this.buildPacket(msg, responder.getId());
+        getLogger().debug("Sending auth");
         this.ws.send(packet);
     }
 

@@ -346,6 +346,7 @@ public abstract class Signaling {
             if (receiver == SALTYRTC_ADDR_SERVER) {
                 box = this.encryptForServer(payload, nonceBytes);
             } else if (receiver == SALTYRTC_ADDR_INITIATOR || isResponderId(receiver)) {
+                // TODO: Do we re-use the same cookie everywhere?
                 box = this.encryptForPeer(receiver, msg.getType(), payload, nonceBytes);
             } else {
                 throw new ProtocolException("Bad receiver byte: " + receiver);
