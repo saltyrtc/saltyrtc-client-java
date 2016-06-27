@@ -205,6 +205,7 @@ public abstract class Signaling {
             @Override
             public void onOpen(ServerHandshake handshakedata) {
                 getLogger().debug("WebSocket connection open");
+                Signaling.this.state = SignalingState.SERVER_HANDSHAKE;
             }
 
             @Override
@@ -306,9 +307,7 @@ public abstract class Signaling {
     protected boolean connectWebsocket() throws InterruptedException {
         Signaling.this.state = SignalingState.WS_CONNECTING;
         final boolean connected = Signaling.this.ws.connectBlocking();
-        if (connected) {
-            Signaling.this.state = SignalingState.SERVER_HANDSHAKE;
-        } else {
+        if (!connected) {
             Signaling.this.state = SignalingState.ERROR;
             Signaling.this.getLogger().error("Connecting to server failed");
         }
