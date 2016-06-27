@@ -8,7 +8,8 @@
 This is a [SaltyRTC](https://github.com/saltyrtc/saltyrtc-meta) implementation
 for Java 7+.
 
-The development is still ongoing, the current version is not yet functional.
+The development is still ongoing, the current version is only at alpha-level
+and should not be used for production yet.
 
 ## License
 
