@@ -157,7 +157,7 @@ public class ConnectionTest {
         responder.disconnect();
 
         // Await close events
-        Thread.sleep(200);
+        Thread.sleep(300);
         assertTrue(eventsCalled.get("initiatorClosed"));
         assertTrue(eventsCalled.get("responderClosed"));
         assertFalse(eventsCalled.get("initiatorError"));
