@@ -25,6 +25,10 @@ public class DropResponder extends Message {
         this.id = id;
     }
 
+    public DropResponder(short id) {
+        this.id = (int) id;
+    }
+
     public DropResponder(Map<String, Object> map) throws ValidationError {
         ValidationHelper.validateType(map.get("type"), TYPE);
         this.id = ValidationHelper.validateInteger(map.get("id"), 0x00, 0xff, "id");

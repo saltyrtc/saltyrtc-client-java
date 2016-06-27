@@ -8,8 +8,9 @@
 
 package org.saltyrtc.client.signaling.state;
 
-public enum InitiatorHandshakeState {
+public enum ServerHandshakeState {
     NEW,
-    TOKEN_SENT,
-    KEY_SENT,
+    HELLO_SENT,
+    AUTH_SENT,
+    DONE,
 }

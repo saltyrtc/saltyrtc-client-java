@@ -10,7 +10,7 @@ package org.saltyrtc.client.nonce;
 
 import com.neilalexander.jnacl.NaCl;
 
-import java.nio.ByteBuffer;
+import org.saltyrtc.client.cookie.Cookie;
 
 abstract class Nonce {
 
@@ -53,8 +53,18 @@ abstract class Nonce {
         }
     }
 
-    public byte[] getCookie() {
+    /**
+     * Return cookie bytes.
+     */
+    public byte[] getCookieBytes() {
         return this.cookie;
+    }
+
+    /**
+     * Return `Cookie` instance.
+     */
+    public Cookie getCookie() {
+        return new Cookie(this.cookie);
     }
 
     /**

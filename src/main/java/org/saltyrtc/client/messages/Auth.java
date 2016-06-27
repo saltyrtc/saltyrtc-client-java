@@ -8,8 +8,6 @@
 
 package org.saltyrtc.client.messages;
 
-import com.neilalexander.jnacl.NaCl;
-
 import org.msgpack.core.MessagePacker;
 import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.helpers.ValidationHelper;
@@ -20,6 +18,7 @@ import java.util.Map;
 public class Auth extends Message {
 
     public static String TYPE = "auth";
+    private static int COOKIE_LENGTH = 16;
 
     private byte[] yourCookie;
 
@@ -29,7 +28,7 @@ public class Auth extends Message {
 
     public Auth(Map<String, Object> map) throws ValidationError {
         ValidationHelper.validateType(map.get("type"), TYPE);
-        this.yourCookie = ValidationHelper.validateByteArray(map.get("your_cookie"), NaCl.PUBLICKEYBYTES, "Cookie");
+        this.yourCookie = ValidationHelper.validateByteArray(map.get("your_cookie"), COOKIE_LENGTH, "Cookie");
     }
 
     public byte[] getYourCookie() {

@@ -165,7 +165,7 @@ public class MessageTest {
 
     @Test
     public void testAuthRoundtrip() throws SerializationError, ValidationError {
-        final Auth original = new Auth(RandomHelper.pseudoRandomBytes(32));
+        final Auth original = new Auth(RandomHelper.pseudoRandomBytes(16));
         final Auth returned = roundTrip(original);
         assertArrayEquals(original.getYourCookie(), returned.getYourCookie());
     }
