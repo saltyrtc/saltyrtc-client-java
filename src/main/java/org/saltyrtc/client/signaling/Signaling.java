@@ -20,6 +20,7 @@ import org.saltyrtc.client.events.ConnectionClosedEvent;
 import org.saltyrtc.client.events.ConnectionErrorEvent;
 import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
+import org.saltyrtc.client.exceptions.InternalServerException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
 import org.saltyrtc.client.exceptions.ProtocolException;
 import org.saltyrtc.client.exceptions.SerializationError;
@@ -239,7 +240,11 @@ public abstract class Signaling {
                 } catch (ProtocolException e) {
                     getLogger().error("Protocol error: " + e.getMessage());
                     Signaling.this.resetConnection();
+                } catch (InternalServerException e) {
+                    getLogger().error("Internal server error: " + e.getMessage());
+                    Signaling.this.resetConnection();
                 }
+                // TODO: Send proper close code
             }
 
             @Override
@@ -340,7 +345,7 @@ public abstract class Signaling {
         try {
             if (receiver == SALTYRTC_ADDR_SERVER) {
                 box = this.encryptForServer(payload, nonceBytes);
-            } else if (receiver == SALTYRTC_ADDR_INITIATOR || isResponderByte(receiver)) {
+            } else if (receiver == SALTYRTC_ADDR_INITIATOR || isResponderId(receiver)) {
                 box = this.encryptForPeer(receiver, msg.getType(), payload, nonceBytes);
             } else {
                 throw new ProtocolException("Bad receiver byte: " + receiver);
@@ -369,7 +374,7 @@ public abstract class Signaling {
      * @param box The box containing raw nonce and payload bytes.
      */
     protected void onServerHandshakeMessage(Box box, SignalingChannelNonce nonce)
-            throws ValidationError, SerializationError, ProtocolException {
+            throws ValidationError, SerializationError, ProtocolException, InternalServerException {
         // Decrypt if necessary
         final byte[] payload;
         if (this.serverHandshakeState != ServerHandshakeState.NEW) {
@@ -407,6 +412,12 @@ public abstract class Signaling {
                     // TODO: Validate nonce
                     this.handleServerAuth(msg, nonce);
                 }
+                break;
+            case DONE:
+                throw new InternalServerException("Received server handshake message even though " +
+                                                  "server handshake state is set to DONE");
+            default:
+                throw new InternalServerException("Unknown server handshake state");
         }
 
         // Check if we're done yet
@@ -415,6 +426,12 @@ public abstract class Signaling {
             this.initPeerHandshake();
         }
     }
+
+    /**
+     * Message received during peer handshake.
+     */
+    protected abstract void onPeerHandshakeMessage(Box box, SignalingChannelNonce nonce)
+            throws ProtocolException, ValidationError, SerializationError, InternalServerException;
 
     /**
      * Handle an incoming server-hello message.
@@ -463,21 +480,14 @@ public abstract class Signaling {
     protected abstract void initPeerHandshake() throws ProtocolException;
 
     /**
-     * Message received during peer handshake.
-     */
-    protected void onPeerHandshakeMessage(Box box, SignalingChannelNonce nonce) {
-
-    }
-
-    /**
      * Choose proper combined sequence number
      */
     protected abstract CombinedSequence getNextCsn(short receiver) throws ProtocolException;
 
     /**
-     * Return `true` if receiver byte is a valid responder byte.
+     * Return `true` if receiver byte is a valid responder id (in the range 0x02-0xff).
      */
-    protected boolean isResponderByte(short receiver) {
+    protected boolean isResponderId(short receiver) {
         return receiver >= 0x02 && receiver <= 0xff;
     }
 

@@ -10,19 +10,28 @@ package org.saltyrtc.client.signaling;
 
 import com.neilalexander.jnacl.NaCl;
 
+import org.omg.CORBA.DynAnyPackage.Invalid;
 import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.cookie.Cookie;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
+import org.saltyrtc.client.exceptions.InternalServerException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
 import org.saltyrtc.client.exceptions.OverflowException;
 import org.saltyrtc.client.exceptions.ProtocolException;
+import org.saltyrtc.client.exceptions.SerializationError;
+import org.saltyrtc.client.exceptions.ValidationError;
+import org.saltyrtc.client.helpers.MessageReader;
 import org.saltyrtc.client.keystore.AuthToken;
 import org.saltyrtc.client.keystore.Box;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.messages.InitiatorServerAuth;
+import org.saltyrtc.client.messages.Key;
 import org.saltyrtc.client.messages.Message;
+import org.saltyrtc.client.messages.NewResponder;
+import org.saltyrtc.client.messages.Token;
 import org.saltyrtc.client.nonce.CombinedSequence;
 import org.saltyrtc.client.nonce.SignalingChannelNonce;
+import org.saltyrtc.client.signaling.state.ResponderHandshakeState;
 import org.saltyrtc.client.signaling.state.ServerHandshakeState;
 import org.saltyrtc.client.signaling.state.SignalingState;
 import org.slf4j.Logger;
@@ -42,10 +51,10 @@ public class InitiatorSignaling extends Signaling {
     }
 
     // Keep track of responders connected to the server
-    private Map<Short, Responder> responders = new HashMap<>();
+    protected Map<Short, Responder> responders = new HashMap<>();
 
     // Once the handshake is done, this is the chosen responder
-    private Responder responder;
+    protected Responder responder;
 
     public InitiatorSignaling(SaltyRTC saltyRTC, String host, int port,
                               KeyStore permanentKey, SSLContext sslContext) {
@@ -63,12 +72,12 @@ public class InitiatorSignaling extends Signaling {
     @Override
     protected CombinedSequence getNextCsn(short receiver) throws ProtocolException {
         try {
-            if (receiver == Signaling.SALTYRTC_ADDR_SERVER) {
+            if (receiver == SALTYRTC_ADDR_SERVER) {
                 return this.serverCsn.next();
-            } else if (receiver == Signaling.SALTYRTC_ADDR_INITIATOR) {
+            } else if (receiver == SALTYRTC_ADDR_INITIATOR) {
                 throw new ProtocolException("Initiator cannot send messages to initiator");
-            } else if (isResponderByte(receiver)) {
-                if (this.state == SignalingState.OPEN) { // TODO maybe use peerHandshakeState instead
+            } else if (isResponderId(receiver)) {
+                if (this.state == SignalingState.OPEN) {
                     assert this.responder != null;
                     return this.responder.getCsn().next();
                 } else if (this.responders.containsKey(receiver)) {
@@ -87,15 +96,15 @@ public class InitiatorSignaling extends Signaling {
     @Override
     protected Box encryptForPeer(short receiver, String messageType, byte[] payload, byte[] nonce)
             throws CryptoFailedException, InvalidKeyException, ProtocolException {
-        if (receiver == Signaling.SALTYRTC_ADDR_INITIATOR) {
+        if (receiver == SALTYRTC_ADDR_INITIATOR) {
             throw new ProtocolException("Initiator cannot encrypt messages for initiator");
-        } else if (!isResponderByte(receiver)) {
+        } else if (!isResponderId(receiver)) {
             throw new ProtocolException("Bad receiver byte: " + receiver);
         }
 
         // Find correct responder
         final Responder responder;
-        if (this.state == SignalingState.OPEN) { // TODO maybe use peerHandshakeState instead
+        if (this.state == SignalingState.OPEN) {
             assert this.responder != null;
             responder = this.responder;
         } else if (this.responders.containsKey(receiver)) {
@@ -110,6 +119,19 @@ public class InitiatorSignaling extends Signaling {
         } else {
             return responder.getKeyStore().encrypt(payload, nonce, responder.getSessionKey());
         }
+    }
+
+    /**
+     * Validate a responder id. Throw a ProtocolException if the id is out of range.
+     * Cast it to a short otherwise.
+     */
+    protected short validateResponderId(int id) throws ProtocolException {
+        if (id < 0) {
+            throw new ProtocolException("Responder id may not be smaller than 0");
+        } else if (id > 0xff) {
+            throw new ProtocolException("Responder id may not be larger than 255");
+        }
+        return (short) id;
     }
 
     @Override
@@ -128,7 +150,7 @@ public class InitiatorSignaling extends Signaling {
         }
 
         // Set proper address
-        this.address = Signaling.SALTYRTC_ADDR_INITIATOR;
+        this.address = SALTYRTC_ADDR_INITIATOR;
         // TODO: validate nonce
 
         // Validate cookie
@@ -141,13 +163,9 @@ public class InitiatorSignaling extends Signaling {
         }
 
         // Store responders
-        for (int id : msg.getResponders()) {
-            if (id < 0) {
-                throw new ProtocolException("Responder id may not be smaller than 0");
-            } else if (id > 0xff) {
-                throw new ProtocolException("Responder id may not be larger than 255");
-            }
-            this.responders.put((short) id, new Responder((short) id));
+        for (int number : msg.getResponders()) {
+            final short id = this.validateResponderId(number);
+            this.responders.put(id, new Responder(id));
         }
         getLogger().debug(this.responders.size() + " responder(s) connected.");
 
@@ -158,6 +176,108 @@ public class InitiatorSignaling extends Signaling {
     @Override
     protected void initPeerHandshake() {
         // No-op as initiator.
+    }
+
+    @Override
+    protected void onPeerHandshakeMessage(Box box, SignalingChannelNonce nonce)
+            throws ProtocolException, ValidationError, SerializationError, InternalServerException {
+        final byte[] payload;
+
+        // Validate nonce destination
+        if (nonce.getDestination() != this.address) {
+            throw new ProtocolException("Message destination does not match our address");
+        }
+
+        if (nonce.getSource() == SALTYRTC_ADDR_SERVER) {
+            // Nonce claims to come from server.
+            // Try to decrypt data accordingly.
+            try {
+                payload = this.permanentKey.decrypt(box, this.serverKey);
+            } catch (CryptoFailedException | InvalidKeyException e) {
+                e.printStackTrace();
+                throw new ProtocolException("Could not decrypt server message");
+            }
+
+            final Message msg = MessageReader.read(payload);
+            if (msg instanceof NewResponder) {
+                handleNewResponder((NewResponder) msg);
+            } else {
+                throw new ProtocolException("Got unexpected server message: " + msg.getType());
+            }
+        } else if (isResponderId(nonce.getSource())) {
+            // Get responder instance
+            final Responder responder = this.responders.get(nonce.getSource());
+            if (responder == null) {
+                throw new ProtocolException("Unknown message sender: " + nonce.getSource());
+            }
+
+            // Dispatch message
+            switch (responder.handshakeState) {
+                case NEW:
+                    // Expect token message, encrypted with authentication token
+                    try {
+                        payload = this.authToken.decrypt(box);
+                    } catch (CryptoFailedException e) {
+                        e.printStackTrace();
+                        throw new ProtocolException("Could not decrypt token message");
+                    }
+                    final Message msg = MessageReader.read(payload);
+                    if (msg instanceof Token) {
+                        handleToken((Token) msg, responder);
+                        sendKey(responder);
+                    } else {
+                        throw new ProtocolException("Expected token message, but got " + msg.getType());
+                    }
+                    break;
+                case TOKEN_RECEIVED:
+                    // Expect key message, encrypted with our public permanent key
+                    // and responder private permanent key
+                    break;
+                case KEY_RECEIVED:
+                    // Expect auth message, encrypted with our public session key
+                    // and responder private session key
+                    break;
+                default:
+                    throw new InternalServerException("Unknown responder handshake state");
+            }
+        } else {
+            throw new ProtocolException("Message source is neither the server nor the initiator");
+        }
+    }
+
+    /**
+     * A new responder wants to connect.
+     */
+    protected void handleNewResponder(NewResponder msg) throws ProtocolException {
+        // Validate responder id
+        final short id = this.validateResponderId(msg.getId());
+
+        // Check whether responder is already known
+        if (this.responders.containsKey(id)) {
+            throw new ProtocolException("Got new-responder message for an " +
+                                        "already known responder (" + id + ")");
+        }
+
+        // Store responder
+        this.responders.put(id, new Responder(id));
+    }
+
+    /**
+     * A responder sends his public permanent key.
+     */
+    protected void handleToken(Token msg, Responder responder) throws ProtocolException {
+        responder.setPermanentKey(msg.getKey());
+        responder.handshakeState = ResponderHandshakeState.TOKEN_RECEIVED;
+    }
+
+    /**
+     * Send our public session key to the responder.
+     */
+    protected void sendKey(Responder responder) throws ProtocolException {
+        final Key msg = new Key(responder.getKeyStore().getPublicKey());
+        final byte[] packet = this.buildPacket(msg, responder.getId());
+        getLogger().debug("Sending key");
+        this.ws.send(packet);
     }
 
 }

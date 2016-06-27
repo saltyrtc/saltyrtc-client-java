@@ -13,9 +13,12 @@ import com.neilalexander.jnacl.NaCl;
 import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.cookie.Cookie;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
+import org.saltyrtc.client.exceptions.InternalServerException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
 import org.saltyrtc.client.exceptions.OverflowException;
 import org.saltyrtc.client.exceptions.ProtocolException;
+import org.saltyrtc.client.exceptions.SerializationError;
+import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.keystore.AuthToken;
 import org.saltyrtc.client.keystore.Box;
 import org.saltyrtc.client.keystore.KeyStore;
@@ -66,7 +69,7 @@ public class ResponderSignaling extends Signaling {
                 return this.serverCsn.next();
             } else if (receiver == Signaling.SALTYRTC_ADDR_INITIATOR) {
                 return this.initiator.getCsn().next();
-            } else if (isResponderByte(receiver)) {
+            } else if (isResponderId(receiver)) {
                 throw new ProtocolException("Responder may not send messages to other responders: " + receiver);
             } else {
                 throw new ProtocolException("Bad receiver byte: " + receiver);
@@ -79,7 +82,7 @@ public class ResponderSignaling extends Signaling {
     @Override
     protected Box encryptForPeer(short receiver, String messageType, byte[] payload, byte[] nonce)
             throws CryptoFailedException, InvalidKeyException, ProtocolException {
-        if (isResponderByte(receiver)) {
+        if (isResponderId(receiver)) {
             throw new ProtocolException("Bad receiver byte: " + receiver);
         } else if (receiver != Signaling.SALTYRTC_ADDR_INITIATOR) {
             throw new ProtocolException("Responder may not encrypt messages for other responders: " + receiver);
@@ -155,6 +158,12 @@ public class ResponderSignaling extends Signaling {
         getLogger().debug("Sending token");
         this.ws.send(packet);
         this.initiator.handshakeState = InitiatorHandshakeState.TOKEN_SENT;
+    }
+
+    @Override
+    protected void onPeerHandshakeMessage(Box box, SignalingChannelNonce nonce)
+            throws ProtocolException, ValidationError, SerializationError, InternalServerException {
+
     }
 
 }
