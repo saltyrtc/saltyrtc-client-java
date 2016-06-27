@@ -212,7 +212,7 @@ public class ConnectionTest {
         responder.disconnect();
 
         // Await close events
-        Thread.sleep(200);
+        Thread.sleep(300);
         assertTrue(eventsCalled.get("initiatorClosed"));
         assertTrue(eventsCalled.get("responderClosed"));
         assertFalse(eventsCalled.get("initiatorError"));
@@ -271,7 +271,7 @@ public class ConnectionTest {
         initiator.disconnect();
 
         // Await close events
-        Thread.sleep(200);
+        Thread.sleep(300);
         assertTrue(eventsCalled.get("responderClosed"));
         assertTrue(eventsCalled.get("initiatorClosed"));
         assertFalse(eventsCalled.get("responderError"));
