@@ -23,6 +23,7 @@ import org.saltyrtc.client.messages.InitiatorServerAuth;
 import org.saltyrtc.client.messages.Message;
 import org.saltyrtc.client.nonce.CombinedSequence;
 import org.saltyrtc.client.nonce.SignalingChannelNonce;
+import org.saltyrtc.client.signaling.state.ServerHandshakeState;
 import org.saltyrtc.client.signaling.state.SignalingState;
 import org.slf4j.Logger;
 
@@ -149,5 +150,14 @@ public class InitiatorSignaling extends Signaling {
             this.responders.put((short) id, new Responder((short) id));
         }
         getLogger().debug(this.responders.size() + " responder(s) connected.");
+
+        // Server handshake is done!
+        this.serverHandshakeState = ServerHandshakeState.DONE;
     }
+
+    @Override
+    protected void initPeerHandshake() {
+        // No-op as initiator.
+    }
+
 }

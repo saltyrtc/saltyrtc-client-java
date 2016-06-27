@@ -22,8 +22,10 @@ import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.messages.ClientHello;
 import org.saltyrtc.client.messages.Message;
 import org.saltyrtc.client.messages.ResponderServerAuth;
+import org.saltyrtc.client.messages.Token;
 import org.saltyrtc.client.nonce.CombinedSequence;
 import org.saltyrtc.client.nonce.SignalingChannelNonce;
+import org.saltyrtc.client.signaling.state.InitiatorHandshakeState;
 import org.saltyrtc.client.signaling.state.ServerHandshakeState;
 import org.slf4j.Logger;
 
@@ -135,5 +137,24 @@ public class ResponderSignaling extends Signaling {
         // Store whether initiator is connected
         this.initiator.setConnected(msg.isInitiatorConnected());
         getLogger().debug("Initiator is " + (msg.isInitiatorConnected() ? "" : "not ") + "connected.");
+
+        // Server handshake is done!
+        this.serverHandshakeState = ServerHandshakeState.DONE;
     }
+
+    @Override
+    protected void initPeerHandshake() throws ProtocolException {
+        if (this.initiator.isConnected()) {
+            this.sendToken();
+        }
+    }
+
+    protected void sendToken() throws ProtocolException {
+        final Token msg = new Token(this.permanentKey.getPublicKey());
+        final byte[] packet = this.buildPacket(msg, Signaling.SALTYRTC_ADDR_INITIATOR);
+        getLogger().debug("Sending token");
+        this.ws.send(packet);
+        this.initiator.handshakeState = InitiatorHandshakeState.TOKEN_SENT;
+    }
+
 }

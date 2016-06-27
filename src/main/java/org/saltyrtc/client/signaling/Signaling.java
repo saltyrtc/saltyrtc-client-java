@@ -384,6 +384,7 @@ public abstract class Signaling {
             payload = data;
         }
 
+        // Handle message
         Message msg = MessageReader.read(payload);
         switch (this.serverHandshakeState) {
             case NEW:
@@ -407,6 +408,12 @@ public abstract class Signaling {
                     // TODO: Validate nonce
                     this.handleServerAuth(msg, nonce);
                 }
+        }
+
+        // Check if we're done yet
+        if (this.serverHandshakeState == ServerHandshakeState.DONE) {
+            this.state = SignalingState.PEER_HANDSHAKE;
+            this.initPeerHandshake();
         }
     }
 
@@ -450,6 +457,11 @@ public abstract class Signaling {
      * responder signaling subclasses.
      */
     protected abstract void handleServerAuth(Message baseMsg, SignalingChannelNonce nonce) throws ProtocolException;
+
+    /**
+     * Initialize the peer handshake.
+     */
+    protected abstract void initPeerHandshake() throws ProtocolException;
 
     /**
      * Message received during peer handshake.
