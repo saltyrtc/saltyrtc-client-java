@@ -203,6 +203,10 @@ public class ConnectionTest {
         assertFalse(eventsCalled.get("initiatorError"));
         assertFalse(eventsCalled.get("responderError"));
 
+        // Signaling state should be OPEN
+        assertEquals(SignalingState.OPEN, initiator.getSignalingState());
+        assertEquals(SignalingState.OPEN, responder.getSignalingState());
+
         // Disconnect
         initiator.disconnect();
         responder.disconnect();
@@ -213,6 +217,69 @@ public class ConnectionTest {
         assertTrue(eventsCalled.get("responderClosed"));
         assertFalse(eventsCalled.get("initiatorError"));
         assertFalse(eventsCalled.get("responderError"));
+
+        // Signaling state should be CLOSED
+        assertEquals(SignalingState.CLOSED, initiator.getSignalingState());
+        assertEquals(SignalingState.CLOSED, responder.getSignalingState());
+    }
+
+    @Test
+    public void testHandshakeResponderFirst() throws Exception {
+        // Signaling state should still be NEW
+        assertEquals(SignalingState.NEW, initiator.getSignalingState());
+        assertEquals(SignalingState.NEW, responder.getSignalingState());
+
+        // Latches to test connection state
+        final CountDownLatch connectedPeers = new CountDownLatch(2);
+
+        // Register onConnect handler
+        responder.events.connected.register(new EventHandler<ConnectedEvent>() {
+            @Override
+            public boolean handle(ConnectedEvent event) {
+                connectedPeers.countDown();
+                return true;
+            }
+        });
+        initiator.events.connected.register(new EventHandler<ConnectedEvent>() {
+            @Override
+            public boolean handle(ConnectedEvent event) {
+                connectedPeers.countDown();
+                return true;
+            }
+        });
+
+        // Connect server
+        FutureTask<Void> responderConnect = responder.initConnection();
+        FutureTask<Void> initiatorConnect = initiator.initConnection();
+        System.out.println("Executing future...");
+        threadpool.execute(responderConnect);
+        Thread.sleep(1000);
+        threadpool.execute(initiatorConnect);
+
+        // Wait for full handshake
+        final boolean bothConnected = connectedPeers.await(4, TimeUnit.SECONDS);
+        assertTrue(bothConnected);
+        assertFalse(eventsCalled.get("responderError"));
+        assertFalse(eventsCalled.get("initiatorError"));
+
+        // Signaling state should be OPEN
+        assertEquals(SignalingState.OPEN, responder.getSignalingState());
+        assertEquals(SignalingState.OPEN, initiator.getSignalingState());
+
+        // Disconnect
+        responder.disconnect();
+        initiator.disconnect();
+
+        // Await close events
+        Thread.sleep(200);
+        assertTrue(eventsCalled.get("responderClosed"));
+        assertTrue(eventsCalled.get("initiatorClosed"));
+        assertFalse(eventsCalled.get("responderError"));
+        assertFalse(eventsCalled.get("initiatorError"));
+
+        // Signaling state should be CLOSED
+        assertEquals(SignalingState.CLOSED, responder.getSignalingState());
+        assertEquals(SignalingState.CLOSED, initiator.getSignalingState());
     }
 
 }
