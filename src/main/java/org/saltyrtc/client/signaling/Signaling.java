@@ -43,6 +43,7 @@ import org.saltyrtc.client.signaling.state.ServerHandshakeState;
 import org.saltyrtc.client.signaling.state.SignalingState;
 import org.slf4j.Logger;
 import org.webrtc.DataChannel;
+import org.webrtc.PeerConnection;
 
 import java.io.IOException;
 import java.net.URI;
@@ -50,6 +51,8 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.FutureTask;
 
 import javax.net.ssl.SSLContext;
 
@@ -57,6 +60,7 @@ public abstract class Signaling {
 
     protected static String SALTYRTC_PROTOCOL = "saltyrtc-1.0";
     protected static short SALTYRTC_WS_CONNECT_TIMEOUT = 2000;
+    protected static String SALTYRTC_DC_LABEL = "saltyrtc-signaling";
     protected static short SALTYRTC_ADDR_UNKNOWN = 0x00;
     protected static short SALTYRTC_ADDR_SERVER = 0x00;
     protected static short SALTYRTC_ADDR_INITIATOR = 0x01;
@@ -531,4 +535,42 @@ public abstract class Signaling {
      */
     protected abstract Box encryptForPeer(short receiver, String messageType, byte[] payload, byte[] nonce)
         throws CryptoFailedException, InvalidKeyException, ProtocolException;
+
+    /**
+     * Handover from WebSocket to WebRTC data channel.
+     * @param pc The WebRTC PeerConnection instance
+     * @return A FutureTask. It returns once the handover is done.
+     */
+    public FutureTask<Void> handover(final PeerConnection pc) {
+        return new FutureTask<>(new Callable<Void>() {
+            @Override
+            public Void call() {
+                // Create new signaling DataChannel
+                DataChannel.Init init = new DataChannel.Init();
+                init.id = 0;
+                init.negotiated = true;
+                init.ordered = true;
+                init.protocol = SALTYRTC_PROTOCOL;
+                Signaling.this.dc = pc.createDataChannel(SALTYRTC_DC_LABEL, new DataChannel.Init());
+                Signaling.this.dc.registerObserver(new DataChannel.Observer() {
+                    @Override
+                    public void onBufferedAmountChange(long l) {
+                        Signaling.this.getLogger().info("DataChannel: Buffered amount changed");
+                    }
+
+                    @Override
+                    public void onStateChange() {
+                        Signaling.this.getLogger().info("DataChannel: State changed");
+                    }
+
+                    @Override
+                    public void onMessage(DataChannel.Buffer buffer) {
+                        Signaling.this.getLogger().info("DataChannel: Message arrived");
+                    }
+                });
+
+                return null;
+            }
+        });
+    }
 }
