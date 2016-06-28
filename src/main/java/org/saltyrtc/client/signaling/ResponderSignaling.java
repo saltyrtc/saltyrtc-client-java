@@ -112,7 +112,7 @@ public class ResponderSignaling extends Signaling {
         final ClientHello msg = new ClientHello(this.permanentKey.getPublicKey());
         final byte[] packet = this.buildPacket(msg, Signaling.SALTYRTC_ADDR_SERVER, false);
         getLogger().debug("Sending client-hello");
-        this.ws.send(packet);
+        this.ws.sendBinary(packet);
         this.serverHandshakeState = ServerHandshakeState.HELLO_SENT;
     }
 
@@ -162,7 +162,7 @@ public class ResponderSignaling extends Signaling {
         final Token msg = new Token(this.permanentKey.getPublicKey());
         final byte[] packet = this.buildPacket(msg, Signaling.SALTYRTC_ADDR_INITIATOR);
         getLogger().debug("Sending token");
-        this.ws.send(packet);
+        this.ws.sendBinary(packet);
         this.initiator.handshakeState = InitiatorHandshakeState.TOKEN_SENT;
     }
 
@@ -275,7 +275,7 @@ public class ResponderSignaling extends Signaling {
         final Key msg = new Key(this.sessionKey.getPublicKey());
         final byte[] packet = this.buildPacket(msg, SALTYRTC_ADDR_INITIATOR);
         getLogger().debug("Sending key");
-        this.ws.send(packet);
+        this.ws.sendBinary(packet);
         this.initiator.handshakeState = InitiatorHandshakeState.KEY_SENT;
     }
 
@@ -303,6 +303,6 @@ public class ResponderSignaling extends Signaling {
         final Auth msg = new Auth(nonce.getCookieBytes());
         final byte[] packet = this.buildPacket(msg, SALTYRTC_ADDR_INITIATOR);
         getLogger().debug("Sending auth");
-        this.ws.send(packet);
+        this.ws.sendBinary(packet);
     }
 }

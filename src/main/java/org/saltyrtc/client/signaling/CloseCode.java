@@ -13,6 +13,11 @@ package org.saltyrtc.client.signaling;
  */
 public class CloseCode {
     /**
+     * Normal closing of websocket.
+     */
+    public static final int CLOSING_NORMAL = 1000;
+
+    /**
      * The endpoint is going away.
      */
     public static final int GOING_AWAY = 1001;

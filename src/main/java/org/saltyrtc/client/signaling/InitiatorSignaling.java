@@ -320,7 +320,7 @@ public class InitiatorSignaling extends Signaling {
         final Key msg = new Key(responder.getKeyStore().getPublicKey());
         final byte[] packet = this.buildPacket(msg, responder.getId());
         getLogger().debug("Sending key");
-        this.ws.send(packet);
+        this.ws.sendBinary(packet);
     }
 
     /**
@@ -344,7 +344,7 @@ public class InitiatorSignaling extends Signaling {
         final Auth msg = new Auth(nonce.getCookieBytes());
         final byte[] packet = this.buildPacket(msg, responder.getId());
         getLogger().debug("Sending auth");
-        this.ws.send(packet);
+        this.ws.sendBinary(packet);
     }
 
     /**
@@ -375,7 +375,7 @@ public class InitiatorSignaling extends Signaling {
             final DropResponder msg = new DropResponder(id);
             final byte[] packet = this.buildPacket(msg, id);
             getLogger().debug("Sending drop-responder " + id);
-            this.ws.send(packet);
+            this.ws.sendBinary(packet);
             this.responders.remove(id);
         }
     }

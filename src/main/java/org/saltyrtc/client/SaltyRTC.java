@@ -12,6 +12,7 @@ import org.saltyrtc.client.events.ConnectedEvent;
 import org.saltyrtc.client.events.ConnectionClosedEvent;
 import org.saltyrtc.client.events.ConnectionErrorEvent;
 import org.saltyrtc.client.events.EventRegistry;
+import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.signaling.InitiatorSignaling;
 import org.saltyrtc.client.signaling.ResponderSignaling;
@@ -20,7 +21,6 @@ import org.saltyrtc.client.signaling.state.SignalingState;
 import org.slf4j.Logger;
 
 import java.security.InvalidKeyException;
-import java.util.concurrent.FutureTask;
 
 import javax.net.ssl.SSLContext;
 
@@ -97,14 +97,15 @@ public class SaltyRTC {
     }
 
     /**
-     * Connect to the SaltyRTC server.
+     * Connect asynchronously to the SaltyRTC server.
      *
-     * The future will resolve once the WebSocket connection to the server is established.
-     * This does not yet mean that the handshake is done. For that, you need to wait for the
-     * `ConnectedEvent`.
+     * To get notified when the connection is up and running,
+     * subscribe to the `ConnectedEvent`.
+     *
+     * @throws ConnectionException if the connection process fails.
      */
-    public FutureTask<Void> initConnection() {
-        return this.signaling.initConnection();
+    public void connect() throws ConnectionException {
+        this.signaling.connect();
     }
 
     /**

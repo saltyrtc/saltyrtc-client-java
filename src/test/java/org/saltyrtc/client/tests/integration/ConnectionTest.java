@@ -8,6 +8,7 @@
 
 package org.saltyrtc.client.tests.integration;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.saltyrtc.client.SaltyRTC;
@@ -22,9 +23,6 @@ import org.saltyrtc.client.tests.Config;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLContext;
@@ -44,7 +42,6 @@ public class ConnectionTest {
 
     private SaltyRTC initiator;
     private SaltyRTC responder;
-    private ExecutorService threadpool;
     private Map<String, Boolean> eventsCalled;
 
     @Before
@@ -64,9 +61,6 @@ public class ConnectionTest {
             initiator.setDebug(true);
             responder.setDebug(true);
         }
-
-        // Create a new executor pool
-        threadpool = Executors.newFixedThreadPool(4);
 
         // Initiate event registry
         eventsCalled = new HashMap<>();
@@ -122,49 +116,6 @@ public class ConnectionTest {
     }
 
     @Test
-    public void testWsConnect() throws Exception {
-        // Signaling state should still be NEW
-        assertEquals(SignalingState.NEW, initiator.getSignalingState());
-        assertEquals(SignalingState.NEW, responder.getSignalingState());
-
-        // Connect server
-        FutureTask<Void> initiatorConnect = initiator.initConnection();
-        FutureTask<Void> responderConnect = responder.initConnection();
-        System.out.println("Executing future...");
-        threadpool.execute(initiatorConnect);
-        threadpool.execute(responderConnect);
-
-        // Wait until both are connected
-        initiatorConnect.get();
-        System.out.println("Initiator connected");
-        assertEquals(SignalingState.SERVER_HANDSHAKE, initiator.getSignalingState());
-        responderConnect.get();
-        System.out.println("Responder connected");
-        assertEquals(SignalingState.SERVER_HANDSHAKE, responder.getSignalingState());
-
-        // Test if event handlers were called.
-        // As this is only the first stage of the connection process,
-        // no ConnectionEvents should be sent out yet.
-        assertFalse(eventsCalled.get("initiatorConnected"));
-        assertFalse(eventsCalled.get("initiatorError"));
-        assertFalse(eventsCalled.get("initiatorClosed"));
-        assertFalse(eventsCalled.get("responderConnected"));
-        assertFalse(eventsCalled.get("responderError"));
-        assertFalse(eventsCalled.get("responderClosed"));
-
-        // Disconnect
-        initiator.disconnect();
-        responder.disconnect();
-
-        // Await close events
-        Thread.sleep(300);
-        assertTrue(eventsCalled.get("initiatorClosed"));
-        assertTrue(eventsCalled.get("responderClosed"));
-        assertFalse(eventsCalled.get("initiatorError"));
-        assertFalse(eventsCalled.get("responderError"));
-    }
-
-    @Test
     public void testHandshakeInitiatorFirst() throws Exception {
         // Signaling state should still be NEW
         assertEquals(SignalingState.NEW, initiator.getSignalingState());
@@ -190,12 +141,9 @@ public class ConnectionTest {
         });
 
         // Connect server
-        FutureTask<Void> initiatorConnect = initiator.initConnection();
-        FutureTask<Void> responderConnect = responder.initConnection();
-        System.out.println("Executing futures...");
-        threadpool.execute(initiatorConnect);
+        initiator.connect();
         Thread.sleep(1000);
-        threadpool.execute(responderConnect);
+        responder.connect();
 
         // Wait for full handshake
         final boolean bothConnected = connectedPeers.await(4, TimeUnit.SECONDS);
@@ -249,12 +197,10 @@ public class ConnectionTest {
         });
 
         // Connect server
-        FutureTask<Void> responderConnect = responder.initConnection();
-        FutureTask<Void> initiatorConnect = initiator.initConnection();
         System.out.println("Executing futures...");
-        threadpool.execute(responderConnect);
+        responder.connect();
         Thread.sleep(1000);
-        threadpool.execute(initiatorConnect);
+        initiator.connect();
 
         // Wait for full handshake
         final boolean bothConnected = connectedPeers.await(4, TimeUnit.SECONDS);
@@ -305,12 +251,9 @@ public class ConnectionTest {
         });
 
         // Connect server
-        FutureTask<Void> initiatorConnect = initiator.initConnection();
-        FutureTask<Void> responderConnect = responder.initConnection();
-        System.out.println("Executing futures...");
         final long startTime = System.nanoTime();
-        threadpool.execute(initiatorConnect);
-        threadpool.execute(responderConnect);
+        initiator.connect();
+        responder.connect();
 
         // Wait for full handshake
         final boolean bothConnected = connectedPeers.await(2 * MAX_DURATION, TimeUnit.MILLISECONDS);
@@ -327,6 +270,12 @@ public class ConnectionTest {
 
         assertTrue("Duration time (" + durationMs + "ms) should be less than " + MAX_DURATION + "ms",
                    durationMs < MAX_DURATION);
+    }
+
+    @After
+    public void tearDown() {
+        initiator.disconnect();
+        responder.disconnect();
     }
 
 }
