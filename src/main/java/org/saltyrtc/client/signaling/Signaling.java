@@ -60,6 +60,7 @@ public abstract class Signaling {
 
     protected static String SALTYRTC_PROTOCOL = "saltyrtc-1.0";
     protected static short SALTYRTC_WS_CONNECT_TIMEOUT = 2000;
+    protected static long SALTYRTC_WS_PING_INTERVAL = 20000;
     protected static String SALTYRTC_DC_LABEL = "saltyrtc-signaling";
     protected static short SALTYRTC_ADDR_UNKNOWN = 0x00;
     protected static short SALTYRTC_ADDR_SERVER = 0x00;
@@ -315,6 +316,7 @@ public abstract class Signaling {
                 .setConnectionTimeout(SALTYRTC_WS_CONNECT_TIMEOUT)
                 .setSSLContext(this.sslContext)
                 .createSocket(uri)
+                .setPingInterval(SALTYRTC_WS_PING_INTERVAL)
                 .addProtocol(SALTYRTC_PROTOCOL)
                 .addListener(listener);
 
