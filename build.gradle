@@ -11,6 +11,9 @@ dependencies {
     // The production code uses the SLF4J logging API at compile time
     compile 'org.slf4j:slf4j-api:1.7.21'
 
+    // Dependency: NaCl
+    compile files('libs/jnacl.jar')
+
     // Dependency: Msgpack serialization
     compile group: 'org.json', name: 'json', version: '20160212'
     compile 'org.msgpack:msgpack-core:0.8.7'
