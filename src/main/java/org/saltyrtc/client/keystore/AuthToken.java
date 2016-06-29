@@ -24,7 +24,7 @@ import java.security.SecureRandom;
 public class AuthToken {
 
     // Logger
-    private static final Logger LOG = org.slf4j.LoggerFactory.getLogger(AuthToken.class);
+    private static final Logger LOG = org.slf4j.LoggerFactory.getLogger("SaltyRTC.AuthToken");
 
     // Keys
     private byte[] authToken = new byte[NaCl.SYMMKEYBYTES];

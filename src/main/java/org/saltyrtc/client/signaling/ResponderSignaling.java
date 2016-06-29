@@ -46,7 +46,7 @@ public class ResponderSignaling extends Signaling {
 
     // Logging
     protected Logger getLogger() {
-        return org.slf4j.LoggerFactory.getLogger(ResponderSignaling.class);
+        return org.slf4j.LoggerFactory.getLogger("SaltyRTC.RSignaling");
     }
 
     private Initiator initiator;

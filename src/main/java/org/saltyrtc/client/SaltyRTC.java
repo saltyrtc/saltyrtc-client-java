@@ -30,7 +30,7 @@ import javax.net.ssl.SSLContext;
 public class SaltyRTC {
 
     // Logger
-    private static final Logger LOG = org.slf4j.LoggerFactory.getLogger(SaltyRTC.class);
+    private static final Logger LOG = org.slf4j.LoggerFactory.getLogger("SaltyRTC");
 
     // Whether to enable debug mode
     protected boolean debug = false;

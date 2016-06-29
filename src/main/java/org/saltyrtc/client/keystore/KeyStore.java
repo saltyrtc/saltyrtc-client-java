@@ -22,7 +22,7 @@ import com.neilalexander.jnacl.NaCl;
 public class KeyStore {
 
     // Logger
-    private static final Logger LOG = org.slf4j.LoggerFactory.getLogger(KeyStore.class);
+    private static final Logger LOG = org.slf4j.LoggerFactory.getLogger("SaltyRTC.KeyStore");
 
     // Keys
     private byte[] privateKey = new byte[NaCl.SECRETKEYBYTES];

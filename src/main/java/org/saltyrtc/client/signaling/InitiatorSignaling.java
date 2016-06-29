@@ -50,7 +50,7 @@ public class InitiatorSignaling extends Signaling {
 
     // Logging
     protected Logger getLogger() {
-        return org.slf4j.LoggerFactory.getLogger(InitiatorSignaling.class);
+        return org.slf4j.LoggerFactory.getLogger("SaltyRTC.ISignaling");
     }
 
     // Keep track of responders connected to the server
