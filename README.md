@@ -11,6 +11,11 @@ for Java 7+.
 The development is still ongoing, the current version is only at alpha-level
 and should not be used for production yet.
 
+## Logging
+
+The library uses the slf4j logging API. Configure a logger (e.g. slf4j-simple)
+to see the log output.
+
 ## License
 
     Copyright (c) 2016 Threema GmbH / SaltyRTC Contributors
