@@ -277,6 +277,7 @@ public class InitiatorSignaling extends Signaling {
 
                     // We're connected!
                     this.state = SignalingState.OPEN;
+                    getLogger().info("Peer handshake done");
                     this.saltyRTC.events.connected.notifyHandlers(new ConnectedEvent());
 
                     break;
@@ -355,7 +356,7 @@ public class InitiatorSignaling extends Signaling {
         validateRepeatedCookie(msg);
 
         // OK!
-        getLogger().info("Responder 0x" + NaCl.asHex(new int[] { responder.getId() }) + " authenticated");
+        getLogger().debug("Responder 0x" + NaCl.asHex(new int[] { responder.getId() }) + " authenticated");
 
         // Store responder details and session key
         this.responder = responder;

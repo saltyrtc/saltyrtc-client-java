@@ -240,6 +240,7 @@ public class ResponderSignaling extends Signaling {
 
                     // We're connected!
                     this.state = SignalingState.OPEN;
+                    getLogger().info("Peer handshake done");
                     this.saltyRTC.events.connected.notifyHandlers(new ConnectedEvent());
 
                     break;
@@ -287,7 +288,7 @@ public class ResponderSignaling extends Signaling {
         validateRepeatedCookie(msg);
 
         // OK!
-        getLogger().info("Initiator authenticated");
+        getLogger().debug("Initiator authenticated");
     }
 
     /**

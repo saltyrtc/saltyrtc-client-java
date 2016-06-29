@@ -205,7 +205,7 @@ public abstract class Signaling {
             @Override
             public void onConnected(WebSocket websocket, Map<String, List<String>> headers) throws Exception {
                 synchronized (this) {
-                    getLogger().debug("WebSocket connection open");
+                    getLogger().info("WebSocket connection open");
                     Signaling.this.state = SignalingState.SERVER_HANDSHAKE;
                 }
             }
@@ -441,6 +441,7 @@ public abstract class Signaling {
         // Check if we're done yet
         if (this.serverHandshakeState == ServerHandshakeState.DONE) {
             this.state = SignalingState.PEER_HANDSHAKE;
+            getLogger().info("Server handshake done");
             this.initPeerHandshake();
         }
     }

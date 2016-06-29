@@ -102,7 +102,7 @@ public class SaltyRTC {
      * To get notified when the connection is up and running,
      * subscribe to the `ConnectedEvent`.
      *
-     * @throws ConnectionException if the connection process fails.
+     * @throws ConnectionException if setting up the WebSocket connection fails.
      */
     public void connect() throws ConnectionException {
         this.signaling.connect();
