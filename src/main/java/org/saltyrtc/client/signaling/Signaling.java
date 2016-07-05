@@ -273,6 +273,9 @@ public abstract class Signaling {
                     getLogger().info("Handover to data channel");
                 } else {
                     switch (closeCode) {
+                        case CloseCode.CLOSING_NORMAL:
+                            getLogger().info("WebSocket closed");
+                            break;
                         case CloseCode.GOING_AWAY:
                             getLogger().error("Server is being shut down");
                             break;
