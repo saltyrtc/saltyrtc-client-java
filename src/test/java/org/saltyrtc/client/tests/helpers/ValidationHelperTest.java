@@ -174,4 +174,21 @@ public class ValidationHelperTest {
         }
     }
 
+    @Test
+    public void testValidateString() throws ValidationError {
+        Object value = "hi";
+        final String validated = ValidationHelper.validateString(value, "Text");
+        assertEquals("hi", validated);
+    }
+
+    @Test
+    public void testValidateStringTypeFails() {
+        try {
+            ValidationHelper.validateString(100, "Text");
+            fail("No ValidationError thrown");
+        } catch (ValidationError e) {
+            assertEquals("Text must be a String", e.getMessage());
+        }
+    }
+
 }

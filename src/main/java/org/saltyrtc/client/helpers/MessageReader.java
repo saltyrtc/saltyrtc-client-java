@@ -17,6 +17,7 @@ import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.messages.Auth;
 import org.saltyrtc.client.messages.ClientAuth;
 import org.saltyrtc.client.messages.ClientHello;
+import org.saltyrtc.client.messages.Data;
 import org.saltyrtc.client.messages.DropResponder;
 import org.saltyrtc.client.messages.InitiatorServerAuth;
 import org.saltyrtc.client.messages.Key;
@@ -94,6 +95,8 @@ public class MessageReader {
                 return new Auth(map);
             case "restart":
                 return new Restart(map);
+            case "data":
+                return new Data(map);
             default:
                 throw new ValidationError("Unknown message type: " + type);
         }
