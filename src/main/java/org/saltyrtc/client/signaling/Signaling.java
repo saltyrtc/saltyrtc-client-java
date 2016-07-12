@@ -324,7 +324,9 @@ public abstract class Signaling {
                             getLogger().warn("Unknown close code: " + closeCode);
                     }
                 }
-                setState(SignalingState.CLOSED); // TODO don't set this on handover
+                if (closeCode != CloseCode.HANDOVER) {
+                    setState(SignalingState.CLOSED);
+                }
             }
 
             @Override
