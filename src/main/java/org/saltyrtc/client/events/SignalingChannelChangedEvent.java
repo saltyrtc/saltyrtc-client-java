@@ -21,7 +21,7 @@ public class SignalingChannelChangedEvent implements Event {
         this.channel = channel;
     }
 
-    public SignalingChannel getState() {
+    public SignalingChannel getChannel() {
         return this.channel;
     }
 }
