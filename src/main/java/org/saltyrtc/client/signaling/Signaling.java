@@ -692,10 +692,18 @@ public abstract class Signaling {
             @Override
             public void onStateChange() {
                 Signaling.this.getLogger().info("DataChannel: State changed to " + Signaling.this.dc.state());
-                if (Signaling.this.dc.state() == DataChannel.State.OPEN) {
-                    Signaling.this.setChannel(SignalingChannel.DATA_CHANNEL);
-                    Signaling.this.ws.sendClose(CloseCode.HANDOVER);
-                    Signaling.this.getLogger().info("Handover to data channel finished");
+                switch (Signaling.this.dc.state()) {
+                    case OPEN:
+                        Signaling.this.setChannel(SignalingChannel.DATA_CHANNEL);
+                        Signaling.this.ws.sendClose(CloseCode.HANDOVER);
+                        Signaling.this.getLogger().info("Handover to data channel finished");
+                        break;
+                    case CLOSING:
+                        Signaling.this.setState(SignalingState.CLOSING);
+                        break;
+                    case CLOSED:
+                        Signaling.this.setState(SignalingState.CLOSED);
+                        break;
                 }
             }
             @Override
