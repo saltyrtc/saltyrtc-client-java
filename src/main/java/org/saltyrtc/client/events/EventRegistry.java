@@ -8,16 +8,16 @@
 
 package org.saltyrtc.client.events;
 
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 /**
  * A registry for event handlers of a specific type.
  */
 public class EventRegistry<E extends Event> {
 
-    private final Set<EventHandler<E>> handlers = new HashSet<>();
+    private final Set<EventHandler<E>> handlers = new CopyOnWriteArraySet<>();
 
     /**
      * Register a new event handler.
@@ -46,14 +46,12 @@ public class EventRegistry<E extends Event> {
      * @param event Event instance containing more details.
      */
     public void notifyHandlers(E event) {
-        synchronized (this.handlers) {
-            Iterator<EventHandler<E>> i = this.handlers.iterator();
-            while (i.hasNext()) {
-                final EventHandler<E> handler = i.next();
-                final boolean removeHandler = handler.handle(event);
-                if (removeHandler) {
-                    i.remove();
-                }
+        Iterator<EventHandler<E>> i = this.handlers.iterator();
+        while (i.hasNext()) {
+            final EventHandler<E> handler = i.next();
+            final boolean removeHandler = handler.handle(event);
+            if (removeHandler) {
+                this.unregister(handler);
             }
         }
     }
