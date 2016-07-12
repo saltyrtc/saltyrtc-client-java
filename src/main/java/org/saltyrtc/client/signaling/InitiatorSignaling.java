@@ -41,7 +41,6 @@ import org.slf4j.Logger;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 import javax.net.ssl.SSLContext;
@@ -117,7 +116,7 @@ public class InitiatorSignaling extends Signaling {
         }
 
         // Encrypt
-        if (Objects.equals(messageType, "key")) {
+        if (messageType.equals("key")) {
             return this.permanentKey.encrypt(payload, nonce, responder.getPermanentKey());
         } else {
             return responder.getKeyStore().encrypt(payload, nonce, responder.getSessionKey());
@@ -278,7 +277,7 @@ public class InitiatorSignaling extends Signaling {
                     // We're connected!
                     this.state = SignalingState.OPEN;
                     getLogger().info("Peer handshake done");
-                    this.saltyRTC.events.connected.notifyHandlers(new ConnectedEvent());
+                    this.salty.events.connected.notifyHandlers(new ConnectedEvent());
 
                     break;
                 default:
@@ -379,6 +378,22 @@ public class InitiatorSignaling extends Signaling {
             this.ws.sendBinary(packet);
             this.responders.remove(id);
         }
+    }
+
+    @Override
+    protected Short getPeerAddress() {
+        if (this.responder != null) {
+            return this.responder.getId();
+        }
+        return null;
+    }
+
+    @Override
+    protected byte[] getPeerSessionKey() {
+        if (this.responder != null) {
+            return this.responder.sessionKey;
+        }
+        return null;
     }
 
 }

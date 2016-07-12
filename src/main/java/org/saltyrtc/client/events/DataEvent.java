@@ -8,15 +8,21 @@
 
 package org.saltyrtc.client.events;
 
+import org.saltyrtc.client.messages.Data;
+
 /**
- * All event handlers need to implement this interface.
+ * Data was received.
  */
-public interface EventHandler<E extends Event> {
-    /**
-     * Handle an event.
-     *
-     * @param event An instance of the event that just happened.
-     * @return A boolean flag indicating whether to remove this handler from the event registry.
-     */
-    boolean handle(E event);
+public class DataEvent implements Event {
+
+    private Data data;
+
+    public Data getData() {
+        return data;
+    }
+
+    public DataEvent(Data data) {
+        this.data = data;
+    }
+
 }

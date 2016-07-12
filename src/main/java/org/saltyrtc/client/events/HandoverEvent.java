@@ -9,14 +9,7 @@
 package org.saltyrtc.client.events;
 
 /**
- * All event handlers need to implement this interface.
+ * SaltyRTC has successfully finished the handover.
  */
-public interface EventHandler<E extends Event> {
-    /**
-     * Handle an event.
-     *
-     * @param event An instance of the event that just happened.
-     * @return A boolean flag indicating whether to remove this handler from the event registry.
-     */
-    boolean handle(E event);
+public class HandoverEvent implements Event {
 }

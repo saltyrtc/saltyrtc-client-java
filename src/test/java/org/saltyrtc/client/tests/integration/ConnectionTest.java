@@ -197,7 +197,6 @@ public class ConnectionTest {
         });
 
         // Connect server
-        System.out.println("Executing futures...");
         responder.connect();
         Thread.sleep(1000);
         initiator.connect();
@@ -271,6 +270,9 @@ public class ConnectionTest {
         assertTrue("Duration time (" + durationMs + "ms) should be less than " + MAX_DURATION + "ms",
                    durationMs < MAX_DURATION);
     }
+
+    // Note: Unfortunately right now we cannot test the handover outside of Android,
+    // as the libjingle peerconnection only works on the Android platform.
 
     @After
     public void tearDown() {

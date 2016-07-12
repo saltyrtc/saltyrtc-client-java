@@ -11,14 +11,18 @@ package org.saltyrtc.client;
 import org.saltyrtc.client.events.ConnectedEvent;
 import org.saltyrtc.client.events.ConnectionClosedEvent;
 import org.saltyrtc.client.events.ConnectionErrorEvent;
+import org.saltyrtc.client.events.DataEvent;
 import org.saltyrtc.client.events.EventRegistry;
 import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.keystore.KeyStore;
+import org.saltyrtc.client.messages.Data;
 import org.saltyrtc.client.signaling.InitiatorSignaling;
 import org.saltyrtc.client.signaling.ResponderSignaling;
 import org.saltyrtc.client.signaling.Signaling;
 import org.saltyrtc.client.signaling.state.SignalingState;
 import org.slf4j.Logger;
+import org.webrtc.DataChannel;
+import org.webrtc.PeerConnection;
 
 import java.security.InvalidKeyException;
 
@@ -109,6 +113,16 @@ public class SaltyRTC {
     }
 
     /**
+     * Do the handover from WebSocket to WebRTC data channel.
+     *
+     * This operation is asynchronous. To get notified when the
+     * handover is finished, subscribe to the `HandoverEvent`.
+     */
+    public void handover(PeerConnection pc) {
+        this.signaling.handover(pc);
+    }
+
+    /**
      * Disconnect from the SaltyRTC server.
      *
      * This operation is asynchronous, once the connection is closed, the
@@ -118,11 +132,22 @@ public class SaltyRTC {
         this.signaling.disconnect();
     }
 
-    public void setDebug(boolean debug) {
-        this.debug = debug;
+    /**
+     * Send data to the peer.
+     *
+     * @exception ConnectionException thrown if signaling channel is not open.
+     */
+    public void sendData(Data data) throws ConnectionException {
+        this.signaling.sendData(data);
     }
-    public boolean getDebug() {
-        return debug;
+
+    /**
+     * Send data to the peer through the specified data channel.
+     *
+     * * @exception ConnectionException thrown if signaling channel is not open.
+     */
+    public void sendData(Data data, DataChannel dc) throws ConnectionException {
+        this.signaling.sendData(data, dc);
     }
 
     /**
@@ -132,6 +157,14 @@ public class SaltyRTC {
         public EventRegistry<ConnectedEvent> connected = new EventRegistry<>();
         public EventRegistry<ConnectionErrorEvent> connectionError = new EventRegistry<>();
         public EventRegistry<ConnectionClosedEvent> connectionClosed = new EventRegistry<>();
+        public EventRegistry<DataEvent> data = new EventRegistry<>();
+    }
+
+    public void setDebug(boolean debug) {
+        this.debug = debug;
+    }
+    public boolean getDebug() {
+        return debug;
     }
 
 }

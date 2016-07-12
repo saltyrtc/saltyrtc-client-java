@@ -99,11 +99,12 @@ public class ResponderSignaling extends Signaling {
             case "key":
                 return this.permanentKey.encrypt(payload, nonce, this.initiator.permanentKey);
             default:
-                if (this.initiator.sessionKey == null) {
+                byte[] peerSessionKey = getPeerSessionKey();
+                if (peerSessionKey == null) {
                     throw new ProtocolException(
-                            "Trying to encrypt for initiator using session key, but session key is null");
+                            "Trying to encrypt for peer using session key, but session key is null");
                 }
-                return this.sessionKey.encrypt(payload, nonce, this.initiator.sessionKey);
+                return this.sessionKey.encrypt(payload, nonce, peerSessionKey);
         }
     }
 
@@ -241,7 +242,7 @@ public class ResponderSignaling extends Signaling {
                     // We're connected!
                     this.state = SignalingState.OPEN;
                     getLogger().info("Peer handshake done");
-                    this.saltyRTC.events.connected.notifyHandlers(new ConnectedEvent());
+                    this.salty.events.connected.notifyHandlers(new ConnectedEvent());
 
                     break;
                 default:
@@ -306,4 +307,22 @@ public class ResponderSignaling extends Signaling {
         getLogger().debug("Sending auth");
         this.ws.sendBinary(packet);
     }
+
+    @Override
+    protected Short getPeerAddress() {
+        if (this.initiator != null) {
+            return this.initiator.getId();
+        }
+        return null;
+    }
+
+    @Override
+    protected byte[] getPeerSessionKey() {
+        if (this.initiator != null) {
+            return this.initiator.sessionKey;
+        }
+        return null;
+    }
+
+
 }
