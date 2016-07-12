@@ -11,18 +11,17 @@ package org.saltyrtc.client.events;
 import org.saltyrtc.client.signaling.SignalingChannel;
 
 /**
- * A connection error occured
+ * The signaling channel has changed.
  */
-public class ConnectionErrorEvent implements Event {
+public class SignalingChannelChangedEvent implements Event {
 
-    private SignalingChannel channel;
+    private final SignalingChannel channel;
 
-    public SignalingChannel getChannel() {
-        return channel;
-    }
-
-    public ConnectionErrorEvent(SignalingChannel channel) {
+    public SignalingChannelChangedEvent(SignalingChannel channel) {
         this.channel = channel;
     }
 
+    public SignalingChannel getState() {
+        return this.channel;
+    }
 }

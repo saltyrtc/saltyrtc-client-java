@@ -12,7 +12,6 @@ import com.neilalexander.jnacl.NaCl;
 
 import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.cookie.Cookie;
-import org.saltyrtc.client.events.ConnectedEvent;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
 import org.saltyrtc.client.exceptions.InternalServerException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
@@ -240,9 +239,8 @@ public class ResponderSignaling extends Signaling {
                     }
 
                     // We're connected!
-                    this.state = SignalingState.OPEN;
+                    this.setState(SignalingState.OPEN);
                     getLogger().info("Peer handshake done");
-                    this.salty.events.connected.notifyHandlers(new ConnectedEvent());
 
                     break;
                 default:

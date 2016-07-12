@@ -12,7 +12,6 @@ import com.neilalexander.jnacl.NaCl;
 
 import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.cookie.Cookie;
-import org.saltyrtc.client.events.ConnectedEvent;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
 import org.saltyrtc.client.exceptions.InternalServerException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
@@ -79,7 +78,7 @@ public class InitiatorSignaling extends Signaling {
             } else if (receiver == SALTYRTC_ADDR_INITIATOR) {
                 throw new ProtocolException("Initiator cannot send messages to initiator");
             } else if (isResponderId(receiver)) {
-                if (this.state == SignalingState.OPEN) {
+                if (this.getState() == SignalingState.OPEN) {
                     assert this.responder != null;
                     return this.responder.getCsn().next();
                 } else if (this.responders.containsKey(receiver)) {
@@ -106,7 +105,7 @@ public class InitiatorSignaling extends Signaling {
 
         // Find correct responder
         final Responder responder;
-        if (this.state == SignalingState.OPEN) {
+        if (this.getState() == SignalingState.OPEN) {
             assert this.responder != null;
             responder = this.responder;
         } else if (this.responders.containsKey(receiver)) {
@@ -275,9 +274,8 @@ public class InitiatorSignaling extends Signaling {
                     }
 
                     // We're connected!
-                    this.state = SignalingState.OPEN;
+                    this.setState(SignalingState.OPEN);
                     getLogger().info("Peer handshake done");
-                    this.salty.events.connected.notifyHandlers(new ConnectedEvent());
 
                     break;
                 default:

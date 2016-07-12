@@ -8,12 +8,10 @@
 
 package org.saltyrtc.client;
 
-import org.saltyrtc.client.events.ConnectedEvent;
-import org.saltyrtc.client.events.ConnectionClosedEvent;
-import org.saltyrtc.client.events.ConnectionErrorEvent;
 import org.saltyrtc.client.events.DataEvent;
 import org.saltyrtc.client.events.EventRegistry;
-import org.saltyrtc.client.events.HandoverEvent;
+import org.saltyrtc.client.events.SignalingChannelChangedEvent;
+import org.saltyrtc.client.events.SignalingStateChangedEvent;
 import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.messages.Data;
@@ -99,7 +97,7 @@ public class SaltyRTC {
      * Return the current signaling state.
      */
     public SignalingState getSignalingState() {
-        return this.signaling.state;
+        return this.signaling.getState();
     }
 
     /**
@@ -156,17 +154,15 @@ public class SaltyRTC {
      * Return the currently used signaling channel.
      */
     public SignalingChannel getSignalingChannel() {
-        return this.signaling.channel;
+        return this.signaling.getChannel();
     }
 
     /**
      * Collection of all possible events.
      */
     public static class Events {
-        public EventRegistry<ConnectedEvent> connected = new EventRegistry<>();
-        public EventRegistry<ConnectionErrorEvent> connectionError = new EventRegistry<>();
-        public EventRegistry<ConnectionClosedEvent> connectionClosed = new EventRegistry<>();
-        public EventRegistry<HandoverEvent> handover = new EventRegistry<>();
+        public EventRegistry<SignalingStateChangedEvent> signalingStateChanged = new EventRegistry<>();
+        public EventRegistry<SignalingChannelChangedEvent> signalingChannelChanged = new EventRegistry<>();
         public EventRegistry<DataEvent> data = new EventRegistry<>();
     }
 

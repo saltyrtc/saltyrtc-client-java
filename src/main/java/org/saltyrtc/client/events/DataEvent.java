@@ -17,12 +17,12 @@ public class DataEvent implements Event {
 
     private Data data;
 
-    public Data getData() {
-        return data;
-    }
-
     public DataEvent(Data data) {
         this.data = data;
+    }
+
+    public Data getData() {
+        return this.data;
     }
 
 }

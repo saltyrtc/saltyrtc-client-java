@@ -17,10 +17,9 @@ import com.neovisionaries.ws.client.WebSocketFrame;
 import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.cookie.Cookie;
 import org.saltyrtc.client.cookie.CookiePair;
-import org.saltyrtc.client.events.ConnectionClosedEvent;
-import org.saltyrtc.client.events.ConnectionErrorEvent;
 import org.saltyrtc.client.events.DataEvent;
-import org.saltyrtc.client.events.HandoverEvent;
+import org.saltyrtc.client.events.SignalingChannelChangedEvent;
+import org.saltyrtc.client.events.SignalingStateChangedEvent;
 import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
 import org.saltyrtc.client.exceptions.InternalServerException;
@@ -82,8 +81,8 @@ public abstract class Signaling {
     protected DataChannel dc;
 
     // Connection state
-    public SignalingState state = SignalingState.NEW;
-    public SignalingChannel channel = SignalingChannel.WEBSOCKET;
+    private SignalingState state = SignalingState.NEW;
+    private SignalingChannel channel = SignalingChannel.WEBSOCKET;
     protected ServerHandshakeState serverHandshakeState = ServerHandshakeState.NEW;
 
     // Reference to main class
@@ -117,6 +116,30 @@ public abstract class Signaling {
         return this.authToken.getAuthToken();
     }
 
+    public SignalingState getState() {
+        return this.state;
+    }
+
+    protected void setState(SignalingState newState) {
+        if (this.state != newState) {
+            this.state = newState;
+            this.salty.events.signalingStateChanged.notifyHandlers(
+                    new SignalingStateChangedEvent(newState));
+        }
+    }
+
+    public SignalingChannel getChannel() {
+        return this.channel;
+    }
+
+    protected void setChannel(SignalingChannel newChannel) {
+        if (this.channel != newChannel) {
+            this.channel = newChannel;
+            this.salty.events.signalingChannelChanged.notifyHandlers(
+                    new SignalingChannelChangedEvent(newChannel));
+        }
+    }
+
     /**
      * Connect asynchronously to the SaltyRTC server.
      *
@@ -143,7 +166,7 @@ public abstract class Signaling {
      * - Reset server CSN
      */
     protected void resetConnection(int reason) {
-        this.state = SignalingState.NEW;
+        this.setState(SignalingState.NEW);
         this.serverHandshakeState = ServerHandshakeState.NEW;
         this.serverCsn = new CombinedSequence();
 
@@ -169,20 +192,19 @@ public abstract class Signaling {
      * `ConnectionClosedEvent` will be emitted.
      */
     public void disconnect() {
-        this.state = SignalingState.CLOSING;
-        switch (this.channel) {
-            case WEBSOCKET:
-                // Close websocket instance
-                if (this.ws != null) {
-                    getLogger().debug("Disconnecting WebSocket");
-                    this.ws.disconnect();
-                    this.ws = null;
-                    // The status will be changed to CLOSED in the `onClose`
-                    // implementation of the WebSocket instance.
-                }
-                break;
-            case DATA_CHANNEL:
-                throw new UnsupportedOperationException("Not yet implemented");
+        this.setState(SignalingState.CLOSING);
+
+        // Close websocket
+        if (this.ws != null) {
+            getLogger().debug("Disconnecting WebSocket");
+            this.ws.disconnect();
+            this.ws = null;
+            // The status will be changed to CLOSED in the `onClose`
+            // implementation of the WebSocket instance.
+        }
+
+        // Close datachannel
+        if (this.dc != null) {
         }
     }
 
@@ -207,14 +229,14 @@ public abstract class Signaling {
             public void onConnected(WebSocket websocket, Map<String, List<String>> headers) throws Exception {
                 synchronized (this) {
                     getLogger().info("WebSocket connection open");
-                    Signaling.this.state = SignalingState.SERVER_HANDSHAKE;
+                    setState(SignalingState.SERVER_HANDSHAKE);
                 }
             }
 
             @Override
             public void onConnectError(WebSocket websocket, WebSocketException ex) throws Exception {
                 getLogger().error("Could not connect to websocket: " + ex.getMessage());
-                Signaling.this.state = SignalingState.ERROR;
+                setState(SignalingState.ERROR);
             }
 
             @Override
@@ -236,7 +258,7 @@ public abstract class Signaling {
                         final SignalingChannelNonce nonce = new SignalingChannelNonce(ByteBuffer.wrap(box.getNonce()));
 
                         // Dispatch message
-                        switch (Signaling.this.state) {
+                        switch (Signaling.this.getState()) {
                             case SERVER_HANDSHAKE:
                                 Signaling.this.onServerHandshakeMessage(box, nonce);
                                 break;
@@ -247,7 +269,7 @@ public abstract class Signaling {
                                 Signaling.this.onPeerMessage(box, nonce);
                                 break;
                             default:
-                                getLogger().warn("Received message in " + Signaling.this.state.name() +
+                                getLogger().warn("Received message in " + Signaling.this.getState().name() +
                                         " signaling state. Ignoring.");
                         }
                     } catch (ValidationError | SerializationError e) {
@@ -301,19 +323,14 @@ public abstract class Signaling {
                         default:
                             getLogger().warn("Unknown close code: " + closeCode);
                     }
-                    salty.events.connectionClosed.notifyHandlers(
-                            new ConnectionClosedEvent(SignalingChannel.WEBSOCKET)
-                    );
                 }
-                state = SignalingState.CLOSED; // TODO don't set this on handover
+                setState(SignalingState.CLOSED); // TODO don't set this on handover
             }
 
             @Override
             public void onError(WebSocket websocket, WebSocketException cause) throws Exception {
                 getLogger().error("A WebSocket connect error occured: " + cause.getMessage(), cause);
-                salty.events.connectionError.notifyHandlers(
-                        new ConnectionErrorEvent(SignalingChannel.WEBSOCKET)
-                );
+                // TODO: Do we need to handle these?
             }
         };
 
@@ -332,7 +349,7 @@ public abstract class Signaling {
      * Connect asynchronously to WebSocket.
      */
     protected void connectWebsocket() {
-        this.state = SignalingState.WS_CONNECTING;
+        this.setState(SignalingState.WS_CONNECTING);
         this.ws.connectAsynchronously();
     }
 
@@ -467,7 +484,7 @@ public abstract class Signaling {
 
         // Check if we're done yet
         if (this.serverHandshakeState == ServerHandshakeState.DONE) {
-            this.state = SignalingState.PEER_HANDSHAKE;
+            this.setState(SignalingState.PEER_HANDSHAKE);
             getLogger().info("Server handshake done");
             this.initPeerHandshake();
         }
@@ -616,8 +633,8 @@ public abstract class Signaling {
      */
     public void sendData(Data data, DataChannel dc) throws ConnectionException {
         // Verify state
-        if (this.state != SignalingState.OPEN) {
-            getLogger().error("Trying to send data message, but connection state is " + this.state);
+        if (this.getState() != SignalingState.OPEN) {
+            getLogger().error("Trying to send data message, but connection state is " + this.getState());
             throw new ConnectionException("Signaling channel is not open");
         }
 
@@ -632,8 +649,9 @@ public abstract class Signaling {
         if (dc != null) {
             getLogger().debug("Sending " + data.getDataType() + " data message through custom data channel " + dc.label());
         } else {
-            getLogger().debug("Sending " + data.getDataType() + " data message through " + this.channel);
-            switch (this.channel) {
+            final SignalingChannel channel = this.getChannel();
+            getLogger().debug("Sending " + data.getDataType() + " data message through " + channel);
+            switch (channel) {
                 case WEBSOCKET:
                     this.ws.sendBinary(packet);
                     break;
@@ -641,7 +659,7 @@ public abstract class Signaling {
                     this.dc.send(new DataChannel.Buffer(ByteBuffer.wrap(packet), true));
                     break;
                 default:
-                    getLogger().error("Unknown or invalid signaling channel: " + this.channel);
+                    getLogger().error("Unknown or invalid signaling channel: " + channel);
                     this.resetConnection(CloseCode.PROTOCOL_ERROR);
                     //noinspection UnnecessaryReturnStatement
                     return;
@@ -673,9 +691,9 @@ public abstract class Signaling {
             public void onStateChange() {
                 Signaling.this.getLogger().info("DataChannel: State changed to " + Signaling.this.dc.state());
                 if (Signaling.this.dc.state() == DataChannel.State.OPEN) {
-                    Signaling.this.channel = SignalingChannel.DATA_CHANNEL;
+                    Signaling.this.setChannel(SignalingChannel.DATA_CHANNEL);
+                    Signaling.this.ws.sendClose(CloseCode.HANDOVER);
                     Signaling.this.getLogger().info("Handover to data channel finished");
-                    Signaling.this.salty.events.handover.notifyHandlers(new HandoverEvent());
                 }
             }
             @Override

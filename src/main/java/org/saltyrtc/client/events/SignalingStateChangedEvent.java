@@ -8,21 +8,20 @@
 
 package org.saltyrtc.client.events;
 
-import org.saltyrtc.client.signaling.SignalingChannel;
+import org.saltyrtc.client.signaling.state.SignalingState;
 
 /**
- * The connection was closed.
+ * The signaling state has changed.
  */
-public class ConnectionClosedEvent implements Event {
+public class SignalingStateChangedEvent implements Event {
 
-    private SignalingChannel channel;
+    private final SignalingState state;
 
-    public SignalingChannel getChannel() {
-        return channel;
+    public SignalingStateChangedEvent(SignalingState state) {
+        this.state = state;
     }
 
-    public ConnectionClosedEvent(SignalingChannel channel) {
-        this.channel = channel;
+    public SignalingState getState() {
+        return this.state;
     }
-
 }
