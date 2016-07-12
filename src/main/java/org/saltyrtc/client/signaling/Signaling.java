@@ -20,6 +20,7 @@ import org.saltyrtc.client.cookie.CookiePair;
 import org.saltyrtc.client.events.ConnectionClosedEvent;
 import org.saltyrtc.client.events.ConnectionErrorEvent;
 import org.saltyrtc.client.events.DataEvent;
+import org.saltyrtc.client.events.HandoverEvent;
 import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
 import org.saltyrtc.client.exceptions.InternalServerException;
@@ -656,6 +657,7 @@ public abstract class Signaling {
     public void handover(final PeerConnection pc) {
         // Create new signaling DataChannel
         // TODO (https://github.com/saltyrtc/saltyrtc-meta/issues/3): Negotiate channel id
+        getLogger().debug("Initiate handover");
         DataChannel.Init init = new DataChannel.Init();
         init.id = 0;
         init.negotiated = true;
@@ -670,6 +672,11 @@ public abstract class Signaling {
             @Override
             public void onStateChange() {
                 Signaling.this.getLogger().info("DataChannel: State changed to " + Signaling.this.dc.state());
+                if (Signaling.this.dc.state() == DataChannel.State.OPEN) {
+                    Signaling.this.channel = SignalingChannel.DATA_CHANNEL;
+                    Signaling.this.getLogger().info("Handover to data channel finished");
+                    Signaling.this.salty.events.handover.notifyHandlers(new HandoverEvent());
+                }
             }
             @Override
             public void onMessage(DataChannel.Buffer buffer) {

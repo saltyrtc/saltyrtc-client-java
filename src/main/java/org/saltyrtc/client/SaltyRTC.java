@@ -13,6 +13,7 @@ import org.saltyrtc.client.events.ConnectionClosedEvent;
 import org.saltyrtc.client.events.ConnectionErrorEvent;
 import org.saltyrtc.client.events.DataEvent;
 import org.saltyrtc.client.events.EventRegistry;
+import org.saltyrtc.client.events.HandoverEvent;
 import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.messages.Data;
@@ -157,6 +158,7 @@ public class SaltyRTC {
         public EventRegistry<ConnectedEvent> connected = new EventRegistry<>();
         public EventRegistry<ConnectionErrorEvent> connectionError = new EventRegistry<>();
         public EventRegistry<ConnectionClosedEvent> connectionClosed = new EventRegistry<>();
+        public EventRegistry<HandoverEvent> handover = new EventRegistry<>();
         public EventRegistry<DataEvent> data = new EventRegistry<>();
     }
 
