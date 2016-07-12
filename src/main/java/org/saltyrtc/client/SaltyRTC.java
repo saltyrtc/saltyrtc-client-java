@@ -20,6 +20,7 @@ import org.saltyrtc.client.messages.Data;
 import org.saltyrtc.client.signaling.InitiatorSignaling;
 import org.saltyrtc.client.signaling.ResponderSignaling;
 import org.saltyrtc.client.signaling.Signaling;
+import org.saltyrtc.client.signaling.SignalingChannel;
 import org.saltyrtc.client.signaling.state.SignalingState;
 import org.slf4j.Logger;
 import org.webrtc.DataChannel;
@@ -145,10 +146,17 @@ public class SaltyRTC {
     /**
      * Send data to the peer through the specified data channel.
      *
-     * * @exception ConnectionException thrown if signaling channel is not open.
+     * @exception ConnectionException thrown if signaling channel is not open.
      */
     public void sendData(Data data, DataChannel dc) throws ConnectionException {
         this.signaling.sendData(data, dc);
+    }
+
+    /**
+     * Return the currently used signaling channel.
+     */
+    public SignalingChannel getSignalingChannel() {
+        return this.signaling.channel;
     }
 
     /**
