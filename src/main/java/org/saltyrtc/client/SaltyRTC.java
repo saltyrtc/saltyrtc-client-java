@@ -8,6 +8,7 @@
 
 package org.saltyrtc.client;
 
+import org.saltyrtc.client.datachannel.SecureDataChannel;
 import org.saltyrtc.client.events.DataEvent;
 import org.saltyrtc.client.events.EventRegistry;
 import org.saltyrtc.client.events.SignalingChannelChangedEvent;
@@ -51,6 +52,7 @@ public class SaltyRTC {
      * @param permanentKey A KeyStore instance containing the permanent key.
      * @param host The SaltyRTC server host.
      * @param port The SaltyRTC server port.
+     * @param sslContext The SSL context used to create the encrypted WebSocket connection.
      */
     public SaltyRTC(KeyStore permanentKey, String host, int port, SSLContext sslContext) {
         validateHost(host);
@@ -133,21 +135,15 @@ public class SaltyRTC {
     }
 
     /**
-     * Send data to the peer.
+     * Send signaling data to the peer.
+     *
+     * This method should only be used for signaling, not for sending arbitrary data!
+     * For arbitrary data, use `wrapDataChannel` after doing the handover.
      *
      * @exception ConnectionException thrown if signaling channel is not open.
      */
-    public void sendData(Data data) throws ConnectionException {
-        this.signaling.sendData(data);
-    }
-
-    /**
-     * Send data to the peer through the specified data channel.
-     *
-     * @exception ConnectionException thrown if signaling channel is not open.
-     */
-    public void sendData(Data data, DataChannel dc) throws ConnectionException {
-        this.signaling.sendData(data, dc);
+    public void sendSignalingData(Data data) throws ConnectionException {
+        this.signaling.sendSignalingData(data);
     }
 
     /**
@@ -155,6 +151,13 @@ public class SaltyRTC {
      */
     public SignalingChannel getSignalingChannel() {
         return this.signaling.getChannel();
+    }
+
+    /**
+     * Wrap a data channel. Return a secure data channel.
+     */
+    public SecureDataChannel wrapDataChannel(DataChannel dc) {
+        return new SecureDataChannel(dc, this);
     }
 
     /**
