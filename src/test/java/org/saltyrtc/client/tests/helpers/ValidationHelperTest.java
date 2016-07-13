@@ -187,7 +187,7 @@ public class ValidationHelperTest {
             ValidationHelper.validateString(100, "Text");
             fail("No ValidationError thrown");
         } catch (ValidationError e) {
-            assertEquals("Text must be a String", e.getMessage());
+            assertEquals("Text must be a String, not java.lang.Integer", e.getMessage());
         }
     }
 

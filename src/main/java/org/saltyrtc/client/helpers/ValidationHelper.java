@@ -90,7 +90,7 @@ public class ValidationHelper {
 
     public static String validateString(Object value, String name) throws ValidationError {
         if (!(value instanceof String)) {
-            throw new ValidationError(name + " must be a String");
+            throw new ValidationError(name + " must be a String, not " + value.getClass().getName());
         }
         return (String) value;
     }
