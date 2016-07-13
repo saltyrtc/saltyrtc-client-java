@@ -301,16 +301,19 @@ public abstract class Signaling {
             @Override
             public void onDisconnected(WebSocket websocket, WebSocketFrame serverCloseFrame,
                                        WebSocketFrame clientCloseFrame, boolean closedByServer) throws Exception {
+                // Log details to debug log
                 final String closer = closedByServer ? "server" : "client";
                 final WebSocketFrame frame = closedByServer ? serverCloseFrame : clientCloseFrame;
                 final int closeCode = frame.getCloseCode();
-                final String closeReason = frame.getCloseReason();
+                String closeReason = frame.getCloseReason();
+                if (closeReason == null) {
+                    closeReason = CloseCode.explain(closeCode);
+                }
                 getLogger().debug("WebSocket connection closed by " + closer +
                                   " with code " + closeCode + ": " + closeReason);
 
-                if (!closedByServer && closeCode == CloseCode.HANDOVER) {
-                    getLogger().info("Handover to data channel");
-                } else {
+                // Log some of the codes on higher log levels too
+                if (closedByServer) {
                     switch (closeCode) {
                         case CloseCode.CLOSING_NORMAL:
                             getLogger().info("WebSocket closed");
@@ -333,8 +336,6 @@ public abstract class Signaling {
                         case CloseCode.DROPPED:
                             getLogger().warn("Dropped by initiator");
                             break;
-                        default:
-                            getLogger().warn("Unknown close code: " + closeCode);
                     }
                 }
                 if (closeCode != CloseCode.HANDOVER && Signaling.this.state != SignalingState.NEW) {
