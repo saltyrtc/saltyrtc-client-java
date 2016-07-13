@@ -148,7 +148,7 @@ public abstract class Signaling {
     public void connect() throws ConnectionException {
         getLogger().info("Connecting to SaltyRTC server at "
                 + Signaling.this.host + ":" + Signaling.this.port + "...");
-        resetConnection();
+        resetConnection(CloseCode.CLOSING_NORMAL);
         try {
             initWebsocket();
         } catch (IOException e) {
@@ -158,17 +158,13 @@ public abstract class Signaling {
     }
 
     /**
-     * Reset / close the connection.
+     * Disconnect from the SaltyRTC server.
      *
-     * - Close WebSocket if still open.
-     * - Set `ws` attribute to null.
-     * - Set `state` attribute to `NEW`
-     * - Reset server CSN
+     * This operation is asynchronous, once the connection is closed, the
+     * `SignalingStateChangedEvent` will be emitted.
      */
-    protected void resetConnection(int reason) {
-        this.setState(SignalingState.NEW);
-        this.serverHandshakeState = ServerHandshakeState.NEW;
-        this.serverCsn = new CombinedSequence();
+    protected void disconnect(int reason) {
+        this.setState(SignalingState.CLOSING);
 
         // Close websocket instance
         if (this.ws != null) {
@@ -176,36 +172,53 @@ public abstract class Signaling {
             this.ws.disconnect(reason);
             this.ws = null;
         }
-    }
+        // Close datachannel instance
+        if (this.dc != null) {
+            getLogger().debug("Disconnecting data channel");
+            //this.dc.close();
+            // The line above will cause a deadlock as of 2016-07-12.
+            // Instead, we'll let the GC handle this.
+            this.dc.unregisterObserver();
+            this.setState(SignalingState.CLOSING);
+            this.dc = null;
+            this.setState(SignalingState.CLOSED);
+        }
 
-    /**
-     * @see this.resetConnection()
-     */
-    protected void resetConnection() {
-        this.resetConnection(CloseCode.CLOSING_NORMAL);
     }
 
     /**
      * Disconnect from the SaltyRTC server.
      *
      * This operation is asynchronous, once the connection is closed, the
-     * `ConnectionClosedEvent` will be emitted.
+     * `SignalingStateChangedEvent` will be emitted.
+     *
+     * @see this.resetConnection(int)
      */
     public void disconnect() {
-        this.setState(SignalingState.CLOSING);
+        this.disconnect(CloseCode.CLOSING_NORMAL);
+    }
 
-        // Close websocket
+    /**
+     * Reset the connection.
+     */
+    protected void resetConnection(int reason) {
+        // Unregister listeners
         if (this.ws != null) {
-            getLogger().debug("Disconnecting WebSocket");
-            this.ws.disconnect();
-            this.ws = null;
-            // The status will be changed to CLOSED in the `onClose`
-            // implementation of the WebSocket instance.
+            this.ws.clearListeners();
+        }
+        if (this.dc != null) {
+            this.dc.unregisterObserver();
         }
 
-        // Close datachannel
-        if (this.dc != null) {
-        }
+        // Disconnect
+        this.disconnect(reason);
+
+        // Reset
+        this.setChannel(SignalingChannel.WEBSOCKET);
+        this.serverHandshakeState = ServerHandshakeState.NEW;
+        this.serverCsn = new CombinedSequence();
+        this.setState(SignalingState.NEW);
+        getLogger().debug("Connection reset");
     }
 
     /**
@@ -324,7 +337,7 @@ public abstract class Signaling {
                             getLogger().warn("Unknown close code: " + closeCode);
                     }
                 }
-                if (closeCode != CloseCode.HANDOVER) {
+                if (closeCode != CloseCode.HANDOVER && Signaling.this.state != SignalingState.NEW) {
                     setState(SignalingState.CLOSED);
                 }
             }
@@ -672,7 +685,8 @@ public abstract class Signaling {
     /**
      * Handover asynchronously from WebSocket to WebRTC data channel.
      *
-     * To get notified when the connection is up and running, subscribe to the `HandoverEvent`.
+     * To get notified when the connection is up and running,
+     * subscribe to the `SignalingChannelChangedEvent`.
      */
     public void handover(final PeerConnection pc) {
         // Create new signaling DataChannel

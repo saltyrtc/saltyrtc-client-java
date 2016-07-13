@@ -116,7 +116,7 @@ public class SaltyRTC {
      * Do the handover from WebSocket to WebRTC data channel.
      *
      * This operation is asynchronous. To get notified when the
-     * handover is finished, subscribe to the `HandoverEvent`.
+     * handover is finished, subscribe to the `SignalingChannelChangedEvent`.
      */
     public void handover(PeerConnection pc) {
         this.signaling.handover(pc);
@@ -126,7 +126,7 @@ public class SaltyRTC {
      * Disconnect from the SaltyRTC server.
      *
      * This operation is asynchronous, once the connection is closed, the
-     * `ConnectionClosedEvent` will be emitted.
+     * `SignalingStateChangedEvent` will be emitted.
      */
     public void disconnect() {
         this.signaling.disconnect();
