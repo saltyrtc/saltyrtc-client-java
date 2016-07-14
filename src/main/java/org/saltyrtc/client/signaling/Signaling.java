@@ -8,6 +8,7 @@
 
 package org.saltyrtc.client.signaling;
 
+import com.neilalexander.jnacl.NaCl;
 import com.neovisionaries.ws.client.WebSocket;
 import com.neovisionaries.ws.client.WebSocketAdapter;
 import com.neovisionaries.ws.client.WebSocketException;
@@ -526,7 +527,7 @@ public abstract class Signaling {
         try {
             msg = this.decryptPeerMessage(box);
         } catch (CryptoFailedException e) {
-            getLogger().error("Could not decrypt incoming message from peer", e);
+            getLogger().error("Could not decrypt incoming message from peer " + nonce.getSource(), e);
             return;
         } catch (InvalidKeyException e) {
             getLogger().error("InvalidKeyException while processing incoming message from peer", e);
