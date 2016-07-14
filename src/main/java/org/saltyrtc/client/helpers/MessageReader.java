@@ -48,7 +48,7 @@ public class MessageReader {
     public static Message read(byte[] bytes) throws SerializationError, ValidationError {
         // Unpack data into map
         ObjectMapper objectMapper = new ObjectMapper(new MessagePackFactory());
-        Map<String, Object> map = null;
+        Map<String, Object> map;
         try {
             map = objectMapper.readValue(bytes, new TypeReference<Map<String, Object>>() {});
         } catch (IOException e) {

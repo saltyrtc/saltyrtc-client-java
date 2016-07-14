@@ -306,7 +306,7 @@ public class InitiatorSignaling extends Signaling {
     /**
      * A responder sends his public permanent key.
      */
-    protected void handleToken(Token msg, Responder responder) throws ProtocolException {
+    protected void handleToken(Token msg, Responder responder) {
         responder.setPermanentKey(msg.getKey());
         responder.handshakeState = ResponderHandshakeState.TOKEN_RECEIVED;
     }
@@ -324,7 +324,7 @@ public class InitiatorSignaling extends Signaling {
     /**
      * A responder sends his public session key.
      */
-    protected void handleKey(Key msg, Responder responder) throws ProtocolException {
+    protected void handleKey(Key msg, Responder responder) {
         responder.setSessionKey(msg.getKey());
         responder.handshakeState = ResponderHandshakeState.KEY_RECEIVED;
     }

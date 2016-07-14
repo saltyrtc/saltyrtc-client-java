@@ -8,7 +8,6 @@
 
 package org.saltyrtc.client.events;
 
-import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 
@@ -46,9 +45,7 @@ public class EventRegistry<E extends Event> {
      * @param event Event instance containing more details.
      */
     public void notifyHandlers(E event) {
-        Iterator<EventHandler<E>> i = this.handlers.iterator();
-        while (i.hasNext()) {
-            final EventHandler<E> handler = i.next();
+        for (EventHandler<E> handler : this.handlers) {
             final boolean removeHandler = handler.handle(event);
             if (removeHandler) {
                 this.unregister(handler);

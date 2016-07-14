@@ -262,7 +262,7 @@ public class ResponderSignaling extends Signaling {
     /**
      * The initiator sends his public session key.
      */
-    protected void handleKey(Key msg) throws ProtocolException {
+    protected void handleKey(Key msg) {
         this.initiator.setSessionKey(msg.getKey());
     }
 

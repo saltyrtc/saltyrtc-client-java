@@ -18,7 +18,6 @@ import java.util.Map;
 public class ClientAuth extends Message {
 
     public static String TYPE = "client-auth";
-    private static int COOKIE_LENGTH = 16;
 
     private byte[] yourCookie;
 
@@ -28,6 +27,7 @@ public class ClientAuth extends Message {
 
     public ClientAuth(Map<String, Object> map) throws ValidationError {
         ValidationHelper.validateType(map.get("type"), TYPE);
+        final int COOKIE_LENGTH = 16;
         this.yourCookie = ValidationHelper.validateByteArray(map.get("your_cookie"), COOKIE_LENGTH, "your_cookie");
     }
 
