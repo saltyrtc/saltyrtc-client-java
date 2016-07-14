@@ -43,6 +43,7 @@ import org.saltyrtc.client.messages.InitiatorServerAuth;
 import org.saltyrtc.client.messages.Message;
 import org.saltyrtc.client.messages.ResponderServerAuth;
 import org.saltyrtc.client.messages.Restart;
+import org.saltyrtc.client.messages.SendError;
 import org.saltyrtc.client.messages.ServerHello;
 import org.saltyrtc.client.nonce.CombinedSequence;
 import org.saltyrtc.client.nonce.DataChannelNonce;
@@ -451,6 +452,15 @@ public abstract class Signaling {
     }
 
     /**
+     * Decrypt the server message using the permanent key.
+     */
+    protected Message decryptServerMessage(Box box)
+            throws CryptoFailedException, InvalidKeyException, ValidationError, SerializationError {
+        final byte[] decrypted = this.permanentKey.decrypt(box, this.serverKey);
+        return MessageReader.read(decrypted);
+    }
+
+    /**
      * Message received during server handshake.
      *
      * @param box The box containing raw nonce and payload bytes.
@@ -517,34 +527,62 @@ public abstract class Signaling {
 
     /**
      * Message received from peer *after* the handshake is done.
+     *
+     * Note that although this method is called `onPeerMessage`, it's still
+     * possible that server messages arrive, e.g. a `send-error` message.
      */
     protected void onPeerMessage(Box box, SignalingChannelNonce nonce) {
         getLogger().debug("Message received");
 
         // TODO: Validate nonce?
 
-        final Message msg;
-        try {
-            msg = this.decryptPeerMessage(box);
-        } catch (CryptoFailedException e) {
-            getLogger().error("Could not decrypt incoming message from peer " + nonce.getSource(), e);
-            return;
-        } catch (InvalidKeyException e) {
-            getLogger().error("InvalidKeyException while processing incoming message from peer", e);
-            return;
-        } catch (ValidationError | SerializationError e) {
-            getLogger().error("Received invalid message from peer", e);
-            return;
-        }
+        final Message message;
 
-        if (msg instanceof Data) {
-            getLogger().debug("Received data");
-            salty.events.data.notifyHandlers(new DataEvent((Data) msg));
-        } else if (msg instanceof Restart) {
-            getLogger().debug("Received restart");
-            handleRestart((Restart) msg);
+        // Process server messages
+        if (nonce.getSource() == SALTYRTC_ADDR_SERVER) {
+            try {
+                message = this.decryptServerMessage(box);
+            } catch (CryptoFailedException e) {
+                getLogger().error("Could not decrypt incoming message from server", e);
+                return;
+            } catch (InvalidKeyException e) {
+                getLogger().error("InvalidKeyException while processing incoming message from server", e);
+                return;
+            } catch (ValidationError | SerializationError e) {
+                getLogger().error("Received invalid message from server", e);
+                return;
+            }
+
+            if (message instanceof SendError) {
+                handleSendError((SendError) message);
+            } else {
+                getLogger().error("Invalid server message type: " + message.getType());
+            }
+
+        // Process peer messages
         } else {
-            getLogger().error("Received message with invalid type from peer");
+            try {
+                message = this.decryptPeerMessage(box);
+            } catch (CryptoFailedException e) {
+                getLogger().error("Could not decrypt incoming message from peer " + nonce.getSource(), e);
+                return;
+            } catch (InvalidKeyException e) {
+                getLogger().error("InvalidKeyException while processing incoming message from peer", e);
+                return;
+            } catch (ValidationError | SerializationError e) {
+                getLogger().error("Received invalid message from peer", e);
+                return;
+            }
+
+            if (message instanceof Data) {
+                getLogger().debug("Received data");
+                salty.events.data.notifyHandlers(new DataEvent((Data) message));
+            } else if (message instanceof Restart) {
+                getLogger().debug("Received restart");
+                handleRestart((Restart) message);
+            } else {
+                getLogger().error("Received message with invalid type from peer");
+            }
         }
     }
 
@@ -774,5 +812,11 @@ public abstract class Signaling {
 
     protected void handleRestart(Restart msg) {
         throw new UnsupportedOperationException("Restart not yet implemented");
+    }
+
+    protected void handleSendError(SendError msg) {
+        final byte[] hash = msg.getHash();
+        getLogger().warn("SendError: " + NaCl.asHex(hash));
+        getLogger().error("Warning: SendError handling not yet implemented!"); // TODO
     }
 }
