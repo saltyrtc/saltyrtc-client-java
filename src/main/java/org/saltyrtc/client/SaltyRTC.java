@@ -155,8 +155,12 @@ public class SaltyRTC {
 
     /**
      * Wrap a data channel. Return a secure data channel.
+     * @throws ConnectionException if handover hasn't taken place yet.
      */
-    public SecureDataChannel wrapDataChannel(DataChannel dc) {
+    public SecureDataChannel wrapDataChannel(DataChannel dc) throws ConnectionException {
+        if (this.getSignalingChannel() != SignalingChannel.DATA_CHANNEL) {
+            throw new ConnectionException("Handover must be finished before wrapping a data channel.");
+        }
         return new SecureDataChannel(dc, this.signaling);
     }
 
