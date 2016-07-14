@@ -15,7 +15,7 @@ import com.neovisionaries.ws.client.WebSocketFactory;
 import com.neovisionaries.ws.client.WebSocketFrame;
 
 import org.saltyrtc.client.SaltyRTC;
-import org.saltyrtc.client.annotations.NotNull;
+import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.cookie.Cookie;
 import org.saltyrtc.client.cookie.CookiePair;
 import org.saltyrtc.client.datachannel.SecureDataChannel;
@@ -738,7 +738,7 @@ public abstract class Signaling {
      * @param dc The secure data channel that will be used to send this data.
      * @return Encrypted box.
      */
-    public @Nullable Box encryptData(@NotNull byte[] data, @NotNull SecureDataChannel dc)
+    public @Nullable Box encryptData(@NonNull byte[] data, @NonNull SecureDataChannel dc)
             throws CryptoFailedException, InvalidKeyException {
         // Choose proper CSN
         final CombinedSequence csn;
@@ -764,7 +764,8 @@ public abstract class Signaling {
      * @param box Encrypted box.
      * @return Decrypted bytes.
      */
-    public @NotNull byte[] decryptData(@NotNull Box box)
+    public @NonNull
+    byte[] decryptData(@NonNull Box box)
             throws CryptoFailedException, InvalidKeyException {
         // TODO: Do we need to verify the nonce?
         return this.sessionKey.decrypt(box, this.getPeerSessionKey());
