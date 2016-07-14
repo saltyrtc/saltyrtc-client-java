@@ -1,19 +1,29 @@
 package org.saltyrtc.client.datachannel;
 
-import org.saltyrtc.client.SaltyRTC;
+import org.saltyrtc.client.exceptions.CryptoFailedException;
+import org.saltyrtc.client.exceptions.InvalidKeyException;
+import org.saltyrtc.client.keystore.Box;
+import org.saltyrtc.client.nonce.DataChannelNonce;
+import org.saltyrtc.client.signaling.Signaling;
+import org.slf4j.Logger;
 import org.webrtc.DataChannel;
+
+import java.nio.ByteBuffer;
 
 /**
  * A wrapper for a DataChannel that will encrypt and decrypt data on the fly.
  */
 public class SecureDataChannel {
 
-    private final DataChannel dc;
-    private final SaltyRTC salty;
+    // Logger
+    private static final Logger LOG = org.slf4j.LoggerFactory.getLogger("SaltyRTC.SecureDataChannel");
 
-    public SecureDataChannel(DataChannel dc, SaltyRTC salty) {
+    private final DataChannel dc;
+    private final Signaling signaling;
+
+    public SecureDataChannel(DataChannel dc, Signaling signaling) {
         this.dc = dc;
-        this.salty = salty;
+        this.signaling = signaling;
     }
 
     public void registerObserver(final DataChannel.Observer observer) {
@@ -30,11 +40,22 @@ public class SecureDataChannel {
 
             @Override
             public void onMessage(DataChannel.Buffer buffer) {
-                System.err.println("INTERCEPT ALL THE THINGS");
+                LOG.debug("Decrypting incoming data...");
 
-                String msg = buffer.data.asCharBuffer().toString();
-                System.err.println("Secret message was: " + msg);
-                observer.onMessage(buffer);
+                // Decrypt data
+                final Box box = new Box(buffer.data, DataChannelNonce.TOTAL_LENGTH);
+                final byte[] data;
+                try {
+                    data = SecureDataChannel.this.signaling.decryptData(box);
+                } catch (CryptoFailedException | InvalidKeyException e) {
+                    LOG.error("Could not decrypt incoming data: ", e);
+                    return;
+                }
+
+                // Pass decrypted data to original observer
+                DataChannel.Buffer decryptedBuffer =
+                        new DataChannel.Buffer(ByteBuffer.wrap(data), true);
+                observer.onMessage(decryptedBuffer);
             }
         });
     }
@@ -60,7 +81,7 @@ public class SecureDataChannel {
     }
 
     public boolean send(DataChannel.Buffer buffer) {
-        System.err.println("ENCRYPT ALL THE THINGS");
+        LOG.debug("Encrypting outgoing data...");
         return this.dc.send(buffer);
     }
 

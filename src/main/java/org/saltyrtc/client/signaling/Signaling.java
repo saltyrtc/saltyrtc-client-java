@@ -15,8 +15,10 @@ import com.neovisionaries.ws.client.WebSocketFactory;
 import com.neovisionaries.ws.client.WebSocketFrame;
 
 import org.saltyrtc.client.SaltyRTC;
+import org.saltyrtc.client.annotations.NotNull;
 import org.saltyrtc.client.cookie.Cookie;
 import org.saltyrtc.client.cookie.CookiePair;
+import org.saltyrtc.client.datachannel.SecureDataChannel;
 import org.saltyrtc.client.events.DataEvent;
 import org.saltyrtc.client.events.SignalingChannelChangedEvent;
 import org.saltyrtc.client.events.SignalingStateChangedEvent;
@@ -42,6 +44,7 @@ import org.saltyrtc.client.messages.ResponderServerAuth;
 import org.saltyrtc.client.messages.Restart;
 import org.saltyrtc.client.messages.ServerHello;
 import org.saltyrtc.client.nonce.CombinedSequence;
+import org.saltyrtc.client.nonce.DataChannelNonce;
 import org.saltyrtc.client.nonce.SignalingChannelNonce;
 import org.saltyrtc.client.signaling.state.ServerHandshakeState;
 import org.saltyrtc.client.signaling.state.SignalingState;
@@ -691,6 +694,7 @@ public abstract class Signaling {
             public void onBufferedAmountChange(long l) {
                 Signaling.this.getLogger().info("DataChannel: Buffered amount changed");
             }
+
             @Override
             public void onStateChange() {
                 Signaling.this.getLogger().info("DataChannel: State changed to " + Signaling.this.dc.state());
@@ -708,6 +712,7 @@ public abstract class Signaling {
                         break;
                 }
             }
+
             @Override
             public synchronized void onMessage(DataChannel.Buffer buffer) {
                 final String type = buffer.binary ? "Binary" : "Text";
@@ -725,6 +730,44 @@ public abstract class Signaling {
                 Signaling.this.onPeerMessage(box, nonce);
             }
         });
+    }
+
+    /**
+     * Encrypt arbitrary data for the peer using the session keys.
+     * @param data Plain data bytes.
+     * @param dc The secure data channel that will be used to send this data.
+     * @return Encrypted box.
+     */
+    public @Nullable Box encryptData(@NotNull byte[] data, @NotNull SecureDataChannel dc)
+            throws CryptoFailedException, InvalidKeyException {
+        // Choose proper CSN
+        final CombinedSequence csn;
+        try {
+            csn = this.getNextCsn(this.getPeerAddress());
+        } catch (ProtocolException e) {
+            this.resetConnection(CloseCode.PROTOCOL_ERROR);
+            return null;
+        }
+
+        // Create nonce
+        final DataChannelNonce nonce = new DataChannelNonce(
+                this.cookiePair.getOurs().getBytes(),
+                123, // TODO: Get actual dc id
+                csn.getOverflow(), csn.getSequenceNumber());
+
+        // Encrypt
+        return this.sessionKey.encrypt(data, nonce.toBytes(), this.getPeerSessionKey());
+    }
+
+    /**
+     * Decrypt data from the peer using the session keys.
+     * @param box Encrypted box.
+     * @return Decrypted bytes.
+     */
+    public @NotNull byte[] decryptData(@NotNull Box box)
+            throws CryptoFailedException, InvalidKeyException {
+        // TODO: Do we need to verify the nonce?
+        return this.sessionKey.decrypt(box, this.getPeerSessionKey());
     }
 
     protected void handleRestart(Restart msg) {

@@ -157,7 +157,7 @@ public class SaltyRTC {
      * Wrap a data channel. Return a secure data channel.
      */
     public SecureDataChannel wrapDataChannel(DataChannel dc) {
-        return new SecureDataChannel(dc, this);
+        return new SecureDataChannel(dc, this.signaling);
     }
 
     /**
