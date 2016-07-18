@@ -12,6 +12,10 @@ import java.nio.ByteBuffer;
 
 /**
  * A wrapper for a DataChannel that will encrypt and decrypt data on the fly.
+ *
+ * It should match the API of the WebRTC `DataChannel`.
+ *
+ * Unfortunately, the `DataChannel` class does not provide an interface that we could implement.
  */
 public class SecureDataChannel {
 
@@ -80,9 +84,27 @@ public class SecureDataChannel {
         this.dc.close();
     }
 
+    /**
+     * Encrypt and send a message through the data channel.
+     *
+     * @return a binary flag that indicates whether the message could be sent.
+     */
     public boolean send(DataChannel.Buffer buffer) {
         LOG.debug("Encrypting outgoing data...");
-        return this.dc.send(buffer);
+
+        // Encrypt
+        final Box box;
+        try {
+            box = this.signaling.encryptData(buffer.data.array(), this);
+        } catch (CryptoFailedException | InvalidKeyException e) {
+            LOG.error("Could not decrypt incoming data: ", e);
+            return false;
+        }
+
+        // Send
+        final ByteBuffer encryptedBytes = ByteBuffer.wrap(box.toBytes());
+        final DataChannel.Buffer encryptedBuffer = new DataChannel.Buffer(encryptedBytes, true);
+        return this.dc.send(encryptedBuffer);
     }
 
     public void dispose() {
