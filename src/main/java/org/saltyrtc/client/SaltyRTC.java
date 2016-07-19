@@ -14,6 +14,7 @@ import org.saltyrtc.client.events.EventRegistry;
 import org.saltyrtc.client.events.SignalingChannelChangedEvent;
 import org.saltyrtc.client.events.SignalingStateChangedEvent;
 import org.saltyrtc.client.exceptions.ConnectionException;
+import org.saltyrtc.client.exceptions.ProtocolException;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.messages.Data;
 import org.saltyrtc.client.signaling.InitiatorSignaling;
@@ -140,7 +141,7 @@ public class SaltyRTC {
      * This method should only be used for signaling, not for sending arbitrary data!
      * For arbitrary data, use `wrapDataChannel` after doing the handover.
      *
-     * @exception ConnectionException thrown if signaling channel is not open.
+     * @throws ConnectionException if signaling channel is not open.
      */
     public void sendSignalingData(Data data) throws ConnectionException {
         this.signaling.sendSignalingData(data);

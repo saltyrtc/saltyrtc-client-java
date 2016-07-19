@@ -31,6 +31,7 @@ import org.saltyrtc.client.exceptions.ProtocolException;
 import org.saltyrtc.client.exceptions.SerializationError;
 import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.helpers.ArrayHelper;
+import org.saltyrtc.client.helpers.MessageHistory;
 import org.saltyrtc.client.helpers.MessageReader;
 import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.keystore.AuthToken;
@@ -104,6 +105,9 @@ public abstract class Signaling {
     protected short address = SALTYRTC_ADDR_UNKNOWN;
     protected CookiePair cookiePair;
     protected CombinedSequence serverCsn = new CombinedSequence();
+
+    // Message history
+    protected MessageHistory history = new MessageHistory(10);
 
     public Signaling(SaltyRTC salty, String host, int port,
                      KeyStore permanentKey, SSLContext sslContext) {
@@ -682,12 +686,12 @@ public abstract class Signaling {
     /**
      * Send binary data through the signaling channel.
      */
-    protected void send(byte[] payload) throws ConnectionException {
+    protected void send(byte[] payload) throws ConnectionException, ProtocolException {
         // Verify connection state
         final SignalingState state = this.getState();
         if (state != SignalingState.OPEN &&
-            state != SignalingState.SERVER_HANDSHAKE &&
-            state != SignalingState.PEER_HANDSHAKE) {
+                state != SignalingState.SERVER_HANDSHAKE &&
+                state != SignalingState.PEER_HANDSHAKE) {
             getLogger().error("Trying to send data message, but connection state is " + this.getState());
             throw new ConnectionException("SaltyRTC instance is not connected");
         }
@@ -702,28 +706,39 @@ public abstract class Signaling {
                 // TODO: Return code indicates success. Handle.
                 break;
             default:
-                getLogger().error("Unknown or invalid signaling channel: " + channel);
-                this.resetConnection(CloseCode.PROTOCOL_ERROR);
+                throw new ProtocolException("Unknown or invalid signaling channel: " + channel);
         }
+    }
+
+    /**
+     * Like `send(byte[] payload)`, but additionally store the sent message in the message history.
+     *
+     * This allows the message to be recognized in the case of a send error.
+     */
+    protected void send(byte[] payload, Message message) throws ConnectionException, ProtocolException {
+        // Send data
+        this.send(payload);
+
+        // Store sent message in history
+        this.history.store(message, payload);
     }
 
     /**
      * Send a data message to the peer through the signaling channel,
      * encrypted with the session key.
+     *
+     * If a ProtocolException occurs during sending, the connection will be reset.
      */
     public void sendSignalingData(Data data) throws ConnectionException {
-        // Build packet
-        final byte[] packet;
         try {
-            packet = this.buildPacket(data, this.getPeerAddress());
+            // Build packet
+            final byte[] packet = this.buildPacket(data, this.getPeerAddress());
+            // Send message
+            getLogger().debug("Sending " + data.getDataType() + " data message through " + this.getChannel());
+            this.send(packet);
         } catch (ProtocolException e) {
             this.resetConnection(CloseCode.PROTOCOL_ERROR);
-            return;
         }
-
-        // Send message
-        getLogger().debug("Sending " + data.getDataType() + " data message through " + this.getChannel());
-        this.send(packet);
     }
 
     /**
