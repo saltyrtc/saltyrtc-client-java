@@ -12,6 +12,7 @@ import com.neilalexander.jnacl.NaCl;
 
 import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.cookie.Cookie;
+import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
 import org.saltyrtc.client.exceptions.InternalServerException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
@@ -108,11 +109,11 @@ public class ResponderSignaling extends Signaling {
     }
 
     @Override
-    protected void sendClientHello() throws ProtocolException {
+    protected void sendClientHello() throws ProtocolException, ConnectionException {
         final ClientHello msg = new ClientHello(this.permanentKey.getPublicKey());
         final byte[] packet = this.buildPacket(msg, Signaling.SALTYRTC_ADDR_SERVER, false);
         getLogger().debug("Sending client-hello");
-        this.ws.sendBinary(packet);
+        this.send(packet);
         this.serverHandshakeState = ServerHandshakeState.HELLO_SENT;
     }
 
@@ -152,23 +153,24 @@ public class ResponderSignaling extends Signaling {
     }
 
     @Override
-    protected void initPeerHandshake() throws ProtocolException {
+    protected void initPeerHandshake() throws ProtocolException, ConnectionException {
         if (this.initiator.isConnected()) {
             this.sendToken();
         }
     }
 
-    protected void sendToken() throws ProtocolException {
+    protected void sendToken() throws ProtocolException, ConnectionException {
         final Token msg = new Token(this.permanentKey.getPublicKey());
         final byte[] packet = this.buildPacket(msg, Signaling.SALTYRTC_ADDR_INITIATOR);
         getLogger().debug("Sending token");
-        this.ws.sendBinary(packet);
+        this.send(packet);
         this.initiator.handshakeState = InitiatorHandshakeState.TOKEN_SENT;
     }
 
     @Override
     protected void onPeerHandshakeMessage(Box box, SignalingChannelNonce nonce)
-            throws ProtocolException, ValidationError, SerializationError, InternalServerException {
+            throws ProtocolException, ValidationError, SerializationError,
+                   InternalServerException, ConnectionException {
 
         // Validate nonce destination
         if (nonce.getDestination() != this.address) {
@@ -254,7 +256,7 @@ public class ResponderSignaling extends Signaling {
     /**
      * A new responder wants to connect.
      */
-    protected void handleNewInitiator(NewInitiator msg) throws ProtocolException {
+    protected void handleNewInitiator(NewInitiator msg) throws ProtocolException, ConnectionException {
         // Initiator changed, send token
         this.sendToken();
     }
@@ -269,13 +271,13 @@ public class ResponderSignaling extends Signaling {
     /**
      * Send our public session key to the initiator.
      */
-    protected void sendKey() throws ProtocolException {
+    protected void sendKey() throws ProtocolException, ConnectionException {
         // Generate our own session key
         this.sessionKey = new KeyStore();
         final Key msg = new Key(this.sessionKey.getPublicKey());
         final byte[] packet = this.buildPacket(msg, SALTYRTC_ADDR_INITIATOR);
         getLogger().debug("Sending key");
-        this.ws.sendBinary(packet);
+        this.send(packet);
         this.initiator.handshakeState = InitiatorHandshakeState.KEY_SENT;
     }
 
@@ -293,7 +295,7 @@ public class ResponderSignaling extends Signaling {
     /**
      * Repeat the initiator's cookie.
      */
-    protected void sendAuth(SignalingChannelNonce nonce) throws ProtocolException {
+    protected void sendAuth(SignalingChannelNonce nonce) throws ProtocolException, ConnectionException {
         // Ensure that cookies are different
         if (nonce.getCookie().equals(this.cookiePair.getOurs())) {
             throw new ProtocolException("Their cookie and our cookie are the same");
@@ -303,7 +305,7 @@ public class ResponderSignaling extends Signaling {
         final Auth msg = new Auth(nonce.getCookieBytes());
         final byte[] packet = this.buildPacket(msg, SALTYRTC_ADDR_INITIATOR);
         getLogger().debug("Sending auth");
-        this.ws.sendBinary(packet);
+        this.send(packet);
     }
 
     @Override
