@@ -17,6 +17,7 @@ import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.messages.Auth;
 import org.saltyrtc.client.messages.ClientAuth;
 import org.saltyrtc.client.messages.ClientHello;
+import org.saltyrtc.client.messages.Data;
 import org.saltyrtc.client.messages.DropResponder;
 import org.saltyrtc.client.messages.InitiatorServerAuth;
 import org.saltyrtc.client.messages.Key;
@@ -47,7 +48,7 @@ public class MessageReader {
     public static Message read(byte[] bytes) throws SerializationError, ValidationError {
         // Unpack data into map
         ObjectMapper objectMapper = new ObjectMapper(new MessagePackFactory());
-        Map<String, Object> map = null;
+        Map<String, Object> map;
         try {
             map = objectMapper.readValue(bytes, new TypeReference<Map<String, Object>>() {});
         } catch (IOException e) {
@@ -94,6 +95,8 @@ public class MessageReader {
                 return new Auth(map);
             case "restart":
                 return new Restart(map);
+            case "data":
+                return new Data(map);
             default:
                 throw new ValidationError("Unknown message type: " + type);
         }

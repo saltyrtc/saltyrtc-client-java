@@ -17,10 +17,10 @@ import java.nio.ByteBuffer;
  *
  * Nonce structure:
  *
- * |CCCCCCCCCCCCCCCC|II|OO|QQQQ|
+ * |CCCCCCCCCCCCCCCC|DD|OO|QQQQ|
  *
  * - C: Cookie (16 byte)
- * - I: Data channel ID (2 byte)
+ * - D: Data channel ID (2 byte)
  * - O: Overflow number (2 byte)
  * - Q: Sequence number (4 byte)
  */

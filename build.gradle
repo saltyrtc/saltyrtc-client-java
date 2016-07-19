@@ -10,16 +10,23 @@ repositories {
 dependencies {
     // The production code uses the SLF4J logging API at compile time
     compile 'org.slf4j:slf4j-api:1.7.21'
-    compile 'org.slf4j:slf4j-simple:1.7.21'
 
-    // Dependencies
+    // Dependency: NaCl
+    compile files('libs/jnacl.jar')
+
+    // Dependency: Msgpack serialization
     compile group: 'org.json', name: 'json', version: '20160212'
-    compile 'com.neovisionaries:nv-websocket-client:1.28'
     compile 'org.msgpack:msgpack-core:0.8.7'
     compile 'org.msgpack:jackson-dataformat-msgpack:0.8.7'
+
+    // Dependency: WebSockets
+    compile 'com.neovisionaries:nv-websocket-client:1.28'
+
+    // Dependency: libjingle
     compile files('libs/libjingle_peerconnection.jar')
 
-    // Declare the dependency for your favourite test framework you want to use in your tests.
+    // Test dependencies
+    testCompile 'org.slf4j:slf4j-simple:1.7.21'
     testCompile 'junit:junit:4.12'
 }
 

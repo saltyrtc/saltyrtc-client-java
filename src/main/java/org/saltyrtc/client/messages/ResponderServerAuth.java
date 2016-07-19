@@ -18,7 +18,6 @@ import java.util.Map;
 public class ResponderServerAuth extends Message {
 
     public static String TYPE = "server-auth";
-    private static int COOKIE_LENGTH = 16;
 
     private byte[] yourCookie;
     private boolean initiatorConnected;
@@ -30,6 +29,7 @@ public class ResponderServerAuth extends Message {
 
     public ResponderServerAuth(Map<String, Object> map) throws ValidationError {
         ValidationHelper.validateType(map.get("type"), TYPE);
+        final int COOKIE_LENGTH = 16;
         this.yourCookie = ValidationHelper.validateByteArray(map.get("your_cookie"), COOKIE_LENGTH, "your_cookie");
         this.initiatorConnected = ValidationHelper.validateBoolean(map.get("initiator_connected"), "initiator_connected");
     }

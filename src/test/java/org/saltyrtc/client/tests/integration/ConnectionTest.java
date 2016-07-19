@@ -12,10 +12,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.saltyrtc.client.SaltyRTC;
-import org.saltyrtc.client.events.ConnectedEvent;
-import org.saltyrtc.client.events.ConnectionClosedEvent;
-import org.saltyrtc.client.events.ConnectionErrorEvent;
 import org.saltyrtc.client.events.EventHandler;
+import org.saltyrtc.client.events.SignalingStateChangedEvent;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.signaling.state.SignalingState;
 import org.saltyrtc.client.tests.Config;
@@ -71,45 +69,37 @@ public class ConnectionTest {
         }
 
         // Register event handlers
-        initiator.events.connected.register(new EventHandler<ConnectedEvent>() {
+        initiator.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
             @Override
-            public boolean handle(ConnectedEvent event) {
-                eventsCalled.put("initiatorConnected", true);
+            public boolean handle(SignalingStateChangedEvent event) {
+                switch (event.getState()) {
+                    case OPEN:
+                        eventsCalled.put("initiatorConnected", true);
+                        break;
+                    case ERROR:
+                        eventsCalled.put("initiatorError", true);
+                        break;
+                    case CLOSED:
+                        eventsCalled.put("initiatorClosed", true);
+                        break;
+                }
                 return false;
             }
         });
-        initiator.events.connectionError.register(new EventHandler<ConnectionErrorEvent>() {
+        responder.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
             @Override
-            public boolean handle(ConnectionErrorEvent event) {
-                eventsCalled.put("initiatorError", true);
-                return false;
-            }
-        });
-        initiator.events.connectionClosed.register(new EventHandler<ConnectionClosedEvent>() {
-            @Override
-            public boolean handle(ConnectionClosedEvent event) {
-                eventsCalled.put("initiatorClosed", true);
-                return false;
-            }
-        });
-        responder.events.connected.register(new EventHandler<ConnectedEvent>() {
-            @Override
-            public boolean handle(ConnectedEvent event) {
-                eventsCalled.put("responderConnected", true);
-                return false;
-            }
-        });
-        responder.events.connectionError.register(new EventHandler<ConnectionErrorEvent>() {
-            @Override
-            public boolean handle(ConnectionErrorEvent event) {
-                eventsCalled.put("responderError", true);
-                return false;
-            }
-        });
-        responder.events.connectionClosed.register(new EventHandler<ConnectionClosedEvent>() {
-            @Override
-            public boolean handle(ConnectionClosedEvent event) {
-                eventsCalled.put("responderClosed", true);
+            public boolean handle(SignalingStateChangedEvent event) {
+                switch (event.getState()) {
+                    case OPEN:
+                        eventsCalled.put("responderConnected", true);
+                        break;
+                    case ERROR:
+                        eventsCalled.put("responderError", true);
+                        break;
+                    case CLOSED:
+                        eventsCalled.put("responderClosed", true);
+                        break;
+                }
                 return false;
             }
         });
@@ -125,18 +115,22 @@ public class ConnectionTest {
         final CountDownLatch connectedPeers = new CountDownLatch(2);
 
         // Register onConnect handler
-        initiator.events.connected.register(new EventHandler<ConnectedEvent>() {
+        initiator.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
             @Override
-            public boolean handle(ConnectedEvent event) {
-                connectedPeers.countDown();
-                return true;
+            public boolean handle(SignalingStateChangedEvent event) {
+                if (event.getState() == SignalingState.OPEN) {
+                    connectedPeers.countDown();
+                }
+                return false;
             }
         });
-        responder.events.connected.register(new EventHandler<ConnectedEvent>() {
+        responder.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
             @Override
-            public boolean handle(ConnectedEvent event) {
-                connectedPeers.countDown();
-                return true;
+            public boolean handle(SignalingStateChangedEvent event) {
+                if (event.getState() == SignalingState.OPEN) {
+                    connectedPeers.countDown();
+                }
+                return false;
             }
         });
 
@@ -181,23 +175,26 @@ public class ConnectionTest {
         final CountDownLatch connectedPeers = new CountDownLatch(2);
 
         // Register onConnect handler
-        responder.events.connected.register(new EventHandler<ConnectedEvent>() {
+        responder.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
             @Override
-            public boolean handle(ConnectedEvent event) {
-                connectedPeers.countDown();
-                return true;
+            public boolean handle(SignalingStateChangedEvent event) {
+                if (event.getState() == SignalingState.OPEN) {
+                    connectedPeers.countDown();
+                }
+                return false;
             }
         });
-        initiator.events.connected.register(new EventHandler<ConnectedEvent>() {
+        initiator.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
             @Override
-            public boolean handle(ConnectedEvent event) {
-                connectedPeers.countDown();
-                return true;
+            public boolean handle(SignalingStateChangedEvent event) {
+                if (event.getState() == SignalingState.OPEN) {
+                    connectedPeers.countDown();
+                }
+                return false;
             }
         });
 
         // Connect server
-        System.out.println("Executing futures...");
         responder.connect();
         Thread.sleep(1000);
         initiator.connect();
@@ -235,18 +232,22 @@ public class ConnectionTest {
 
         // Latches to test connection state
         final CountDownLatch connectedPeers = new CountDownLatch(2);
-        responder.events.connected.register(new EventHandler<ConnectedEvent>() {
+        initiator.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
             @Override
-            public boolean handle(ConnectedEvent event) {
-                connectedPeers.countDown();
-                return true;
+            public boolean handle(SignalingStateChangedEvent event) {
+                if (event.getState() == SignalingState.OPEN) {
+                    connectedPeers.countDown();
+                }
+                return false;
             }
         });
-        initiator.events.connected.register(new EventHandler<ConnectedEvent>() {
+        responder.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
             @Override
-            public boolean handle(ConnectedEvent event) {
-                connectedPeers.countDown();
-                return true;
+            public boolean handle(SignalingStateChangedEvent event) {
+                if (event.getState() == SignalingState.OPEN) {
+                    connectedPeers.countDown();
+                }
+                return false;
             }
         });
 
@@ -271,6 +272,9 @@ public class ConnectionTest {
         assertTrue("Duration time (" + durationMs + "ms) should be less than " + MAX_DURATION + "ms",
                    durationMs < MAX_DURATION);
     }
+
+    // Note: Unfortunately right now we cannot test the handover outside of Android,
+    // as the libjingle peerconnection only works on the Android platform.
 
     @After
     public void tearDown() {

@@ -19,7 +19,6 @@ import java.util.Map;
 public class InitiatorServerAuth extends Message {
 
     public static String TYPE = "server-auth";
-    private static int COOKIE_LENGTH = 16;
 
     private byte[] yourCookie;
     private List<Integer> responders;
@@ -31,6 +30,7 @@ public class InitiatorServerAuth extends Message {
 
     public InitiatorServerAuth(Map<String, Object> map) throws ValidationError {
         ValidationHelper.validateType(map.get("type"), TYPE);
+        final int COOKIE_LENGTH = 16;
         this.yourCookie = ValidationHelper.validateByteArray(map.get("your_cookie"), COOKIE_LENGTH, "your_cookie");
         this.responders = ValidationHelper.validateIntegerList(map.get("responders"), Integer.class, "responders");
     }

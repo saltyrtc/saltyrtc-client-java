@@ -8,17 +8,22 @@
 
 package org.saltyrtc.client;
 
-import org.saltyrtc.client.events.ConnectedEvent;
-import org.saltyrtc.client.events.ConnectionClosedEvent;
-import org.saltyrtc.client.events.ConnectionErrorEvent;
+import org.saltyrtc.client.datachannel.SecureDataChannel;
+import org.saltyrtc.client.events.DataEvent;
 import org.saltyrtc.client.events.EventRegistry;
+import org.saltyrtc.client.events.SignalingChannelChangedEvent;
+import org.saltyrtc.client.events.SignalingStateChangedEvent;
 import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.keystore.KeyStore;
+import org.saltyrtc.client.messages.Data;
 import org.saltyrtc.client.signaling.InitiatorSignaling;
 import org.saltyrtc.client.signaling.ResponderSignaling;
 import org.saltyrtc.client.signaling.Signaling;
+import org.saltyrtc.client.signaling.SignalingChannel;
 import org.saltyrtc.client.signaling.state.SignalingState;
 import org.slf4j.Logger;
+import org.webrtc.DataChannel;
+import org.webrtc.PeerConnection;
 
 import java.security.InvalidKeyException;
 
@@ -30,7 +35,7 @@ import javax.net.ssl.SSLContext;
 public class SaltyRTC {
 
     // Logger
-    private static final Logger LOG = org.slf4j.LoggerFactory.getLogger(SaltyRTC.class);
+    private static final Logger LOG = org.slf4j.LoggerFactory.getLogger("SaltyRTC");
 
     // Whether to enable debug mode
     protected boolean debug = false;
@@ -47,6 +52,7 @@ public class SaltyRTC {
      * @param permanentKey A KeyStore instance containing the permanent key.
      * @param host The SaltyRTC server host.
      * @param port The SaltyRTC server port.
+     * @param sslContext The SSL context used to create the encrypted WebSocket connection.
      */
     public SaltyRTC(KeyStore permanentKey, String host, int port, SSLContext sslContext) {
         validateHost(host);
@@ -93,7 +99,7 @@ public class SaltyRTC {
      * Return the current signaling state.
      */
     public SignalingState getSignalingState() {
-        return this.signaling.state;
+        return this.signaling.getState();
     }
 
     /**
@@ -102,20 +108,69 @@ public class SaltyRTC {
      * To get notified when the connection is up and running,
      * subscribe to the `ConnectedEvent`.
      *
-     * @throws ConnectionException if the connection process fails.
+     * @throws ConnectionException if setting up the WebSocket connection fails.
      */
     public void connect() throws ConnectionException {
         this.signaling.connect();
     }
 
     /**
+     * Do the handover from WebSocket to WebRTC data channel.
+     *
+     * This operation is asynchronous. To get notified when the
+     * handover is finished, subscribe to the `SignalingChannelChangedEvent`.
+     */
+    public void handover(PeerConnection pc) {
+        this.signaling.handover(pc);
+    }
+
+    /**
      * Disconnect from the SaltyRTC server.
      *
      * This operation is asynchronous, once the connection is closed, the
-     * `ConnectionClosedEvent` will be emitted.
+     * `SignalingStateChangedEvent` will be emitted.
      */
     public void disconnect() {
         this.signaling.disconnect();
+    }
+
+    /**
+     * Send signaling data to the peer.
+     *
+     * This method should only be used for signaling, not for sending arbitrary data!
+     * For arbitrary data, use `wrapDataChannel` after doing the handover.
+     *
+     * @exception ConnectionException thrown if signaling channel is not open.
+     */
+    public void sendSignalingData(Data data) throws ConnectionException {
+        this.signaling.sendSignalingData(data);
+    }
+
+    /**
+     * Return the currently used signaling channel.
+     */
+    public SignalingChannel getSignalingChannel() {
+        return this.signaling.getChannel();
+    }
+
+    /**
+     * Wrap a data channel. Return a secure data channel.
+     * @throws ConnectionException if handover hasn't taken place yet.
+     */
+    public SecureDataChannel wrapDataChannel(DataChannel dc) throws ConnectionException {
+        if (this.getSignalingChannel() != SignalingChannel.DATA_CHANNEL) {
+            throw new ConnectionException("Handover must be finished before wrapping a data channel.");
+        }
+        return new SecureDataChannel(dc, this.signaling);
+    }
+
+    /**
+     * Collection of all possible events.
+     */
+    public static class Events {
+        public EventRegistry<SignalingStateChangedEvent> signalingStateChanged = new EventRegistry<>();
+        public EventRegistry<SignalingChannelChangedEvent> signalingChannelChanged = new EventRegistry<>();
+        public EventRegistry<DataEvent> data = new EventRegistry<>();
     }
 
     public void setDebug(boolean debug) {
@@ -123,15 +178,6 @@ public class SaltyRTC {
     }
     public boolean getDebug() {
         return debug;
-    }
-
-    /**
-     * Collection of all possible events.
-     */
-    public static class Events {
-        public EventRegistry<ConnectedEvent> connected = new EventRegistry<>();
-        public EventRegistry<ConnectionErrorEvent> connectionError = new EventRegistry<>();
-        public EventRegistry<ConnectionClosedEvent> connectionClosed = new EventRegistry<>();
     }
 
 }

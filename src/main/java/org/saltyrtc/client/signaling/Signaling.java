@@ -8,6 +8,7 @@
 
 package org.saltyrtc.client.signaling;
 
+import com.neilalexander.jnacl.NaCl;
 import com.neovisionaries.ws.client.WebSocket;
 import com.neovisionaries.ws.client.WebSocketAdapter;
 import com.neovisionaries.ws.client.WebSocketException;
@@ -15,10 +16,13 @@ import com.neovisionaries.ws.client.WebSocketFactory;
 import com.neovisionaries.ws.client.WebSocketFrame;
 
 import org.saltyrtc.client.SaltyRTC;
+import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.cookie.Cookie;
 import org.saltyrtc.client.cookie.CookiePair;
-import org.saltyrtc.client.events.ConnectionClosedEvent;
-import org.saltyrtc.client.events.ConnectionErrorEvent;
+import org.saltyrtc.client.datachannel.SecureDataChannel;
+import org.saltyrtc.client.events.DataEvent;
+import org.saltyrtc.client.events.SignalingChannelChangedEvent;
+import org.saltyrtc.client.events.SignalingStateChangedEvent;
 import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
 import org.saltyrtc.client.exceptions.InternalServerException;
@@ -28,21 +32,27 @@ import org.saltyrtc.client.exceptions.SerializationError;
 import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.helpers.ArrayHelper;
 import org.saltyrtc.client.helpers.MessageReader;
+import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.keystore.AuthToken;
 import org.saltyrtc.client.keystore.Box;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.messages.Auth;
 import org.saltyrtc.client.messages.ClientAuth;
+import org.saltyrtc.client.messages.Data;
 import org.saltyrtc.client.messages.InitiatorServerAuth;
 import org.saltyrtc.client.messages.Message;
 import org.saltyrtc.client.messages.ResponderServerAuth;
+import org.saltyrtc.client.messages.Restart;
+import org.saltyrtc.client.messages.SendError;
 import org.saltyrtc.client.messages.ServerHello;
 import org.saltyrtc.client.nonce.CombinedSequence;
+import org.saltyrtc.client.nonce.DataChannelNonce;
 import org.saltyrtc.client.nonce.SignalingChannelNonce;
 import org.saltyrtc.client.signaling.state.ServerHandshakeState;
 import org.saltyrtc.client.signaling.state.SignalingState;
 import org.slf4j.Logger;
 import org.webrtc.DataChannel;
+import org.webrtc.PeerConnection;
 
 import java.io.IOException;
 import java.net.URI;
@@ -57,6 +67,8 @@ public abstract class Signaling {
 
     protected static String SALTYRTC_PROTOCOL = "saltyrtc-1.0";
     protected static short SALTYRTC_WS_CONNECT_TIMEOUT = 2000;
+    protected static long SALTYRTC_WS_PING_INTERVAL = 20000;
+    protected static String SALTYRTC_DC_LABEL = "saltyrtc-signaling";
     protected static short SALTYRTC_ADDR_UNKNOWN = 0x00;
     protected static short SALTYRTC_ADDR_SERVER = 0x00;
     protected static short SALTYRTC_ADDR_INITIATOR = 0x01;
@@ -75,12 +87,12 @@ public abstract class Signaling {
     protected DataChannel dc;
 
     // Connection state
-    public SignalingState state = SignalingState.NEW;
-    public SignalingChannel channel = SignalingChannel.WEBSOCKET;
+    private SignalingState state = SignalingState.NEW;
+    private SignalingChannel channel = SignalingChannel.WEBSOCKET;
     protected ServerHandshakeState serverHandshakeState = ServerHandshakeState.NEW;
 
     // Reference to main class
-    protected SaltyRTC saltyRTC;
+    protected SaltyRTC salty;
 
     // Keys
     protected byte[] serverKey;
@@ -93,9 +105,9 @@ public abstract class Signaling {
     protected CookiePair cookiePair;
     protected CombinedSequence serverCsn = new CombinedSequence();
 
-    public Signaling(SaltyRTC saltyRTC, String host, int port,
+    public Signaling(SaltyRTC salty, String host, int port,
                      KeyStore permanentKey, SSLContext sslContext) {
-        this.saltyRTC = saltyRTC;
+        this.salty = salty;
         this.host = host;
         this.port = port;
         this.permanentKey = permanentKey;
@@ -110,6 +122,30 @@ public abstract class Signaling {
         return this.authToken.getAuthToken();
     }
 
+    public SignalingState getState() {
+        return this.state;
+    }
+
+    protected void setState(SignalingState newState) {
+        if (this.state != newState) {
+            this.state = newState;
+            this.salty.events.signalingStateChanged.notifyHandlers(
+                    new SignalingStateChangedEvent(newState));
+        }
+    }
+
+    public SignalingChannel getChannel() {
+        return this.channel;
+    }
+
+    protected void setChannel(SignalingChannel newChannel) {
+        if (this.channel != newChannel) {
+            this.channel = newChannel;
+            this.salty.events.signalingChannelChanged.notifyHandlers(
+                    new SignalingChannelChangedEvent(newChannel));
+        }
+    }
+
     /**
      * Connect asynchronously to the SaltyRTC server.
      *
@@ -118,28 +154,23 @@ public abstract class Signaling {
     public void connect() throws ConnectionException {
         getLogger().info("Connecting to SaltyRTC server at "
                 + Signaling.this.host + ":" + Signaling.this.port + "...");
-        resetConnection();
+        resetConnection(CloseCode.CLOSING_NORMAL);
         try {
             initWebsocket();
         } catch (IOException e) {
-            e.printStackTrace();
-            throw new ConnectionException("Connecting to WebSocket failed.");
+            throw new ConnectionException("Connecting to WebSocket failed.", e);
         }
         connectWebsocket();
     }
 
     /**
-     * Reset / close the connection.
+     * Disconnect from the SaltyRTC server.
      *
-     * - Close WebSocket if still open.
-     * - Set `ws` attribute to null.
-     * - Set `state` attribute to `NEW`
-     * - Reset server CSN
+     * This operation is asynchronous, once the connection is closed, the
+     * `SignalingStateChangedEvent` will be emitted.
      */
-    protected void resetConnection(int reason) {
-        this.state = SignalingState.NEW;
-        this.serverHandshakeState = ServerHandshakeState.NEW;
-        this.serverCsn = new CombinedSequence();
+    protected void disconnect(int reason) {
+        this.setState(SignalingState.CLOSING);
 
         // Close websocket instance
         if (this.ws != null) {
@@ -147,37 +178,53 @@ public abstract class Signaling {
             this.ws.disconnect(reason);
             this.ws = null;
         }
-    }
+        // Close datachannel instance
+        if (this.dc != null) {
+            getLogger().debug("Disconnecting data channel");
+            //this.dc.close();
+            // The line above will cause a deadlock as of 2016-07-12.
+            // Instead, we'll let the GC handle this.
+            this.dc.unregisterObserver();
+            this.setState(SignalingState.CLOSING);
+            this.dc = null;
+            this.setState(SignalingState.CLOSED);
+        }
 
-    /**
-     * @see this.resetConnection()
-     */
-    protected void resetConnection() {
-        this.resetConnection(CloseCode.CLOSING_NORMAL);
     }
 
     /**
      * Disconnect from the SaltyRTC server.
      *
      * This operation is asynchronous, once the connection is closed, the
-     * `ConnectionClosedEvent` will be emitted.
+     * `SignalingStateChangedEvent` will be emitted.
+     *
+     * @see this.resetConnection(int)
      */
     public void disconnect() {
-        this.state = SignalingState.CLOSING;
-        switch (this.channel) {
-            case WEBSOCKET:
-                // Close websocket instance
-                if (this.ws != null) {
-                    getLogger().debug("Disconnecting WebSocket");
-                    this.ws.disconnect();
-                    this.ws = null;
-                    // The status will be changed to CLOSED in the `onClose`
-                    // implementation of the WebSocket instance.
-                }
-                break;
-            case DATA_CHANNEL:
-                throw new UnsupportedOperationException("Not yet implemented");
+        this.disconnect(CloseCode.CLOSING_NORMAL);
+    }
+
+    /**
+     * Reset the connection.
+     */
+    protected void resetConnection(int reason) {
+        // Unregister listeners
+        if (this.ws != null) {
+            this.ws.clearListeners();
         }
+        if (this.dc != null) {
+            this.dc.unregisterObserver();
+        }
+
+        // Disconnect
+        this.disconnect(reason);
+
+        // Reset
+        this.setChannel(SignalingChannel.WEBSOCKET);
+        this.serverHandshakeState = ServerHandshakeState.NEW;
+        this.serverCsn = new CombinedSequence();
+        this.setState(SignalingState.NEW);
+        getLogger().debug("Connection reset");
     }
 
     /**
@@ -200,15 +247,15 @@ public abstract class Signaling {
             @Override
             public void onConnected(WebSocket websocket, Map<String, List<String>> headers) throws Exception {
                 synchronized (this) {
-                    getLogger().debug("WebSocket connection open");
-                    Signaling.this.state = SignalingState.SERVER_HANDSHAKE;
+                    getLogger().info("WebSocket connection open");
+                    setState(SignalingState.SERVER_HANDSHAKE);
                 }
             }
 
             @Override
             public void onConnectError(WebSocket websocket, WebSocketException ex) throws Exception {
                 getLogger().error("Could not connect to websocket: " + ex.getMessage());
-                Signaling.this.state = SignalingState.ERROR;
+                setState(SignalingState.ERROR);
             }
 
             @Override
@@ -219,55 +266,62 @@ public abstract class Signaling {
             }
 
             @Override
-            public void onBinaryMessage(WebSocket websocket, byte[] binary) throws Exception {
-                synchronized (this) {
-                    getLogger().debug("New binary message (" + binary.length + " bytes)");
-                    try {
-                        // Parse buffer
-                        final Box box = new Box(ByteBuffer.wrap(binary), SignalingChannelNonce.TOTAL_LENGTH);
+            public synchronized void onBinaryMessage(WebSocket websocket, byte[] binary) throws Exception {
+                getLogger().debug("New binary message (" + binary.length + " bytes)");
+                try {
+                    // Parse buffer
+                    final Box box = new Box(ByteBuffer.wrap(binary), SignalingChannelNonce.TOTAL_LENGTH);
 
-                        // Parse nonce
-                        final SignalingChannelNonce nonce = new SignalingChannelNonce(ByteBuffer.wrap(box.getNonce()));
+                    // Parse nonce
+                    final SignalingChannelNonce nonce = new SignalingChannelNonce(ByteBuffer.wrap(box.getNonce()));
 
-                        // Dispatch message
-                        switch (Signaling.this.state) {
-                            case SERVER_HANDSHAKE:
-                                Signaling.this.onServerHandshakeMessage(box, nonce);
-                                break;
-                            case PEER_HANDSHAKE:
-                                Signaling.this.onPeerHandshakeMessage(box, nonce);
-                                break;
-                            default:
-                                getLogger().warn("Received message in " + Signaling.this.state.name() +
-                                        " signaling state. Ignoring.");
-                        }
-                    } catch (ValidationError | SerializationError e) {
-                        getLogger().error("Protocol error: Invalid incoming message: " + e.getMessage());
-                        Signaling.this.resetConnection(CloseCode.PROTOCOL_ERROR);
-                    } catch (ProtocolException e) {
-                        getLogger().error("Protocol error: " + e.getMessage());
-                        Signaling.this.resetConnection(CloseCode.PROTOCOL_ERROR);
-                    } catch (InternalServerException e) {
-                        getLogger().error("Internal server error: " + e.getMessage());
-                        Signaling.this.resetConnection(CloseCode.INTERNAL_ERROR);
+                    // Dispatch message
+                    switch (Signaling.this.getState()) {
+                        case SERVER_HANDSHAKE:
+                            Signaling.this.onServerHandshakeMessage(box, nonce);
+                            break;
+                        case PEER_HANDSHAKE:
+                            Signaling.this.onPeerHandshakeMessage(box, nonce);
+                            break;
+                        case OPEN:
+                            Signaling.this.onPeerMessage(box, nonce);
+                            break;
+                        default:
+                            getLogger().warn("Received message in " + Signaling.this.getState().name() +
+                                    " signaling state. Ignoring.");
                     }
+                } catch (ValidationError | SerializationError e) {
+                    getLogger().error("Protocol error: Invalid incoming message: " + e.getMessage());
+                    Signaling.this.resetConnection(CloseCode.PROTOCOL_ERROR);
+                } catch (ProtocolException e) {
+                    getLogger().error("Protocol error: " + e.getMessage());
+                    Signaling.this.resetConnection(CloseCode.PROTOCOL_ERROR);
+                } catch (InternalServerException e) {
+                    getLogger().error("Internal server error: " + e.getMessage());
+                    Signaling.this.resetConnection(CloseCode.INTERNAL_ERROR);
                 }
             }
 
             @Override
             public void onDisconnected(WebSocket websocket, WebSocketFrame serverCloseFrame,
                                        WebSocketFrame clientCloseFrame, boolean closedByServer) throws Exception {
+                // Log details to debug log
                 final String closer = closedByServer ? "server" : "client";
                 final WebSocketFrame frame = closedByServer ? serverCloseFrame : clientCloseFrame;
                 final int closeCode = frame.getCloseCode();
-                final String closeReason = frame.getCloseReason();
+                String closeReason = frame.getCloseReason();
+                if (closeReason == null) {
+                    closeReason = CloseCode.explain(closeCode);
+                }
                 getLogger().debug("WebSocket connection closed by " + closer +
                                   " with code " + closeCode + ": " + closeReason);
 
-                if (!closedByServer && closeCode == CloseCode.HANDOVER) {
-                    getLogger().info("Handover to data channel");
-                } else {
+                // Log some of the codes on higher log levels too
+                if (closedByServer) {
                     switch (closeCode) {
+                        case CloseCode.CLOSING_NORMAL:
+                            getLogger().info("WebSocket closed");
+                            break;
                         case CloseCode.GOING_AWAY:
                             getLogger().error("Server is being shut down");
                             break;
@@ -286,23 +340,17 @@ public abstract class Signaling {
                         case CloseCode.DROPPED:
                             getLogger().warn("Dropped by initiator");
                             break;
-                        default:
-                            getLogger().warn("Unknown close code: " + closeCode);
                     }
-                    saltyRTC.events.connectionClosed.notifyHandlers(
-                            new ConnectionClosedEvent(SignalingChannel.WEBSOCKET)
-                    );
                 }
-                state = SignalingState.CLOSED; // TODO don't set this on handover
+                if (closeCode != CloseCode.HANDOVER && Signaling.this.state != SignalingState.NEW) {
+                    setState(SignalingState.CLOSED);
+                }
             }
 
             @Override
             public void onError(WebSocket websocket, WebSocketException cause) throws Exception {
-                getLogger().error("A WebSocket connect error occured: " + cause.getMessage());
-                cause.printStackTrace();
-                saltyRTC.events.connectionError.notifyHandlers(
-                        new ConnectionErrorEvent(SignalingChannel.WEBSOCKET)
-                );
+                getLogger().error("A WebSocket connect error occured: " + cause.getMessage(), cause);
+                // TODO: Do we need to handle these?
             }
         };
 
@@ -311,6 +359,7 @@ public abstract class Signaling {
                 .setConnectionTimeout(SALTYRTC_WS_CONNECT_TIMEOUT)
                 .setSSLContext(this.sslContext)
                 .createSocket(uri)
+                .setPingInterval(SALTYRTC_WS_PING_INTERVAL)
                 .addProtocol(SALTYRTC_PROTOCOL)
                 .addListener(listener);
 
@@ -320,7 +369,7 @@ public abstract class Signaling {
      * Connect asynchronously to WebSocket.
      */
     protected void connectWebsocket() {
-        this.state = SignalingState.WS_CONNECTING;
+        this.setState(SignalingState.WS_CONNECTING);
         this.ws.connectAsynchronously();
     }
 
@@ -332,7 +381,7 @@ public abstract class Signaling {
      * @param encrypt Whether to encrypt the message.
      * @return Encrypted msgpacked bytes, ready to send.
      */
-    public byte[] buildPacket(Message msg, short receiver, boolean encrypt) throws ProtocolException {
+    protected byte[] buildPacket(Message msg, short receiver, boolean encrypt) throws ProtocolException {
         // Choose proper combined sequence number
         final CombinedSequence csn = this.getNextCsn(receiver);
 
@@ -363,8 +412,7 @@ public abstract class Signaling {
                 throw new ProtocolException("Bad receiver byte: " + receiver);
             }
         } catch (CryptoFailedException | InvalidKeyException e) {
-            e.printStackTrace();
-            throw new ProtocolException("Encrypting failed: " + e.getMessage());
+            throw new ProtocolException("Encrypting failed: " + e.getMessage(), e);
         }
         return box.toBytes();
     }
@@ -376,8 +424,40 @@ public abstract class Signaling {
      * @param receiver The receiver byte.
      * @return Encrypted msgpacked bytes, ready to send.
      */
-    public byte[] buildPacket(Message msg, short receiver) throws ProtocolException {
+    protected byte[] buildPacket(Message msg, short receiver) throws ProtocolException {
         return this.buildPacket(msg, receiver, true);
+    }
+
+    /**
+     * Return the address of the peer.
+     *
+     * May return null if peer is not yet set.
+     */
+    protected abstract Short getPeerAddress();
+
+    /**
+     * Return the session key of the peer.
+     *
+     * May return null if peer is not yet set.
+     */
+    protected abstract byte[] getPeerSessionKey();
+
+    /**
+     * Decrypt the peer message using the session key.
+     */
+    protected Message decryptPeerMessage(Box box)
+            throws CryptoFailedException, InvalidKeyException, ValidationError, SerializationError {
+        final byte[] decrypted = this.sessionKey.decrypt(box, this.getPeerSessionKey());
+        return MessageReader.read(decrypted);
+    }
+
+    /**
+     * Decrypt the server message using the permanent key.
+     */
+    protected Message decryptServerMessage(Box box)
+            throws CryptoFailedException, InvalidKeyException, ValidationError, SerializationError {
+        final byte[] decrypted = this.permanentKey.decrypt(box, this.serverKey);
+        return MessageReader.read(decrypted);
     }
 
     /**
@@ -393,8 +473,7 @@ public abstract class Signaling {
             try {
                 payload = this.permanentKey.decrypt(box, this.serverKey);
             } catch (CryptoFailedException | InvalidKeyException e) {
-                e.printStackTrace();
-                throw new ProtocolException("Could not decrypt server message");
+                throw new ProtocolException("Could not decrypt server message", e);
             }
         } else {
             payload = box.getData();
@@ -434,7 +513,8 @@ public abstract class Signaling {
 
         // Check if we're done yet
         if (this.serverHandshakeState == ServerHandshakeState.DONE) {
-            this.state = SignalingState.PEER_HANDSHAKE;
+            this.setState(SignalingState.PEER_HANDSHAKE);
+            getLogger().info("Server handshake done");
             this.initPeerHandshake();
         }
     }
@@ -444,6 +524,67 @@ public abstract class Signaling {
      */
     protected abstract void onPeerHandshakeMessage(Box box, SignalingChannelNonce nonce)
             throws ProtocolException, ValidationError, SerializationError, InternalServerException;
+
+    /**
+     * Message received from peer *after* the handshake is done.
+     *
+     * Note that although this method is called `onPeerMessage`, it's still
+     * possible that server messages arrive, e.g. a `send-error` message.
+     */
+    protected void onPeerMessage(Box box, SignalingChannelNonce nonce) {
+        getLogger().debug("Message received");
+
+        // TODO: Validate nonce?
+
+        final Message message;
+
+        // Process server messages
+        if (nonce.getSource() == SALTYRTC_ADDR_SERVER) {
+            try {
+                message = this.decryptServerMessage(box);
+            } catch (CryptoFailedException e) {
+                getLogger().error("Could not decrypt incoming message from server", e);
+                return;
+            } catch (InvalidKeyException e) {
+                getLogger().error("InvalidKeyException while processing incoming message from server", e);
+                return;
+            } catch (ValidationError | SerializationError e) {
+                getLogger().error("Received invalid message from server", e);
+                return;
+            }
+
+            if (message instanceof SendError) {
+                handleSendError((SendError) message);
+            } else {
+                getLogger().error("Invalid server message type: " + message.getType());
+            }
+
+        // Process peer messages
+        } else {
+            try {
+                message = this.decryptPeerMessage(box);
+            } catch (CryptoFailedException e) {
+                getLogger().error("Could not decrypt incoming message from peer " + nonce.getSource(), e);
+                return;
+            } catch (InvalidKeyException e) {
+                getLogger().error("InvalidKeyException while processing incoming message from peer", e);
+                return;
+            } catch (ValidationError | SerializationError e) {
+                getLogger().error("Received invalid message from peer", e);
+                return;
+            }
+
+            if (message instanceof Data) {
+                getLogger().debug("Received data");
+                salty.events.data.notifyHandlers(new DataEvent((Data) message));
+            } else if (message instanceof Restart) {
+                getLogger().debug("Received restart");
+                handleRestart((Restart) message);
+            } else {
+                getLogger().error("Received message with invalid type from peer");
+            }
+        }
+    }
 
     /**
      * Handle an incoming server-hello message.
@@ -531,4 +672,151 @@ public abstract class Signaling {
      */
     protected abstract Box encryptForPeer(short receiver, String messageType, byte[] payload, byte[] nonce)
         throws CryptoFailedException, InvalidKeyException, ProtocolException;
+
+    /**
+     * Send a data message to the peer through the signaling channel,
+     * encrypted with the session key.
+     */
+    public void sendSignalingData(Data data) throws ConnectionException {
+        // Verify state
+        if (this.getState() != SignalingState.OPEN) {
+            getLogger().error("Trying to send data message, but connection state is " + this.getState());
+            throw new ConnectionException("SaltyRTC instance is not connected");
+        }
+
+        // Build packet
+        final byte[] packet;
+        try {
+            packet = this.buildPacket(data, this.getPeerAddress());
+        } catch (ProtocolException e) {
+            this.resetConnection(CloseCode.PROTOCOL_ERROR);
+            return;
+        }
+
+        // Send message
+        final SignalingChannel channel = this.getChannel();
+        getLogger().debug("Sending " + data.getDataType() + " data message through " + channel);
+        switch (channel) {
+            case WEBSOCKET:
+                this.ws.sendBinary(packet);
+                break;
+            case DATA_CHANNEL:
+                boolean ret = this.dc.send(new DataChannel.Buffer(ByteBuffer.wrap(packet), true));
+                // TODO: Return code indicates success. Handle.
+                break;
+            default:
+                getLogger().error("Unknown or invalid signaling channel: " + channel);
+                this.resetConnection(CloseCode.PROTOCOL_ERROR);
+                //noinspection UnnecessaryReturnStatement
+                return;
+        }
+    }
+
+    /**
+     * Handover asynchronously from WebSocket to WebRTC data channel.
+     *
+     * To get notified when the connection is up and running,
+     * subscribe to the `SignalingChannelChangedEvent`.
+     */
+    public void handover(final PeerConnection pc) {
+        // Create new signaling DataChannel
+        // TODO (https://github.com/saltyrtc/saltyrtc-meta/issues/3): Negotiate channel id
+        getLogger().debug("Initiate handover");
+        DataChannel.Init init = new DataChannel.Init();
+        init.id = 0;
+        init.negotiated = true;
+        init.ordered = true;
+        init.protocol = SALTYRTC_PROTOCOL;
+        this.dc = pc.createDataChannel(SALTYRTC_DC_LABEL, init);
+        this.dc.registerObserver(new DataChannel.Observer() {
+            @Override
+            public void onBufferedAmountChange(long l) {
+                Signaling.this.getLogger().info("DataChannel: Buffered amount changed");
+            }
+
+            @Override
+            public void onStateChange() {
+                Signaling.this.getLogger().info("DataChannel: State changed to " + Signaling.this.dc.state());
+                switch (Signaling.this.dc.state()) {
+                    case OPEN:
+                        Signaling.this.setChannel(SignalingChannel.DATA_CHANNEL);
+                        Signaling.this.ws.sendClose(CloseCode.HANDOVER);
+                        Signaling.this.getLogger().info("Handover to data channel finished");
+                        break;
+                    case CLOSING:
+                        Signaling.this.setState(SignalingState.CLOSING);
+                        break;
+                    case CLOSED:
+                        Signaling.this.setState(SignalingState.CLOSED);
+                        break;
+                }
+            }
+
+            @Override
+            public synchronized void onMessage(DataChannel.Buffer buffer) {
+                final String type = buffer.binary ? "Binary" : "Text";
+                getLogger().info("DataChannel: " + type + " message arrived ("
+                        + buffer.data.remaining() + " bytes)");
+
+                // We only support binary messages
+                if (!buffer.binary) {
+                    getLogger().warn("Received non-binary message through data channel. Ignoring.");
+                    return;
+                }
+
+                final Box box = new Box(buffer.data, SignalingChannelNonce.TOTAL_LENGTH);
+                final SignalingChannelNonce nonce = new SignalingChannelNonce(ByteBuffer.wrap(box.getNonce()));
+                Signaling.this.onPeerMessage(box, nonce);
+            }
+        });
+    }
+
+    /**
+     * Encrypt arbitrary data for the peer using the session keys.
+     * @param data Plain data bytes.
+     * @param dc The secure data channel that will be used to send this data.
+     * @return Encrypted box.
+     */
+    public @Nullable Box encryptData(@NonNull byte[] data, @NonNull SecureDataChannel dc)
+            throws CryptoFailedException, InvalidKeyException {
+        // Choose proper CSN
+        final CombinedSequence csn;
+        try {
+            csn = this.getNextCsn(this.getPeerAddress());
+        } catch (ProtocolException e) {
+            this.resetConnection(CloseCode.PROTOCOL_ERROR);
+            return null;
+        }
+
+        // Create nonce
+        final DataChannelNonce nonce = new DataChannelNonce(
+                this.cookiePair.getOurs().getBytes(),
+                123, // TODO: Get actual dc id
+                csn.getOverflow(), csn.getSequenceNumber());
+
+        // Encrypt
+        return this.sessionKey.encrypt(data, nonce.toBytes(), this.getPeerSessionKey());
+    }
+
+    /**
+     * Decrypt data from the peer using the session keys.
+     * @param box Encrypted box.
+     * @return Decrypted bytes.
+     */
+    public @NonNull
+    byte[] decryptData(@NonNull Box box)
+            throws CryptoFailedException, InvalidKeyException {
+        // TODO: Do we need to verify the nonce?
+        return this.sessionKey.decrypt(box, this.getPeerSessionKey());
+    }
+
+    protected void handleRestart(Restart msg) {
+        throw new UnsupportedOperationException("Restart not yet implemented");
+    }
+
+    protected void handleSendError(SendError msg) {
+        final byte[] hash = msg.getHash();
+        getLogger().warn("SendError: " + NaCl.asHex(hash));
+        getLogger().error("Warning: SendError handling not yet implemented!"); // TODO
+    }
 }

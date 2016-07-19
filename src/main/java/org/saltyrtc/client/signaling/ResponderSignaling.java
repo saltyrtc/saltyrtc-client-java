@@ -12,7 +12,6 @@ import com.neilalexander.jnacl.NaCl;
 
 import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.cookie.Cookie;
-import org.saltyrtc.client.events.ConnectedEvent;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
 import org.saltyrtc.client.exceptions.InternalServerException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
@@ -46,7 +45,7 @@ public class ResponderSignaling extends Signaling {
 
     // Logging
     protected Logger getLogger() {
-        return org.slf4j.LoggerFactory.getLogger(ResponderSignaling.class);
+        return org.slf4j.LoggerFactory.getLogger("SaltyRTC.RSignaling");
     }
 
     private Initiator initiator;
@@ -99,11 +98,12 @@ public class ResponderSignaling extends Signaling {
             case "key":
                 return this.permanentKey.encrypt(payload, nonce, this.initiator.permanentKey);
             default:
-                if (this.initiator.sessionKey == null) {
+                byte[] peerSessionKey = getPeerSessionKey();
+                if (peerSessionKey == null) {
                     throw new ProtocolException(
-                            "Trying to encrypt for initiator using session key, but session key is null");
+                            "Trying to encrypt for peer using session key, but session key is null");
                 }
-                return this.sessionKey.encrypt(payload, nonce, this.initiator.sessionKey);
+                return this.sessionKey.encrypt(payload, nonce, peerSessionKey);
         }
     }
 
@@ -239,8 +239,8 @@ public class ResponderSignaling extends Signaling {
                     }
 
                     // We're connected!
-                    this.state = SignalingState.OPEN;
-                    this.saltyRTC.events.connected.notifyHandlers(new ConnectedEvent());
+                    this.setState(SignalingState.OPEN);
+                    getLogger().info("Peer handshake done");
 
                     break;
                 default:
@@ -262,7 +262,7 @@ public class ResponderSignaling extends Signaling {
     /**
      * The initiator sends his public session key.
      */
-    protected void handleKey(Key msg) throws ProtocolException {
+    protected void handleKey(Key msg) {
         this.initiator.setSessionKey(msg.getKey());
     }
 
@@ -287,7 +287,7 @@ public class ResponderSignaling extends Signaling {
         validateRepeatedCookie(msg);
 
         // OK!
-        getLogger().info("Initiator authenticated");
+        getLogger().debug("Initiator authenticated");
     }
 
     /**
@@ -305,4 +305,22 @@ public class ResponderSignaling extends Signaling {
         getLogger().debug("Sending auth");
         this.ws.sendBinary(packet);
     }
+
+    @Override
+    protected Short getPeerAddress() {
+        if (this.initiator != null) {
+            return this.initiator.getId();
+        }
+        return null;
+    }
+
+    @Override
+    protected byte[] getPeerSessionKey() {
+        if (this.initiator != null) {
+            return this.initiator.sessionKey;
+        }
+        return null;
+    }
+
+
 }

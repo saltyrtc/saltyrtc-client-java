@@ -24,7 +24,7 @@ public class Initiator extends Peer {
         this.handshakeState = InitiatorHandshakeState.NEW;
     }
 
-    public int getId() {
+    public short getId() {
         return 0x01;
     }
 

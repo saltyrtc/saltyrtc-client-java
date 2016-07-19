@@ -12,7 +12,6 @@ import com.neilalexander.jnacl.NaCl;
 
 import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.cookie.Cookie;
-import org.saltyrtc.client.events.ConnectedEvent;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
 import org.saltyrtc.client.exceptions.InternalServerException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
@@ -41,7 +40,6 @@ import org.slf4j.Logger;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 import javax.net.ssl.SSLContext;
@@ -50,7 +48,7 @@ public class InitiatorSignaling extends Signaling {
 
     // Logging
     protected Logger getLogger() {
-        return org.slf4j.LoggerFactory.getLogger(InitiatorSignaling.class);
+        return org.slf4j.LoggerFactory.getLogger("SaltyRTC.ISignaling");
     }
 
     // Keep track of responders connected to the server
@@ -80,7 +78,7 @@ public class InitiatorSignaling extends Signaling {
             } else if (receiver == SALTYRTC_ADDR_INITIATOR) {
                 throw new ProtocolException("Initiator cannot send messages to initiator");
             } else if (isResponderId(receiver)) {
-                if (this.state == SignalingState.OPEN) {
+                if (this.getState() == SignalingState.OPEN) {
                     assert this.responder != null;
                     return this.responder.getCsn().next();
                 } else if (this.responders.containsKey(receiver)) {
@@ -107,7 +105,7 @@ public class InitiatorSignaling extends Signaling {
 
         // Find correct responder
         final Responder responder;
-        if (this.state == SignalingState.OPEN) {
+        if (this.getState() == SignalingState.OPEN) {
             assert this.responder != null;
             responder = this.responder;
         } else if (this.responders.containsKey(receiver)) {
@@ -117,7 +115,7 @@ public class InitiatorSignaling extends Signaling {
         }
 
         // Encrypt
-        if (Objects.equals(messageType, "key")) {
+        if (messageType.equals("key")) {
             return this.permanentKey.encrypt(payload, nonce, responder.getPermanentKey());
         } else {
             return responder.getKeyStore().encrypt(payload, nonce, responder.getSessionKey());
@@ -276,8 +274,8 @@ public class InitiatorSignaling extends Signaling {
                     }
 
                     // We're connected!
-                    this.state = SignalingState.OPEN;
-                    this.saltyRTC.events.connected.notifyHandlers(new ConnectedEvent());
+                    this.setState(SignalingState.OPEN);
+                    getLogger().info("Peer handshake done");
 
                     break;
                 default:
@@ -308,7 +306,7 @@ public class InitiatorSignaling extends Signaling {
     /**
      * A responder sends his public permanent key.
      */
-    protected void handleToken(Token msg, Responder responder) throws ProtocolException {
+    protected void handleToken(Token msg, Responder responder) {
         responder.setPermanentKey(msg.getKey());
         responder.handshakeState = ResponderHandshakeState.TOKEN_RECEIVED;
     }
@@ -326,7 +324,7 @@ public class InitiatorSignaling extends Signaling {
     /**
      * A responder sends his public session key.
      */
-    protected void handleKey(Key msg, Responder responder) throws ProtocolException {
+    protected void handleKey(Key msg, Responder responder) {
         responder.setSessionKey(msg.getKey());
         responder.handshakeState = ResponderHandshakeState.KEY_RECEIVED;
     }
@@ -355,7 +353,7 @@ public class InitiatorSignaling extends Signaling {
         validateRepeatedCookie(msg);
 
         // OK!
-        getLogger().info("Responder 0x" + NaCl.asHex(new int[] { responder.getId() }) + " authenticated");
+        getLogger().debug("Responder 0x" + NaCl.asHex(new int[] { responder.getId() }) + " authenticated");
 
         // Store responder details and session key
         this.responder = responder;
@@ -378,6 +376,22 @@ public class InitiatorSignaling extends Signaling {
             this.ws.sendBinary(packet);
             this.responders.remove(id);
         }
+    }
+
+    @Override
+    protected Short getPeerAddress() {
+        if (this.responder != null) {
+            return this.responder.getId();
+        }
+        return null;
+    }
+
+    @Override
+    protected byte[] getPeerSessionKey() {
+        if (this.responder != null) {
+            return this.responder.sessionKey;
+        }
+        return null;
     }
 
 }

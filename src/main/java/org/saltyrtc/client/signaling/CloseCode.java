@@ -55,4 +55,27 @@ public class CloseCode {
      * For a responder, it means that an initiator requested to drop the responder.
      */
     public static final int DROPPED = 3004;
+
+    /**
+     * Explain the close code.
+     */
+    public static String explain(int code) {
+        switch (code) {
+            case CLOSING_NORMAL:
+                return "Normal closing";
+            case GOING_AWAY:
+                return "The endpoint is going away";
+            case SUBPROTOCOL_ERROR:
+                return "No shared subprotocol could be found";
+            case PATH_FULL:
+                return "NO free responder byte";
+            case PROTOCOL_ERROR:
+                return "Protocol error";
+            case INTERNAL_ERROR:
+                return "Internal server error";
+            case HANDOVER:
+                return "Handover finished";
+        }
+        return "Unknown";
+    }
 }

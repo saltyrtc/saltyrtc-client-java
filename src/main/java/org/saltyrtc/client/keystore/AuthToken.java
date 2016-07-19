@@ -24,7 +24,7 @@ import java.security.SecureRandom;
 public class AuthToken {
 
     // Logger
-    private static final Logger LOG = org.slf4j.LoggerFactory.getLogger(AuthToken.class);
+    private static final Logger LOG = org.slf4j.LoggerFactory.getLogger("SaltyRTC.AuthToken");
 
     // Keys
     private byte[] authToken = new byte[NaCl.SYMMKEYBYTES];
@@ -56,9 +56,11 @@ public class AuthToken {
      * @throws CryptoFailedException Encryption failed.
      */
     public Box encrypt(byte[] data, byte[] nonce) throws CryptoFailedException {
-        final byte[] encrypted = NaCl.symmetricEncryptData(data, this.authToken, nonce);
-        if (encrypted == null) {
-            throw new CryptoFailedException("Encrypted data is null");
+        final byte[] encrypted;
+        try {
+            encrypted = NaCl.symmetricEncryptData(data, this.authToken, nonce);
+        } catch (Error e) {
+            throw new CryptoFailedException(e.getMessage());
         }
         return new Box(nonce, encrypted);
     }
@@ -71,7 +73,12 @@ public class AuthToken {
      * @throws CryptoFailedException Decryption failed.
      */
     public byte[] decrypt(Box box) throws CryptoFailedException {
-        final byte[] decrypted = NaCl.symmetricDecryptData(box.getData(), this.authToken, box.getNonce());
+        final byte[] decrypted;
+        try {
+            decrypted = NaCl.symmetricDecryptData(box.getData(), this.authToken, box.getNonce());
+        } catch (Error e) {
+            throw new CryptoFailedException(e.getMessage());
+        }
         if (decrypted == null) {
             throw new CryptoFailedException("Decrypted data is null");
         }
