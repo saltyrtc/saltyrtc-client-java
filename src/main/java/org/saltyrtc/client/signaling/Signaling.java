@@ -624,7 +624,7 @@ public abstract class Signaling {
         final ClientAuth msg = new ClientAuth(this.cookiePair.getTheirs().getBytes());
         final byte[] packet = this.buildPacket(msg, Signaling.SALTYRTC_ADDR_SERVER);
         getLogger().debug("Sending client-auth");
-        this.send(packet);
+        this.send(packet, msg);
         this.serverHandshakeState = ServerHandshakeState.AUTH_SENT;
     }
 
@@ -735,7 +735,7 @@ public abstract class Signaling {
             final byte[] packet = this.buildPacket(data, this.getPeerAddress());
             // Send message
             getLogger().debug("Sending " + data.getDataType() + " data message through " + this.getChannel());
-            this.send(packet);
+            this.send(packet, data);
         } catch (ProtocolException e) {
             this.resetConnection(CloseCode.PROTOCOL_ERROR);
         }
