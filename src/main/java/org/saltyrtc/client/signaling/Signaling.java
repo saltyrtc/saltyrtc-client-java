@@ -31,6 +31,7 @@ import org.saltyrtc.client.exceptions.ProtocolException;
 import org.saltyrtc.client.exceptions.SerializationError;
 import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.helpers.ArrayHelper;
+import org.saltyrtc.client.helpers.MessageHistory;
 import org.saltyrtc.client.helpers.MessageReader;
 import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.keystore.AuthToken;
@@ -104,6 +105,9 @@ public abstract class Signaling {
     protected short address = SALTYRTC_ADDR_UNKNOWN;
     protected CookiePair cookiePair;
     protected CombinedSequence serverCsn = new CombinedSequence();
+
+    // Message history
+    protected MessageHistory history = new MessageHistory(10);
 
     public Signaling(SaltyRTC salty, String host, int port,
                      KeyStore permanentKey, SSLContext sslContext) {
@@ -266,7 +270,7 @@ public abstract class Signaling {
             }
 
             @Override
-            public synchronized void onBinaryMessage(WebSocket websocket, byte[] binary) throws Exception {
+            public synchronized void onBinaryMessage(WebSocket websocket, byte[] binary) {
                 getLogger().debug("New binary message (" + binary.length + " bytes)");
                 try {
                     // Parse buffer
@@ -290,6 +294,7 @@ public abstract class Signaling {
                             getLogger().warn("Received message in " + Signaling.this.getState().name() +
                                     " signaling state. Ignoring.");
                     }
+                // TODO: The following errors could also be handled using `handleCallbackError` on the websocket.
                 } catch (ValidationError | SerializationError e) {
                     getLogger().error("Protocol error: Invalid incoming message: " + e.getMessage());
                     Signaling.this.resetConnection(CloseCode.PROTOCOL_ERROR);
@@ -298,6 +303,9 @@ public abstract class Signaling {
                     Signaling.this.resetConnection(CloseCode.PROTOCOL_ERROR);
                 } catch (InternalServerException e) {
                     getLogger().error("Internal server error: " + e.getMessage());
+                    Signaling.this.resetConnection(CloseCode.INTERNAL_ERROR);
+                } catch (ConnectionException e) {
+                    getLogger().error("Connection error: " + e.getMessage());
                     Signaling.this.resetConnection(CloseCode.INTERNAL_ERROR);
                 }
             }
@@ -466,7 +474,8 @@ public abstract class Signaling {
      * @param box The box containing raw nonce and payload bytes.
      */
     protected void onServerHandshakeMessage(Box box, SignalingChannelNonce nonce)
-            throws ValidationError, SerializationError, ProtocolException, InternalServerException {
+            throws ValidationError, SerializationError, ProtocolException,
+                   InternalServerException, ConnectionException {
         // Decrypt if necessary
         final byte[] payload;
         if (this.serverHandshakeState != ServerHandshakeState.NEW) {
@@ -523,7 +532,8 @@ public abstract class Signaling {
      * Message received during peer handshake.
      */
     protected abstract void onPeerHandshakeMessage(Box box, SignalingChannelNonce nonce)
-            throws ProtocolException, ValidationError, SerializationError, InternalServerException;
+            throws ProtocolException, ValidationError, SerializationError,
+                   InternalServerException, ConnectionException;
 
     /**
      * Message received from peer *after* the handshake is done.
@@ -605,16 +615,16 @@ public abstract class Signaling {
     /**
      * Send a client-hello message to the server.
      */
-    protected abstract void sendClientHello() throws ProtocolException;
+    protected abstract void sendClientHello() throws ProtocolException, ConnectionException;
 
     /**
      * Send a client-auth message to the server.
      */
-    protected void sendClientAuth() throws ProtocolException {
+    protected void sendClientAuth() throws ProtocolException, ConnectionException {
         final ClientAuth msg = new ClientAuth(this.cookiePair.getTheirs().getBytes());
         final byte[] packet = this.buildPacket(msg, Signaling.SALTYRTC_ADDR_SERVER);
         getLogger().debug("Sending client-auth");
-        this.ws.sendBinary(packet);
+        this.send(packet);
         this.serverHandshakeState = ServerHandshakeState.AUTH_SENT;
     }
 
@@ -630,7 +640,7 @@ public abstract class Signaling {
     /**
      * Initialize the peer handshake.
      */
-    protected abstract void initPeerHandshake() throws ProtocolException;
+    protected abstract void initPeerHandshake() throws ProtocolException, ConnectionException;
 
     /**
      * Choose proper combined sequence number
@@ -674,41 +684,60 @@ public abstract class Signaling {
         throws CryptoFailedException, InvalidKeyException, ProtocolException;
 
     /**
-     * Send a data message to the peer through the signaling channel,
-     * encrypted with the session key.
+     * Send binary data through the signaling channel.
      */
-    public void sendSignalingData(Data data) throws ConnectionException {
-        // Verify state
-        if (this.getState() != SignalingState.OPEN) {
+    protected void send(byte[] payload) throws ConnectionException, ProtocolException {
+        // Verify connection state
+        final SignalingState state = this.getState();
+        if (state != SignalingState.OPEN &&
+                state != SignalingState.SERVER_HANDSHAKE &&
+                state != SignalingState.PEER_HANDSHAKE) {
             getLogger().error("Trying to send data message, but connection state is " + this.getState());
             throw new ConnectionException("SaltyRTC instance is not connected");
         }
 
-        // Build packet
-        final byte[] packet;
-        try {
-            packet = this.buildPacket(data, this.getPeerAddress());
-        } catch (ProtocolException e) {
-            this.resetConnection(CloseCode.PROTOCOL_ERROR);
-            return;
-        }
-
-        // Send message
-        final SignalingChannel channel = this.getChannel();
-        getLogger().debug("Sending " + data.getDataType() + " data message through " + channel);
-        switch (channel) {
+        // Send data
+        switch (this.getChannel()) {
             case WEBSOCKET:
-                this.ws.sendBinary(packet);
+                this.ws.sendBinary(payload);
                 break;
             case DATA_CHANNEL:
-                boolean ret = this.dc.send(new DataChannel.Buffer(ByteBuffer.wrap(packet), true));
+                final boolean success = this.dc.send(new DataChannel.Buffer(ByteBuffer.wrap(payload), true));
                 // TODO: Return code indicates success. Handle.
                 break;
             default:
-                getLogger().error("Unknown or invalid signaling channel: " + channel);
-                this.resetConnection(CloseCode.PROTOCOL_ERROR);
-                //noinspection UnnecessaryReturnStatement
-                return;
+                throw new ProtocolException("Unknown or invalid signaling channel: " + channel);
+        }
+    }
+
+    /**
+     * Like `send(byte[] payload)`, but additionally store the sent message in the message history.
+     *
+     * This allows the message to be recognized in the case of a send error.
+     */
+    protected void send(byte[] payload, Message message) throws ConnectionException, ProtocolException {
+        // Send data
+        this.send(payload);
+
+        // Store sent message in history
+        this.history.store(message, payload);
+    }
+
+    /**
+     * Send a data message to the peer through the signaling channel,
+     * encrypted with the session key.
+     *
+     * If a ProtocolException occurs during sending, the connection will be reset.
+     */
+    public void sendSignalingData(Data data) throws ConnectionException {
+        try {
+            // Build packet
+            final byte[] packet = this.buildPacket(data, this.getPeerAddress());
+            // Send message
+            getLogger().debug("Sending " + data.getDataType() + " data message through " + this.getChannel());
+            this.send(packet);
+        } catch (ProtocolException e) {
+            this.resetConnection(CloseCode.PROTOCOL_ERROR);
         }
     }
 
@@ -816,7 +845,12 @@ public abstract class Signaling {
 
     protected void handleSendError(SendError msg) {
         final byte[] hash = msg.getHash();
-        getLogger().warn("SendError: " + NaCl.asHex(hash));
-        getLogger().error("Warning: SendError handling not yet implemented!"); // TODO
+        final Message message = this.history.find(hash);
+        if (message != null) {
+            getLogger().warn("SendError: Could not send " + message.getType() + " message.");
+        } else {
+            getLogger().warn("SendError: " + NaCl.asHex(hash));
+        }
+        // TODO: Allow certain messages to be re-sent if sending fails.
     }
 }

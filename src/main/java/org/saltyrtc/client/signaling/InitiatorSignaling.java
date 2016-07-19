@@ -12,6 +12,7 @@ import com.neilalexander.jnacl.NaCl;
 
 import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.cookie.Cookie;
+import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
 import org.saltyrtc.client.exceptions.InternalServerException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
@@ -136,7 +137,7 @@ public class InitiatorSignaling extends Signaling {
     }
 
     @Override
-    protected void sendClientHello() throws ProtocolException {
+    protected void sendClientHello() {
         // No-op as initiator.
     }
 
@@ -181,7 +182,8 @@ public class InitiatorSignaling extends Signaling {
 
     @Override
     protected void onPeerHandshakeMessage(Box box, SignalingChannelNonce nonce)
-            throws ProtocolException, ValidationError, SerializationError, InternalServerException {
+            throws ProtocolException, ValidationError, SerializationError,
+                   InternalServerException, ConnectionException {
 
         // Validate nonce destination
         if (nonce.getDestination() != this.address) {
@@ -314,11 +316,11 @@ public class InitiatorSignaling extends Signaling {
     /**
      * Send our public session key to the responder.
      */
-    protected void sendKey(Responder responder) throws ProtocolException {
+    protected void sendKey(Responder responder) throws ProtocolException, ConnectionException {
         final Key msg = new Key(responder.getKeyStore().getPublicKey());
         final byte[] packet = this.buildPacket(msg, responder.getId());
         getLogger().debug("Sending key");
-        this.ws.sendBinary(packet);
+        this.send(packet);
     }
 
     /**
@@ -332,7 +334,7 @@ public class InitiatorSignaling extends Signaling {
     /**
      * Repeat the responder's cookie.
      */
-    protected void sendAuth(Responder responder, SignalingChannelNonce nonce) throws ProtocolException {
+    protected void sendAuth(Responder responder, SignalingChannelNonce nonce) throws ProtocolException, ConnectionException {
         // Ensure that cookies are different
         if (nonce.getCookie().equals(this.cookiePair.getOurs())) {
             throw new ProtocolException("Their cookie and our cookie are the same");
@@ -342,7 +344,7 @@ public class InitiatorSignaling extends Signaling {
         final Auth msg = new Auth(nonce.getCookieBytes());
         final byte[] packet = this.buildPacket(msg, responder.getId());
         getLogger().debug("Sending auth");
-        this.ws.sendBinary(packet);
+        this.send(packet);
     }
 
     /**
@@ -366,14 +368,14 @@ public class InitiatorSignaling extends Signaling {
     /**
      * Drop all responders.
      */
-    protected void dropResponders() throws ProtocolException {
+    protected void dropResponders() throws ProtocolException, ConnectionException {
         getLogger().debug("Dropping " + this.responders.size() + " other responders");
         final Set<Short> ids = this.responders.keySet();
         for (short id : ids) {
             final DropResponder msg = new DropResponder(id);
             final byte[] packet = this.buildPacket(msg, id);
             getLogger().debug("Sending drop-responder " + id);
-            this.ws.sendBinary(packet);
+            this.send(packet);
             this.responders.remove(id);
         }
     }
