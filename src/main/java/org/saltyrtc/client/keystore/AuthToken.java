@@ -79,6 +79,9 @@ public class AuthToken {
         } catch (Error e) {
             throw new CryptoFailedException(e.getMessage());
         }
+        if (decrypted == null) {
+            throw new CryptoFailedException("Decrypted data is null");
+        }
         return decrypted;
     }
 
