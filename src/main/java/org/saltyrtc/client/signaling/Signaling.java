@@ -845,7 +845,12 @@ public abstract class Signaling {
 
     protected void handleSendError(SendError msg) {
         final byte[] hash = msg.getHash();
-        getLogger().warn("SendError: " + NaCl.asHex(hash));
-        getLogger().error("Warning: SendError handling not yet implemented!"); // TODO
+        final Message message = this.history.find(hash);
+        if (message != null) {
+            getLogger().warn("SendError: Could not send " + message.getType() + " message.");
+        } else {
+            getLogger().warn("SendError: " + NaCl.asHex(hash));
+        }
+        // TODO: Allow certain messages to be re-sent if sending fails.
     }
 }
