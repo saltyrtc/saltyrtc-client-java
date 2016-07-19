@@ -847,7 +847,13 @@ public abstract class Signaling {
         final byte[] hash = msg.getHash();
         final Message message = this.history.find(hash);
         if (message != null) {
-            getLogger().warn("SendError: Could not send " + message.getType() + " message.");
+            final String description;
+            if (message instanceof Data) {
+                description = message.getType() + "/" + ((Data) message).getDataType();
+            } else {
+                description = message.getType();
+            }
+            getLogger().warn("SendError: Could not send " + description + " message.");
         } else {
             getLogger().warn("SendError: " + NaCl.asHex(hash));
         }
