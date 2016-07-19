@@ -8,6 +8,9 @@
 
 package org.saltyrtc.client.exceptions;
 
+/**
+ * Errors related to the network connection state.
+ */
 public class ConnectionException extends Exception {
     public ConnectionException() {
     }

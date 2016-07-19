@@ -118,10 +118,15 @@ public class SaltyRTC {
     /**
      * Do the handover from WebSocket to WebRTC data channel.
      *
-     * This operation is asynchronous. To get notified when the
-     * handover is finished, subscribe to the `SignalingChannelChangedEvent`.
+     * The caller must ensure that the `PeerConnection` being passed in has already finished the
+     * ICE setup (iceConnectionState==COMPLETED). Otherwise, an exception will be thrown.
+     *
+     * This operation is asynchronous. To get notified when the handover is finished, subscribe to
+     * the `SignalingChannelChangedEvent`.
+     *
+     * @throws ConnectionException if PeerConnection IceConnectionState is not "COMPLETED".
      */
-    public void handover(PeerConnection pc) {
+    public void handover(PeerConnection pc) throws ConnectionException {
         this.signaling.handover(pc);
     }
 

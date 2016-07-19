@@ -14,11 +14,9 @@ import org.saltyrtc.client.signaling.InitiatorSignaling;
 import org.saltyrtc.client.signaling.ResponderSignaling;
 import org.saltyrtc.client.tests.Config;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 public class SignalingTest {
 

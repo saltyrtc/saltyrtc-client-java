@@ -747,7 +747,12 @@ public abstract class Signaling {
      * To get notified when the connection is up and running,
      * subscribe to the `SignalingChannelChangedEvent`.
      */
-    public void handover(final PeerConnection pc) {
+    public void handover(final PeerConnection pc) throws ConnectionException {
+        // Ensure ICE connection state is COMPLETED$
+        if (pc.iceConnectionState() != PeerConnection.IceConnectionState.COMPLETED) {
+            throw new ConnectionException("PeerConnection IceConnectionState is not COMPLETED");
+        }
+
         // Create new signaling DataChannel
         // TODO (https://github.com/saltyrtc/saltyrtc-meta/issues/3): Negotiate channel id
         getLogger().debug("Initiate handover");
