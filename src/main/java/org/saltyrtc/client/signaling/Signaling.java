@@ -69,6 +69,7 @@ public abstract class Signaling {
     protected static String SALTYRTC_PROTOCOL = "saltyrtc-1.0";
     protected static short SALTYRTC_WS_CONNECT_TIMEOUT = 2000;
     protected static long SALTYRTC_WS_PING_INTERVAL = 20000;
+    protected static int SALTYRTC_WS_CLOSE_LINGER = 1000;
     protected static String SALTYRTC_DC_LABEL = "saltyrtc-signaling";
     protected static short SALTYRTC_ADDR_UNKNOWN = 0x00;
     protected static short SALTYRTC_ADDR_SERVER = 0x00;
@@ -748,11 +749,6 @@ public abstract class Signaling {
      * subscribe to the `SignalingChannelChangedEvent`.
      */
     public void handover(final PeerConnection pc) throws ConnectionException {
-        // Ensure ICE connection state is COMPLETED$
-        if (pc.iceConnectionState() != PeerConnection.IceConnectionState.COMPLETED) {
-            throw new ConnectionException("PeerConnection IceConnectionState is not COMPLETED");
-        }
-
         // Create new signaling DataChannel
         // TODO (https://github.com/saltyrtc/saltyrtc-meta/issues/3): Negotiate channel id
         getLogger().debug("Initiate handover");
@@ -774,8 +770,22 @@ public abstract class Signaling {
                 switch (Signaling.this.dc.state()) {
                     case OPEN:
                         Signaling.this.setChannel(SignalingChannel.DATA_CHANNEL);
-                        Signaling.this.ws.sendClose(CloseCode.HANDOVER);
                         Signaling.this.getLogger().info("Handover to data channel finished");
+
+                        // Close the websocket with some delay.
+                        new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    // Hacks solution, maybe there's a better way?
+                                    Thread.sleep(SALTYRTC_WS_CLOSE_LINGER);
+                                } catch (InterruptedException e) {
+                                    getLogger().warn("Websocket closing thread was interrupted early while lingering.");
+                                }
+                                Signaling.this.ws.sendClose(CloseCode.HANDOVER);
+                            }
+                        }, "close-websocket").start();
+
                         break;
                     case CLOSING:
                         Signaling.this.setState(SignalingState.CLOSING);
