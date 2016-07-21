@@ -17,6 +17,7 @@ import com.neovisionaries.ws.client.WebSocketFrame;
 
 import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.annotations.NonNull;
+import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.cookie.Cookie;
 import org.saltyrtc.client.cookie.CookiePair;
 import org.saltyrtc.client.datachannel.SecureDataChannel;
@@ -34,7 +35,6 @@ import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.helpers.ArrayHelper;
 import org.saltyrtc.client.helpers.MessageHistory;
 import org.saltyrtc.client.helpers.MessageReader;
-import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.keystore.AuthToken;
 import org.saltyrtc.client.keystore.Box;
 import org.saltyrtc.client.keystore.KeyStore;
@@ -861,20 +861,20 @@ public abstract class Signaling {
 
     protected void handleSendError(SendError msg) {
         final byte[] hash = msg.getHash();
+        final String hashPrefix = NaCl.asHex(hash).substring(0, 7);
         final Message message = this.history.find(hash);
 
         if (message != null) {
-            final String description;
             if (message instanceof Data) {
                 final Data dataMsg = (Data) message;
-                description = dataMsg.getType() + "/" + dataMsg.getDataType();
+                final String description = dataMsg.getType() + "/" + dataMsg.getDataType();
+                getLogger().warn("SendError: Could not send " + description + " message " + hashPrefix);
                 // Notify subscribers about the send-error, so they can take appropriate action.
                 this.salty.events.sendError.notifyHandlers(new SendErrorEvent(msg, dataMsg));
             } else {
-                description = message.getType();
+                getLogger().warn("SendError: Could not send " + message.getType() + " message " + hashPrefix);
                 // TODO: Handle
             }
-            getLogger().warn("SendError: Could not send " + description + " message.");
         } else {
             getLogger().warn("SendError: " + NaCl.asHex(hash));
         }

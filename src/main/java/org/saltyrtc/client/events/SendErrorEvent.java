@@ -9,7 +9,6 @@
 package org.saltyrtc.client.events;
 
 import org.saltyrtc.client.annotations.NonNull;
-import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.messages.Data;
 import org.saltyrtc.client.messages.SendError;
 
