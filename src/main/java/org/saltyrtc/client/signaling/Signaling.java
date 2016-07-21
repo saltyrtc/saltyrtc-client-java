@@ -21,6 +21,7 @@ import org.saltyrtc.client.cookie.Cookie;
 import org.saltyrtc.client.cookie.CookiePair;
 import org.saltyrtc.client.datachannel.SecureDataChannel;
 import org.saltyrtc.client.events.DataEvent;
+import org.saltyrtc.client.events.SendErrorEvent;
 import org.saltyrtc.client.events.SignalingChannelChangedEvent;
 import org.saltyrtc.client.events.SignalingStateChangedEvent;
 import org.saltyrtc.client.exceptions.ConnectionException;
@@ -861,17 +862,21 @@ public abstract class Signaling {
     protected void handleSendError(SendError msg) {
         final byte[] hash = msg.getHash();
         final Message message = this.history.find(hash);
+
         if (message != null) {
             final String description;
             if (message instanceof Data) {
-                description = message.getType() + "/" + ((Data) message).getDataType();
+                final Data dataMsg = (Data) message;
+                description = dataMsg.getType() + "/" + dataMsg.getDataType();
+                // Notify subscribers about the send-error, so they can take appropriate action.
+                this.salty.events.sendError.notifyHandlers(new SendErrorEvent(msg, dataMsg));
             } else {
                 description = message.getType();
+                // TODO: Handle
             }
             getLogger().warn("SendError: Could not send " + description + " message.");
         } else {
             getLogger().warn("SendError: " + NaCl.asHex(hash));
         }
-        // TODO: Allow certain messages to be re-sent if sending fails.
     }
 }
