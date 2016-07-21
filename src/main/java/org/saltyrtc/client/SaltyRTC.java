@@ -11,6 +11,7 @@ package org.saltyrtc.client;
 import org.saltyrtc.client.datachannel.SecureDataChannel;
 import org.saltyrtc.client.events.DataEvent;
 import org.saltyrtc.client.events.EventRegistry;
+import org.saltyrtc.client.events.SendErrorEvent;
 import org.saltyrtc.client.events.SignalingChannelChangedEvent;
 import org.saltyrtc.client.events.SignalingStateChangedEvent;
 import org.saltyrtc.client.exceptions.ConnectionException;
@@ -177,6 +178,7 @@ public class SaltyRTC {
         public EventRegistry<SignalingStateChangedEvent> signalingStateChanged = new EventRegistry<>();
         public EventRegistry<SignalingChannelChangedEvent> signalingChannelChanged = new EventRegistry<>();
         public EventRegistry<DataEvent> data = new EventRegistry<>();
+        public EventRegistry<SendErrorEvent> sendError = new EventRegistry<>();
     }
 
     public void setDebug(boolean debug) {
