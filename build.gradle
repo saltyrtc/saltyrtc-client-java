@@ -1,5 +1,15 @@
 // Apply the java plugin to add support for Java
 apply plugin: 'java'
+apply plugin: 'witness'
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath files('libs/gradle-witness.jar')
+    }
+}
 
 // In this section you declare where to find the dependencies of your project
 repositories {
@@ -28,6 +38,19 @@ dependencies {
     // Test dependencies
     testCompile 'org.slf4j:slf4j-simple:1.7.21'
     testCompile 'junit:junit:4.12'
+}
+
+dependencyVerification {
+    verify = [
+            'org.slf4j:slf4j-api:1d5aeb6bd98b0fdd151269eae941c05f6468a791ea0f1e68d8e7fe518af3e7df',
+            'org.json:json:0aaf0e7e286ece88fb60b9ba14dd45c05a48e55618876efb7d1b6f19c25e7a29',
+            'org.msgpack:msgpack-core:8bd5bc81ac8024f31467d2d2426a7e278f7fbcd7c2976de885f311c66003724c',
+            'org.msgpack:jackson-dataformat-msgpack:a34634bc73b72f753387db006bbd66e2aa95f00e385e0bbe010b02b239a200d4',
+            'com.neovisionaries:nv-websocket-client:66eac33767a2aa720feeb547666da98cd9b4493b3ba8bcded721b06cc90e8156',
+            'com.fasterxml.jackson.core:jackson-databind:215022eed86bde62e8ff5e9b04297a6a7a896df89c80576aa2291e5e1142a94b',
+            'com.fasterxml.jackson.core:jackson-annotations:f775d20b6ad1ef122f453b2d7aeebb009523f7cdf89a674fe2f303221c95696b',
+            'com.fasterxml.jackson.core:jackson-core:526ab629da103bf2c93e72bd541d7c34e498182460c56d5f48b03dbac91b1df9',
+    ]
 }
 
 test {

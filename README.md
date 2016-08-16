@@ -16,6 +16,11 @@ and should not be used for production yet.
 The library uses the slf4j logging API. Configure a logger (e.g. slf4j-simple)
 to see the log output.
 
+## Dependency Verification
+
+This project uses [gradle-witness](https://github.com/WhisperSystems/gradle-witness)
+to make sure that you always get the exact same versions of your dependencies.
+
 ## License
 
     Copyright (c) 2016 Threema GmbH / SaltyRTC Contributors
