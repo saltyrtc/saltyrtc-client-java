@@ -67,6 +67,7 @@ public class InitiatorSignaling extends Signaling {
     /**
      * The initiator needs to use its own public permanent key as connection path.
      */
+    @Override
     protected String getWebsocketPath() {
         return NaCl.asHex(this.permanentKey.getPublicKey());
     }

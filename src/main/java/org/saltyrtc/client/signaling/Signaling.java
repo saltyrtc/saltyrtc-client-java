@@ -513,6 +513,8 @@ public abstract class Signaling {
                     getLogger().debug("Received server-auth");
                     // TODO: Validate nonce
                     this.handleServerAuth(msg, nonce);
+                } else {
+                    throw new ProtocolException("Expected server-auth message, but got " + msg.getType());
                 }
                 break;
             case DONE:
@@ -588,6 +590,7 @@ public abstract class Signaling {
 
             if (message instanceof Data) {
                 getLogger().debug("Received data");
+                // TODO: move this to handleData method for consistency
                 salty.events.data.notifyHandlers(new DataEvent((Data) message));
             } else if (message instanceof Restart) {
                 getLogger().debug("Received restart");

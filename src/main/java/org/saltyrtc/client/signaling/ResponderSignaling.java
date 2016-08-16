@@ -64,6 +64,7 @@ public class ResponderSignaling extends Signaling {
     /**
      * The responder needs to use the initiator public permanent key as connection path.
      */
+    @Override
     protected String getWebsocketPath() {
         return NaCl.asHex(this.initiator.getPermanentKey());
     }
@@ -89,9 +90,9 @@ public class ResponderSignaling extends Signaling {
     protected Box encryptForPeer(short receiver, String messageType, byte[] payload, byte[] nonce)
             throws CryptoFailedException, InvalidKeyException, ProtocolException {
         if (isResponderId(receiver)) {
-            throw new ProtocolException("Bad receiver byte: " + receiver);
-        } else if (receiver != Signaling.SALTYRTC_ADDR_INITIATOR) {
             throw new ProtocolException("Responder may not encrypt messages for other responders: " + receiver);
+        } else if (receiver != Signaling.SALTYRTC_ADDR_INITIATOR) {
+            throw new ProtocolException("Bad receiver byte: " + receiver);
         }
         switch (messageType) {
             case "token":
