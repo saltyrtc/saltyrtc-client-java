@@ -2,6 +2,9 @@
 apply plugin: 'java'
 apply plugin: 'witness'
 
+targetCompatibility = '1.7'
+sourceCompatibility = '1.7'
+
 buildscript {
     repositories {
         jcenter()
