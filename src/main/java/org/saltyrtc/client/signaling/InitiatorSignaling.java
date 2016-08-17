@@ -62,6 +62,7 @@ public class InitiatorSignaling extends Signaling {
                               KeyStore permanentKey, SSLContext sslContext) {
         super(saltyRTC, host, port, permanentKey, sslContext);
         this.authToken = new AuthToken();
+        this.address = SALTYRTC_ADDR_INITIATOR;
     }
 
     /**
@@ -152,8 +153,6 @@ public class InitiatorSignaling extends Signaling {
             throw new ProtocolException("Could not cast message to InitiatorServerAuth");
         }
 
-        // Set proper address
-        this.address = SALTYRTC_ADDR_INITIATOR;
         // TODO: validate nonce
 
         // Validate cookie
@@ -395,6 +394,17 @@ public class InitiatorSignaling extends Signaling {
             return this.responder.sessionKey;
         }
         return null;
+    }
+
+    /**
+     * Throw a ProtocolException if sender address is not a valid peer address.
+     */
+    @Override
+    void validateNoncePeerAddress(SignalingChannelNonce nonce) throws ProtocolException {
+        if (!this.isResponderId(nonce.getSource())) {
+            throw new ProtocolException("Initiator peer message does not come from " +
+                                        "a valid responder address: " + nonce.getSource());
+        }
     }
 
 }

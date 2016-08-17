@@ -480,17 +480,19 @@ public abstract class Signaling {
             InternalException, ConnectionException {
         // Decrypt if necessary
         final byte[] payload;
-        if (this.serverHandshakeState != ServerHandshakeState.NEW) {
+        if (this.serverHandshakeState == ServerHandshakeState.NEW) {
+            // The very first message is unencrypted
+            payload = box.getData();
+        } else {
+            // Later, they're encrypted with our permanent key and the server key
             try {
                 payload = this.permanentKey.decrypt(box, this.serverKey);
             } catch (CryptoFailedException | InvalidKeyException e) {
                 throw new ProtocolException("Could not decrypt server message", e);
             }
-        } else {
-            payload = box.getData();
         }
 
-        // Handle message
+        // Handle message depending on state
         Message msg = MessageReader.read(payload);
         switch (this.serverHandshakeState) {
             case NEW:
@@ -658,6 +660,44 @@ public abstract class Signaling {
     protected boolean isResponderId(short receiver) {
         return receiver >= 0x02 && receiver <= 0xff;
     }
+
+    /**
+     * Validate whether the source address of the nonce is as expected.
+     */
+    private void validateNonceAddresses(SignalingChannelNonce nonce) throws ProtocolException {
+        final SignalingState state = this.getState();
+
+        // Validate sender address
+
+        if (state == SignalingState.SERVER_HANDSHAKE) {
+            // Messages during server handshake must come from the server.
+            if (nonce.getSource() != SALTYRTC_ADDR_SERVER) {
+                throw new ProtocolException("Received message during server handshake " +
+                                            "with invalid sender address (" +
+                                            nonce.getSource() + "!=" + SALTYRTC_ADDR_SERVER + "");
+            }
+        } else if (state == SignalingState.PEER_HANDSHAKE) {
+            // Messages during peer handshake may come from server or peer.
+            if (nonce.getSource() != SALTYRTC_ADDR_SERVER) {
+                this.validateNoncePeerAddress(nonce);
+            }
+        } else {
+            throw new ProtocolException("Cannot validate nonce if no handshake is active");
+        }
+
+        // Validate receiver address
+
+        if (nonce.getDestination() != this.address) {
+            throw new ProtocolException("Received message during server handshake " +
+                                        "with invalid receiver address (" +
+                                        nonce.getDestination() + "!=" + this.address + "");
+        }
+    }
+
+    /**
+     * Validate the sender address during peer handshake.
+     */
+    abstract void validateNoncePeerAddress(SignalingChannelNonce nonce) throws ProtocolException;
 
     /**
      * Validate a repeated cookie in an Auth message.
