@@ -326,15 +326,4 @@ public class ResponderSignaling extends Signaling {
         return null;
     }
 
-    /**
-     * Throw a ValidationError if sender address is not the initiator.
-     */
-    @Override
-    void validateNoncePeerAddress(SignalingChannelNonce nonce) throws ValidationError {
-        if (nonce.getSource() != SALTYRTC_ADDR_INITIATOR) {
-            throw new ValidationError("Responder peer message does not come from " +
-                                        "intitiator (" + SALTYRTC_ADDR_INITIATOR + "), " +
-                                        "but from " + nonce.getSource());
-        }
-    }
 }

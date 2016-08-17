@@ -680,7 +680,21 @@ public abstract class Signaling {
             case PEER_HANDSHAKE:
                 // Messages during peer handshake may come from server or peer.
                 if (nonce.getSource() != SALTYRTC_ADDR_SERVER) {
-                    this.validateNoncePeerAddress(nonce);
+                    switch (this.role) {
+                        case Initiator:
+                            if (!this.isResponderId(nonce.getSource())) {
+                                throw new ValidationError("Initiator peer message does not come from " +
+                                        "a valid responder address: " + nonce.getSource());
+                            }
+                            break;
+                        case Responder:
+                            if (nonce.getSource() != SALTYRTC_ADDR_INITIATOR) {
+                                throw new ValidationError("Responder peer message does not come from " +
+                                        "intitiator (" + SALTYRTC_ADDR_INITIATOR + "), " +
+                                        "but from " + nonce.getSource());
+                            }
+                            break;
+                    }
                 }
                 break;
             case OPEN:
@@ -728,11 +742,6 @@ public abstract class Signaling {
                     "receiver address (" + nonce.getDestination() + " != " + expected + ")");
         }
     }
-
-    /**
-     * Validate the sender address during peer handshake.
-     */
-    abstract void validateNoncePeerAddress(SignalingChannelNonce nonce) throws ValidationError;
 
     /**
      * Validate a repeated cookie in an Auth message.

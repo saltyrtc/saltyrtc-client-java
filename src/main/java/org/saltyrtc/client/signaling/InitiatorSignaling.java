@@ -397,15 +397,4 @@ public class InitiatorSignaling extends Signaling {
         return null;
     }
 
-    /**
-     * Throw a ValidationError if sender address is not a valid peer address.
-     */
-    @Override
-    void validateNoncePeerAddress(SignalingChannelNonce nonce) throws ValidationError {
-        if (!this.isResponderId(nonce.getSource())) {
-            throw new ValidationError("Initiator peer message does not come from " +
-                                        "a valid responder address: " + nonce.getSource());
-        }
-    }
-
 }
