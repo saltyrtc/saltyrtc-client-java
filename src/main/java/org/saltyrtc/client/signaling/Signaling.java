@@ -104,6 +104,7 @@ public abstract class Signaling {
     protected AuthToken authToken;
 
     // Signaling
+    protected SignalingRole role;
     protected short address = SALTYRTC_ADDR_UNKNOWN;
     protected CookiePair cookiePair;
     protected CombinedSequence serverCsn = new CombinedSequence();
@@ -278,8 +279,9 @@ public abstract class Signaling {
                     // Parse buffer
                     final Box box = new Box(ByteBuffer.wrap(binary), SignalingChannelNonce.TOTAL_LENGTH);
 
-                    // Parse nonce
+                    // Parse and validate nonce
                     final SignalingChannelNonce nonce = new SignalingChannelNonce(ByteBuffer.wrap(box.getNonce()));
+                    validateNonceAddresses(nonce);
 
                     // Dispatch message
                     switch (Signaling.this.getState()) {
@@ -664,40 +666,73 @@ public abstract class Signaling {
     /**
      * Validate whether the source address of the nonce is as expected.
      */
-    private void validateNonceAddresses(SignalingChannelNonce nonce) throws ProtocolException {
-        final SignalingState state = this.getState();
-
+    private void validateNonceAddresses(SignalingChannelNonce nonce) throws ValidationError {
         // Validate sender address
-
-        if (state == SignalingState.SERVER_HANDSHAKE) {
-            // Messages during server handshake must come from the server.
-            if (nonce.getSource() != SALTYRTC_ADDR_SERVER) {
-                throw new ProtocolException("Received message during server handshake " +
-                                            "with invalid sender address (" +
-                                            nonce.getSource() + "!=" + SALTYRTC_ADDR_SERVER + "");
-            }
-        } else if (state == SignalingState.PEER_HANDSHAKE) {
-            // Messages during peer handshake may come from server or peer.
-            if (nonce.getSource() != SALTYRTC_ADDR_SERVER) {
-                this.validateNoncePeerAddress(nonce);
-            }
-        } else {
-            throw new ProtocolException("Cannot validate nonce if no handshake is active");
+        switch (this.getState()) {
+            case SERVER_HANDSHAKE:
+                // Messages during server handshake must come from the server.
+                if (nonce.getSource() != SALTYRTC_ADDR_SERVER) {
+                    throw new ValidationError("Received message during server handshake " +
+                            "with invalid sender address (" +
+                            nonce.getSource() + " != " + SALTYRTC_ADDR_SERVER + ")");
+                }
+                break;
+            case PEER_HANDSHAKE:
+                // Messages during peer handshake may come from server or peer.
+                if (nonce.getSource() != SALTYRTC_ADDR_SERVER) {
+                    this.validateNoncePeerAddress(nonce);
+                }
+                break;
+            case OPEN:
+                // Messages after the handshake must come from the peer.
+                if (nonce.getSource() != this.getPeerAddress()) {
+                    throw new ValidationError("Received message with invalid sender address (" +
+                            nonce.getSource() + " != " + this.getPeerAddress() + ")");
+                }
+                break;
+            default:
+                throw new ValidationError("Cannot validate message nonce with signaling state " +
+                        this.getState());
         }
 
         // Validate receiver address
+        Short expected = null;
+        if (this.getState() == SignalingState.SERVER_HANDSHAKE) {
+            switch (this.serverHandshakeState) {
+                // Before receiving the server auth-message, the receiver byte is 0x00
+                case NEW:
+                case HELLO_SENT:
+                    expected = SALTYRTC_ADDR_UNKNOWN;
+                    break;
+                // The server auth-message contains the assigned receiver byte for the first time
+                case AUTH_SENT:
+                    if (this.role == SignalingRole.Initiator) {
+                        expected = SALTYRTC_ADDR_INITIATOR;
+                    } else if (this.role == SignalingRole.Responder) {
+                        if (!isResponderId(nonce.getDestination())) {
+                            throw new ValidationError("Received message during server handshake " +
+                                    "with invalid receiver address (" + nonce.getDestination() +
+                                    " is not a valid responder id)");
+                        }
+                    }
+                    break;
+                // Afterwards, the receiver byte is the assigned address
+                case DONE:
+                    expected = this.address;
+                    break;
+            }
+        }
 
-        if (nonce.getDestination() != this.address) {
-            throw new ProtocolException("Received message during server handshake " +
-                                        "with invalid receiver address (" +
-                                        nonce.getDestination() + "!=" + this.address + "");
+        if (expected != null && nonce.getDestination() != expected) {
+            throw new ValidationError("Received message during server handshake with invalid " +
+                    "receiver address (" + nonce.getDestination() + " != " + expected + ")");
         }
     }
 
     /**
      * Validate the sender address during peer handshake.
      */
-    abstract void validateNoncePeerAddress(SignalingChannelNonce nonce) throws ProtocolException;
+    abstract void validateNoncePeerAddress(SignalingChannelNonce nonce) throws ValidationError;
 
     /**
      * Validate a repeated cookie in an Auth message.
@@ -854,7 +889,13 @@ public abstract class Signaling {
 
                 final Box box = new Box(buffer.data, SignalingChannelNonce.TOTAL_LENGTH);
                 final SignalingChannelNonce nonce = new SignalingChannelNonce(ByteBuffer.wrap(box.getNonce()));
-                Signaling.this.onPeerMessage(box, nonce);
+                try {
+                    validateNonceAddresses(nonce);
+                    Signaling.this.onPeerMessage(box, nonce);
+                } catch (ValidationError e) {
+                    getLogger().error("Protocol error: Invalid incoming message: " + e.getMessage());
+                    Signaling.this.resetConnection(CloseCode.PROTOCOL_ERROR);
+                }
             }
         });
     }

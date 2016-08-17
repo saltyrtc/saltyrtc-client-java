@@ -57,6 +57,7 @@ public class ResponderSignaling extends Signaling {
                               byte[] initiatorPublicKey, byte[] authToken)
                               throws java.security.InvalidKeyException {
         super(saltyRTC, host, port, permanentKey, sslContext);
+        this.role = SignalingRole.Responder;
         this.initiator = new Initiator(initiatorPublicKey);
         this.authToken = new AuthToken(authToken);
     }
@@ -326,12 +327,12 @@ public class ResponderSignaling extends Signaling {
     }
 
     /**
-     * Throw a ProtocolException if sender address is not the initiator.
+     * Throw a ValidationError if sender address is not the initiator.
      */
     @Override
-    void validateNoncePeerAddress(SignalingChannelNonce nonce) throws ProtocolException {
+    void validateNoncePeerAddress(SignalingChannelNonce nonce) throws ValidationError {
         if (nonce.getSource() != SALTYRTC_ADDR_INITIATOR) {
-            throw new ProtocolException("Responder peer message does not come from " +
+            throw new ValidationError("Responder peer message does not come from " +
                                         "intitiator (" + SALTYRTC_ADDR_INITIATOR + "), " +
                                         "but from " + nonce.getSource());
         }
