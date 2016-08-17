@@ -9,7 +9,7 @@
 package org.saltyrtc.client.helpers;
 
 import java.security.SecureRandom;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.Random;
 
 public class RandomHelper {
 
@@ -18,7 +18,7 @@ public class RandomHelper {
      */
     public static byte[] pseudoRandomBytes(int count) {
         final byte[] bytes = new byte[count];
-        ThreadLocalRandom.current().nextBytes(bytes);
+        new Random().nextBytes(bytes);
         return bytes;
     }
 
