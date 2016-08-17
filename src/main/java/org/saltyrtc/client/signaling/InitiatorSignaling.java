@@ -14,7 +14,7 @@ import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.cookie.Cookie;
 import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
-import org.saltyrtc.client.exceptions.InternalServerException;
+import org.saltyrtc.client.exceptions.InternalException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
 import org.saltyrtc.client.exceptions.OverflowException;
 import org.saltyrtc.client.exceptions.ProtocolException;
@@ -184,7 +184,7 @@ public class InitiatorSignaling extends Signaling {
     @Override
     protected void onPeerHandshakeMessage(Box box, SignalingChannelNonce nonce)
             throws ProtocolException, ValidationError, SerializationError,
-                   InternalServerException, ConnectionException {
+            InternalException, ConnectionException {
 
         // Validate nonce destination
         if (nonce.getDestination() != this.address) {
@@ -282,7 +282,7 @@ public class InitiatorSignaling extends Signaling {
 
                     break;
                 default:
-                    throw new InternalServerException("Unknown responder handshake state");
+                    throw new InternalException("Unknown responder handshake state");
             }
         } else {
             throw new ProtocolException("Message source is neither the server nor a responder");

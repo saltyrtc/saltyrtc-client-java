@@ -27,7 +27,7 @@ import org.saltyrtc.client.events.SignalingChannelChangedEvent;
 import org.saltyrtc.client.events.SignalingStateChangedEvent;
 import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
-import org.saltyrtc.client.exceptions.InternalServerException;
+import org.saltyrtc.client.exceptions.InternalException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
 import org.saltyrtc.client.exceptions.ProtocolException;
 import org.saltyrtc.client.exceptions.SerializationError;
@@ -303,7 +303,7 @@ public abstract class Signaling {
                 } catch (ProtocolException e) {
                     getLogger().error("Protocol error: " + e.getMessage());
                     Signaling.this.resetConnection(CloseCode.PROTOCOL_ERROR);
-                } catch (InternalServerException e) {
+                } catch (InternalException e) {
                     getLogger().error("Internal server error: " + e.getMessage());
                     Signaling.this.resetConnection(CloseCode.INTERNAL_ERROR);
                 } catch (ConnectionException e) {
@@ -477,7 +477,7 @@ public abstract class Signaling {
      */
     protected void onServerHandshakeMessage(Box box, SignalingChannelNonce nonce)
             throws ValidationError, SerializationError, ProtocolException,
-                   InternalServerException, ConnectionException {
+            InternalException, ConnectionException {
         // Decrypt if necessary
         final byte[] payload;
         if (this.serverHandshakeState != ServerHandshakeState.NEW) {
@@ -518,10 +518,10 @@ public abstract class Signaling {
                 }
                 break;
             case DONE:
-                throw new InternalServerException("Received server handshake message even though " +
+                throw new InternalException("Received server handshake message even though " +
                                                   "server handshake state is set to DONE");
             default:
-                throw new InternalServerException("Unknown server handshake state");
+                throw new InternalException("Unknown server handshake state");
         }
 
         // Check if we're done yet
@@ -537,7 +537,7 @@ public abstract class Signaling {
      */
     protected abstract void onPeerHandshakeMessage(Box box, SignalingChannelNonce nonce)
             throws ProtocolException, ValidationError, SerializationError,
-                   InternalServerException, ConnectionException;
+            InternalException, ConnectionException;
 
     /**
      * Message received from peer *after* the handshake is done.

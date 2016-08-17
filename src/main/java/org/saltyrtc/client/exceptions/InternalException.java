@@ -9,23 +9,21 @@
 package org.saltyrtc.client.exceptions;
 
 /**
- * An internal server error.
- *
- * TODO: Rename to InternalException
+ * An internal error.
  *
  * This should always result in a connection reset.
  */
-public class InternalServerException extends Exception {
+public class InternalException extends Exception {
 
-    public InternalServerException(String message) {
+    public InternalException(String message) {
         super(message);
     }
 
-    public InternalServerException(String message, Throwable cause) {
+    public InternalException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public InternalServerException(Throwable cause) {
+    public InternalException(Throwable cause) {
         super(cause);
     }
 }
