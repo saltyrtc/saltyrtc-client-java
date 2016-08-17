@@ -664,10 +664,19 @@ public abstract class Signaling {
     }
 
     /**
-     * Validate whether the source address of the nonce is as expected.
+     * Validate whether the addresses of the nonce are as expected.
+     *
+     * TODO: Link to spec
      */
     private void validateNonceAddresses(SignalingChannelNonce nonce) throws ValidationError {
-        // Validate sender address
+        validateSenderAddress(nonce);
+        validateReceiverAddress(nonce);
+    }
+
+    /**
+     * Validate the sender address in the nonce.
+     */
+    private void validateSenderAddress(SignalingChannelNonce nonce) throws ValidationError {
         switch (this.getState()) {
             case SERVER_HANDSHAKE:
                 // Messages during server handshake must come from the server.
@@ -708,8 +717,12 @@ public abstract class Signaling {
                 throw new ValidationError("Cannot validate message nonce with signaling state " +
                         this.getState());
         }
+    }
 
-        // Validate receiver address
+    /**
+     * Validate the receiver address in the nonce.
+     */
+    private void validateReceiverAddress(SignalingChannelNonce nonce) throws ValidationError {
         Short expected = null;
         if (this.getState() == SignalingState.SERVER_HANDSHAKE) {
             switch (this.serverHandshakeState) {
