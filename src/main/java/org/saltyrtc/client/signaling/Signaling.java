@@ -68,24 +68,24 @@ import javax.net.ssl.SSLContext;
 
 public abstract class Signaling {
 
-    protected static String SALTYRTC_PROTOCOL = "saltyrtc-1.0";
-    protected static short SALTYRTC_WS_CONNECT_TIMEOUT = 2000;
-    protected static long SALTYRTC_WS_PING_INTERVAL = 20000;
-    protected static int SALTYRTC_WS_CLOSE_LINGER = 1000;
-    protected static String SALTYRTC_DC_LABEL = "saltyrtc-signaling";
-    protected static short SALTYRTC_ADDR_UNKNOWN = 0x00;
-    protected static short SALTYRTC_ADDR_SERVER = 0x00;
-    protected static short SALTYRTC_ADDR_INITIATOR = 0x01;
+    protected final static String SALTYRTC_PROTOCOL = "saltyrtc-1.0";
+    protected final static short SALTYRTC_WS_CONNECT_TIMEOUT = 2000;
+    protected final static long SALTYRTC_WS_PING_INTERVAL = 20000;
+    protected final static int SALTYRTC_WS_CLOSE_LINGER = 1000;
+    protected final static String SALTYRTC_DC_LABEL = "saltyrtc-signaling";
+    protected final static short SALTYRTC_ADDR_UNKNOWN = 0x00;
+    protected final static short SALTYRTC_ADDR_SERVER = 0x00;
+    protected final static short SALTYRTC_ADDR_INITIATOR = 0x01;
 
     // Logger
     protected abstract Logger getLogger();
 
     // WebSocket
-    protected String host;
-    protected int port;
-    protected String protocol = "wss";
+    protected final String host;
+    protected final int port;
+    protected final String protocol = "wss";
+    protected final SSLContext sslContext;
     protected WebSocket ws;
-    protected SSLContext sslContext;
 
     // WebRTC / ORTC
     protected DataChannel dc;
@@ -96,11 +96,11 @@ public abstract class Signaling {
     protected ServerHandshakeState serverHandshakeState = ServerHandshakeState.NEW;
 
     // Reference to main class
-    protected SaltyRTC salty;
+    protected final SaltyRTC salty;
 
     // Keys
     protected byte[] serverKey;
-    protected KeyStore permanentKey;
+    protected final KeyStore permanentKey;
     protected KeyStore sessionKey;
     protected AuthToken authToken;
 
@@ -111,7 +111,7 @@ public abstract class Signaling {
     protected CombinedSequencePair serverCsn = new CombinedSequencePair();
 
     // Message history
-    protected MessageHistory history = new MessageHistory(10);
+    protected final MessageHistory history = new MessageHistory(10);
 
     public Signaling(SaltyRTC salty, String host, int port,
                      KeyStore permanentKey, SSLContext sslContext) {
@@ -899,7 +899,7 @@ public abstract class Signaling {
      * To get notified when the connection is up and running,
      * subscribe to the `SignalingChannelChangedEvent`.
      */
-    public void handover(final PeerConnection pc) throws ConnectionException {
+    public void handover(final PeerConnection pc) {
         // Create new signaling DataChannel
         // TODO (https://github.com/saltyrtc/saltyrtc-meta/issues/3): Negotiate channel id
         getLogger().debug("Initiate handover");

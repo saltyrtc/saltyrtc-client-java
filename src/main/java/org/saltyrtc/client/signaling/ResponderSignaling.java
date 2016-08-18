@@ -50,8 +50,8 @@ public class ResponderSignaling extends Signaling {
         return org.slf4j.LoggerFactory.getLogger("SaltyRTC.RSignaling");
     }
 
-    private Initiator initiator;
-    private AuthToken authToken;
+    private final Initiator initiator;
+    private final AuthToken authToken;
 
     public ResponderSignaling(SaltyRTC saltyRTC, String host, int port,
                               KeyStore permanentKey, SSLContext sslContext,

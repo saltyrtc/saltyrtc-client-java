@@ -32,7 +32,6 @@ import org.saltyrtc.client.messages.Message;
 import org.saltyrtc.client.messages.NewResponder;
 import org.saltyrtc.client.messages.Token;
 import org.saltyrtc.client.nonce.CombinedSequence;
-import org.saltyrtc.client.nonce.CombinedSequencePair;
 import org.saltyrtc.client.nonce.SignalingChannelNonce;
 import org.saltyrtc.client.signaling.state.ResponderHandshakeState;
 import org.saltyrtc.client.signaling.state.ServerHandshakeState;
@@ -54,7 +53,7 @@ public class InitiatorSignaling extends Signaling {
     }
 
     // Keep track of responders connected to the server
-    protected Map<Short, Responder> responders = new HashMap<>();
+    protected final Map<Short, Responder> responders = new HashMap<>();
 
     // Once the handshake is done, this is the chosen responder
     protected Responder responder;
