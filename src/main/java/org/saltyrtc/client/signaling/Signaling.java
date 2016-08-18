@@ -471,6 +471,14 @@ public abstract class Signaling {
     protected abstract byte[] getPeerSessionKey();
 
     /**
+     * Return the own cookie.
+     */
+    @Nullable
+    public Cookie getCookie() {
+        return this.cookie;
+    }
+
+    /**
      * Decrypt the peer message using the session key.
      */
     protected Message decryptPeerMessage(Box box)

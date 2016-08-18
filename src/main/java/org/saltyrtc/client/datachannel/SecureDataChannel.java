@@ -142,7 +142,7 @@ public class SecureDataChannel {
      */
     private void validateNonce(DataChannelNonce nonce) throws ValidationError {
         // Validate cookie
-        if (nonce.getCookie().equals(this.signaling.getPeerCookie())) {
+        if (nonce.getCookie().equals(this.signaling.getCookie())) {
             throw new ValidationError("Local and remote cookies are equal");
         }
         if (!nonce.getCookie().equals(this.signaling.getPeerCookie())) {
