@@ -16,6 +16,7 @@ import java.nio.ByteBuffer;
  * It should match the API of the WebRTC `DataChannel`.
  *
  * Unfortunately, the `DataChannel` class does not provide an interface that we could implement.
+ * https://bugs.chromium.org/p/webrtc/issues/detail?id=6221
  */
 public class SecureDataChannel {
 
@@ -97,7 +98,7 @@ public class SecureDataChannel {
         try {
             box = this.signaling.encryptData(buffer.data.array(), this);
         } catch (CryptoFailedException | InvalidKeyException e) {
-            LOG.error("Could not decrypt incoming data: ", e);
+            LOG.error("Could not encrypt outgoing data: ", e);
             return false;
         }
 
