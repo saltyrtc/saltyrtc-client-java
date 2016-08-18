@@ -88,6 +88,19 @@ public class ResponderSignaling extends Signaling {
         }
     }
 
+    /**
+     * Return the cookie pair of the initiator.
+     */
+    @Override
+    protected CookiePair getCookiePair(short receiver) throws ProtocolException {
+        if (receiver == SALTYRTC_ADDR_SERVER) {
+            return this.serverCookiePair;
+        } else if (receiver == SALTYRTC_ADDR_INITIATOR) {
+            return this.initiator.getCookiePair();
+        }
+        throw new ProtocolException("Invalid receiver: " + receiver);
+    }
+
     @Override
     protected Box encryptForPeer(short receiver, String messageType, byte[] payload, byte[] nonce)
             throws CryptoFailedException, InvalidKeyException, ProtocolException {

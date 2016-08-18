@@ -345,7 +345,6 @@ public abstract class Signaling {
                             getLogger().error("Path full (no free responder byte)");
                             break;
                         case CloseCode.PROTOCOL_ERROR:
-                            getLogger().error("Protocol error"); // TODO handle?
                             break;
                         case CloseCode.INTERNAL_ERROR:
                             getLogger().error("Internal server error");
@@ -405,8 +404,11 @@ public abstract class Signaling {
         // Choose proper combined sequence number
         final CombinedSequence csn = this.getNextCsn(receiver);
 
+        // Choose proper cookie
+        final byte[] cookie = this.getCookiePair(receiver).getOurs().getBytes();
+        getLogger().debug("Using cookie " );
+
         // Create nonce
-        final byte[] cookie = this.serverCookiePair.getOurs().getBytes();
         final SignalingChannelNonce nonce = new SignalingChannelNonce(
                 cookie, this.address, receiver,
                 csn.getOverflow(), csn.getSequenceNumber());
@@ -659,6 +661,11 @@ public abstract class Signaling {
      * Choose proper combined sequence number
      */
     protected abstract CombinedSequence getNextCsn(short receiver) throws ProtocolException;
+
+    /**
+     * Choose proper cookie pair
+     */
+    protected abstract CookiePair getCookiePair(short receiver) throws ProtocolException;
 
     /**
      * Return `true` if receiver byte is a valid responder id (in the range 0x02-0xff).

@@ -99,6 +99,26 @@ public class InitiatorSignaling extends Signaling {
         }
     }
 
+    /**
+     * Return the cookie pair of the specified responder.
+     */
+    @Override
+    protected CookiePair getCookiePair(short receiver) throws ProtocolException {
+        if (receiver == SALTYRTC_ADDR_SERVER) {
+            return this.serverCookiePair;
+        } else if (receiver == SALTYRTC_ADDR_INITIATOR) {
+            throw new ProtocolException("Initiator cannot send messages to initiator");
+        } else if (isResponderId(receiver)) {
+            final Responder responder = this.getResponder(receiver);
+            if (responder == null) {
+                throw new ProtocolException("Unknown receiver: " + receiver);
+            }
+            return responder.getCookiePair();
+        } else {
+            throw new ProtocolException("Bad receiver byte: " + receiver);
+        }
+    }
+
     @Override
     protected Box encryptForPeer(short receiver, String messageType, byte[] payload, byte[] nonce)
             throws CryptoFailedException, InvalidKeyException, ProtocolException {
