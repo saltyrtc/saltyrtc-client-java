@@ -48,6 +48,7 @@ import org.saltyrtc.client.messages.Restart;
 import org.saltyrtc.client.messages.SendError;
 import org.saltyrtc.client.messages.ServerHello;
 import org.saltyrtc.client.nonce.CombinedSequence;
+import org.saltyrtc.client.nonce.CombinedSequencePair;
 import org.saltyrtc.client.nonce.DataChannelNonce;
 import org.saltyrtc.client.nonce.SignalingChannelNonce;
 import org.saltyrtc.client.signaling.state.ServerHandshakeState;
@@ -90,8 +91,8 @@ public abstract class Signaling {
     protected DataChannel dc;
 
     // Connection state
-    private SignalingState state = SignalingState.NEW;
-    private SignalingChannel channel = SignalingChannel.WEBSOCKET;
+    protected SignalingState state = SignalingState.NEW;
+    protected SignalingChannel channel = SignalingChannel.WEBSOCKET;
     protected ServerHandshakeState serverHandshakeState = ServerHandshakeState.NEW;
 
     // Reference to main class
@@ -107,7 +108,7 @@ public abstract class Signaling {
     protected SignalingRole role;
     protected short address = SALTYRTC_ADDR_UNKNOWN;
     protected CookiePair cookiePair;
-    protected CombinedSequence serverCsn = new CombinedSequence();
+    protected CombinedSequencePair serverCsn = new CombinedSequencePair();
 
     // Message history
     protected MessageHistory history = new MessageHistory(10);
@@ -229,7 +230,7 @@ public abstract class Signaling {
         // Reset
         this.setChannel(SignalingChannel.WEBSOCKET);
         this.serverHandshakeState = ServerHandshakeState.NEW;
-        this.serverCsn = new CombinedSequence();
+        this.serverCsn = new CombinedSequencePair();
         this.setState(SignalingState.NEW);
         getLogger().debug("Connection reset");
     }
@@ -281,7 +282,7 @@ public abstract class Signaling {
 
                     // Parse and validate nonce
                     final SignalingChannelNonce nonce = new SignalingChannelNonce(ByteBuffer.wrap(box.getNonce()));
-                    validateNonceAddresses(nonce);
+                    validateSignalingNonce(nonce);
 
                     // Dispatch message
                     switch (Signaling.this.getState()) {
@@ -501,7 +502,6 @@ public abstract class Signaling {
                 // Expect server-hello
                 if (msg instanceof ServerHello) {
                     getLogger().debug("Received server-hello");
-                    // TODO: Validate nonce
                     this.handleServerHello((ServerHello) msg, nonce);
                     this.sendClientHello();
                     this.sendClientAuth();
@@ -515,7 +515,6 @@ public abstract class Signaling {
                 // Expect server-auth
                 if (msg instanceof InitiatorServerAuth || msg instanceof ResponderServerAuth) {
                     getLogger().debug("Received server-auth");
-                    // TODO: Validate nonce
                     this.handleServerAuth(msg, nonce);
                 } else {
                     throw new ProtocolException("Expected server-auth message, but got " + msg.getType());
@@ -551,8 +550,6 @@ public abstract class Signaling {
      */
     protected void onPeerMessage(Box box, SignalingChannelNonce nonce) {
         getLogger().debug("Message received");
-
-        // TODO: Validate nonce?
 
         final Message message;
 
@@ -664,19 +661,20 @@ public abstract class Signaling {
     }
 
     /**
-     * Validate whether the addresses of the nonce are as expected.
+     * Validate the signaling nonce.
      *
-     * TODO: Link to spec
+     * See https://github.com/saltyrtc/saltyrtc-meta/issues/41
      */
-    private void validateNonceAddresses(SignalingChannelNonce nonce) throws ValidationError {
-        validateSenderAddress(nonce);
-        validateReceiverAddress(nonce);
+    private void validateSignalingNonce(SignalingChannelNonce nonce) throws ValidationError {
+        validateSignalingNonceSender(nonce);
+        validateSignalingNonceReceiver(nonce);
+        validateSignalingNonceCsn(nonce);
     }
 
     /**
      * Validate the sender address in the nonce.
      */
-    private void validateSenderAddress(SignalingChannelNonce nonce) throws ValidationError {
+    private void validateSignalingNonceSender(SignalingChannelNonce nonce) throws ValidationError {
         switch (this.getState()) {
             case SERVER_HANDSHAKE:
                 // Messages during server handshake must come from the server.
@@ -709,6 +707,7 @@ public abstract class Signaling {
             case OPEN:
                 // Messages after the handshake must come from the peer.
                 if (nonce.getSource() != this.getPeerAddress()) {
+                    // TODO: Ignore instead of throw?
                     throw new ValidationError("Received message with invalid sender address (" +
                             nonce.getSource() + " != " + this.getPeerAddress() + ")");
                 }
@@ -722,7 +721,7 @@ public abstract class Signaling {
     /**
      * Validate the receiver address in the nonce.
      */
-    private void validateReceiverAddress(SignalingChannelNonce nonce) throws ValidationError {
+    private void validateSignalingNonceReceiver(SignalingChannelNonce nonce) throws ValidationError {
         Short expected = null;
         if (this.getState() == SignalingState.SERVER_HANDSHAKE) {
             switch (this.serverHandshakeState) {
@@ -755,6 +754,57 @@ public abstract class Signaling {
                     "receiver address (" + nonce.getDestination() + " != " + expected + ")");
         }
     }
+
+    /**
+     * Validate the CSN in the nonce.
+     */
+    private void validateSignalingNonceCsn(SignalingChannelNonce nonce) throws ValidationError {
+        if (nonce.getSource() == SALTYRTC_ADDR_SERVER) {
+            this.validateSignalingNonceCsn(nonce, this.serverCsn, "server");
+        } else {
+            this.validateSignalingNoncePeerCsn(nonce);
+        }
+    }
+
+    /**
+     * Validate the CSN in the nonce.
+     *
+     * If it's the first message from that sender, validate the overflow number and store the CSN.
+     *
+     * Otherwise, make sure that the CSN has been increased.
+     *
+     * @param nonce The nonce from the incoming message.
+     * @param csnPair The CSN pair for the message sender.
+     * @param peerName Name of the peer (e.g. "server" or "initiator") used in error messages
+     */
+    protected void validateSignalingNonceCsn(SignalingChannelNonce nonce, CombinedSequencePair csnPair, String peerName)
+            throws ValidationError {
+        // If this is the first message from the initiator, validate the overflow number
+        // and store it for future reference.
+        if (!csnPair.hasTheirs()) {
+            if (nonce.getOverflow() != 0) {
+                throw new ValidationError("First message from " + peerName + " must have set the overflow number to 0");
+            }
+            csnPair.setTheirs(nonce.getCombinedSequence());
+
+        // Otherwise, make sure that the CSN has been incremented
+        } else {
+            final long previous = csnPair.getTheirs();
+            final long current = nonce.getCombinedSequence();
+            if (current < previous) {
+                throw new ValidationError(peerName + " CSN is lower than last time");
+            } else if (current == previous) {
+                throw new ValidationError(peerName + " CSN hasn't been incremented");
+            } else {
+                csnPair.setTheirs(current);
+            }
+        }
+    }
+
+    /**
+     * Validate the peer CSN in the nonce.
+     */
+    abstract void validateSignalingNoncePeerCsn(SignalingChannelNonce nonce) throws ValidationError;
 
     /**
      * Validate a repeated cookie in an Auth message.
@@ -912,7 +962,7 @@ public abstract class Signaling {
                 final Box box = new Box(buffer.data, SignalingChannelNonce.TOTAL_LENGTH);
                 final SignalingChannelNonce nonce = new SignalingChannelNonce(ByteBuffer.wrap(box.getNonce()));
                 try {
-                    validateNonceAddresses(nonce);
+                    validateSignalingNonce(nonce);
                     Signaling.this.onPeerMessage(box, nonce);
                 } catch (ValidationError e) {
                     getLogger().error("Protocol error: Invalid incoming message: " + e.getMessage());

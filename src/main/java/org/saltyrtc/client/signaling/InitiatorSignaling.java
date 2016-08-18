@@ -32,6 +32,7 @@ import org.saltyrtc.client.messages.Message;
 import org.saltyrtc.client.messages.NewResponder;
 import org.saltyrtc.client.messages.Token;
 import org.saltyrtc.client.nonce.CombinedSequence;
+import org.saltyrtc.client.nonce.CombinedSequencePair;
 import org.saltyrtc.client.nonce.SignalingChannelNonce;
 import org.saltyrtc.client.signaling.state.ResponderHandshakeState;
 import org.saltyrtc.client.signaling.state.ServerHandshakeState;
@@ -77,7 +78,7 @@ public class InitiatorSignaling extends Signaling {
     protected CombinedSequence getNextCsn(short receiver) throws ProtocolException {
         try {
             if (receiver == SALTYRTC_ADDR_SERVER) {
-                return this.serverCsn.next();
+                return this.serverCsn.getOurs().next();
             } else if (receiver == SALTYRTC_ADDR_INITIATOR) {
                 throw new ProtocolException("Initiator cannot send messages to initiator");
             } else if (isResponderId(receiver)) {
@@ -138,6 +139,26 @@ public class InitiatorSignaling extends Signaling {
         return (short) id;
     }
 
+    /**
+     * Validate CSN of the responder.
+     */
+    protected void validateSignalingNoncePeerCsn(SignalingChannelNonce nonce) throws ValidationError {
+        final short source = nonce.getSource();
+        if (isResponderId(source)) {
+            final Responder responder;
+            if (this.getState() == SignalingState.OPEN && this.responder != null && this.responder.getId() == source) {
+                responder = this.responder;
+            } else if (this.responders.containsKey(source)) {
+                responder = this.responders.get(source);
+            } else {
+                throw new ValidationError("Unknown responder: " + source);
+            }
+            this.validateSignalingNonceCsn(nonce, responder.getCsnPair(), "responder (" + source + ")");
+        } else {
+            throw new ValidationError("Invalid source byte, cannot validate CSN");
+        }
+    }
+
     @Override
     protected void sendClientHello() {
         // No-op as initiator.
@@ -153,7 +174,7 @@ public class InitiatorSignaling extends Signaling {
             throw new ProtocolException("Could not cast message to InitiatorServerAuth");
         }
 
-        // TODO: validate nonce
+        // Set address
         this.address = SALTYRTC_ADDR_INITIATOR;
 
         // Validate cookie

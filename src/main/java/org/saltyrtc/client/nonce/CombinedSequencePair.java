@@ -13,18 +13,18 @@ package org.saltyrtc.client.nonce;
  */
 public class CombinedSequencePair {
     private CombinedSequence ours;
-    private long theirs;
+    private Long theirs = null;
 
     public CombinedSequencePair() {
         this.ours = new CombinedSequence();
     }
 
-    public CombinedSequencePair(long theirs) {
+    public CombinedSequencePair(Long theirs) {
         this();
         this.setTheirs(theirs);
     }
 
-    public CombinedSequencePair(CombinedSequence ours, long theirs) {
+    public CombinedSequencePair(CombinedSequence ours, Long theirs) {
         this.ours = ours;
         this.theirs = theirs;
     }
@@ -33,11 +33,15 @@ public class CombinedSequencePair {
         return ours;
     }
 
-    public long getTheirs() {
+    public boolean hasTheirs() {
+        return this.theirs != null;
+    }
+
+    public Long getTheirs() {
         return theirs;
     }
 
-    public void setTheirs(long theirs) {
+    public void setTheirs(Long theirs) {
         this.theirs = theirs;
     }
 }

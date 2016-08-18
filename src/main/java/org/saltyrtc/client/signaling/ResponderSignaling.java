@@ -32,6 +32,7 @@ import org.saltyrtc.client.messages.NewInitiator;
 import org.saltyrtc.client.messages.ResponderServerAuth;
 import org.saltyrtc.client.messages.Token;
 import org.saltyrtc.client.nonce.CombinedSequence;
+import org.saltyrtc.client.nonce.CombinedSequencePair;
 import org.saltyrtc.client.nonce.SignalingChannelNonce;
 import org.saltyrtc.client.signaling.state.InitiatorHandshakeState;
 import org.saltyrtc.client.signaling.state.ServerHandshakeState;
@@ -74,7 +75,7 @@ public class ResponderSignaling extends Signaling {
     protected CombinedSequence getNextCsn(short receiver) throws ProtocolException {
         try {
             if (receiver == Signaling.SALTYRTC_ADDR_SERVER) {
-                return this.serverCsn.next();
+                return this.serverCsn.getOurs().next();
             } else if (receiver == Signaling.SALTYRTC_ADDR_INITIATOR) {
                 return this.initiator.getCsnPair().getOurs().next();
             } else if (isResponderId(receiver)) {
@@ -130,7 +131,6 @@ public class ResponderSignaling extends Signaling {
         }
 
         // Set proper address
-        // TODO: validate nonce
         if (nonce.getDestination() > 0xff || nonce.getDestination() < 0x02) {
             throw new ProtocolException("Invalid nonce destination: " + nonce.getDestination());
         }
@@ -324,6 +324,17 @@ public class ResponderSignaling extends Signaling {
             return this.initiator.sessionKey;
         }
         return null;
+    }
+
+    /**
+     * Validate CSN of the initiator.
+     */
+    protected void validateSignalingNoncePeerCsn(SignalingChannelNonce nonce) throws ValidationError {
+        if (nonce.getSource() == SALTYRTC_ADDR_INITIATOR) {
+            this.validateSignalingNonceCsn(nonce, this.initiator.getCsnPair(), "initiator");
+        } else {
+            throw new ValidationError("Invalid source byte, cannot validate CSN");
+        }
     }
 
 }
