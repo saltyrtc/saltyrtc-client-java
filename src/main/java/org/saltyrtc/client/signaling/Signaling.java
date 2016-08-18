@@ -365,6 +365,13 @@ public abstract class Signaling {
                 getLogger().error("A WebSocket connect error occured: " + cause.getMessage(), cause);
                 // TODO: Do we need to handle these?
             }
+
+            @Override
+            public void handleCallbackError(WebSocket websocket, Throwable cause) throws Exception {
+                getLogger().error("WebSocket callback error: " + cause);
+                cause.printStackTrace();
+                Signaling.this.resetConnection(CloseCode.INTERNAL_ERROR);
+            }
         };
 
         // Create WebSocket client instance
