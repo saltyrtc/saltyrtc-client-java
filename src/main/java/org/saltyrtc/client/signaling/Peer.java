@@ -19,7 +19,7 @@ public abstract class Peer {
 
     public Peer() {
         this.csnPair = new CombinedSequencePair();
-        this.cookiePair = null;
+        this.cookiePair = new CookiePair();
     }
 
     public Peer(byte[] permanentKey) {
