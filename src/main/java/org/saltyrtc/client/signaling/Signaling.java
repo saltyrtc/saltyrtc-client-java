@@ -757,6 +757,8 @@ public abstract class Signaling {
 
     /**
      * Validate the CSN in the nonce.
+     *
+     * @param nonce The nonce from the incoming message.
      */
     private void validateSignalingNonceCsn(SignalingChannelNonce nonce) throws ValidationError {
         if (nonce.getSource() == SALTYRTC_ADDR_SERVER) {
@@ -974,25 +976,22 @@ public abstract class Signaling {
 
     /**
      * Encrypt arbitrary data for the peer using the session keys.
+     *
      * @param data Plain data bytes.
      * @param dc The secure data channel that will be used to send this data.
+     * @param cookie The `Cookie` instance to use.
+     * @param csn The `CombinedSequenceNumber` instance to use.
      * @return Encrypted box.
      */
-    public @Nullable Box encryptData(@NonNull byte[] data, @NonNull SecureDataChannel dc)
+    public @Nullable Box encryptData(@NonNull byte[] data,
+                                     @NonNull SecureDataChannel dc,
+                                     @NonNull Cookie cookie,
+                                     @NonNull CombinedSequence csn)
             throws CryptoFailedException, InvalidKeyException {
-        // Choose proper CSN
-        final CombinedSequence csn;
-        try {
-            csn = this.getNextCsn(this.getPeerAddress());
-        } catch (ProtocolException e) {
-            this.resetConnection(CloseCode.PROTOCOL_ERROR);
-            return null;
-        }
-
         // Create nonce
         final DataChannelNonce nonce = new DataChannelNonce(
-                this.cookiePair.getOurs().getBytes(),
-                123, // TODO: Get actual dc id
+                cookie.getBytes(),
+                123, // TODO: Get actual dc id (https://bugs.chromium.org/p/webrtc/issues/detail?id=6106)
                 csn.getOverflow(), csn.getSequenceNumber());
 
         // Encrypt
