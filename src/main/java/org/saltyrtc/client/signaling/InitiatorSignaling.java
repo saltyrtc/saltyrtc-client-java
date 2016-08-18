@@ -11,7 +11,9 @@ package org.saltyrtc.client.signaling;
 import com.neilalexander.jnacl.NaCl;
 
 import org.saltyrtc.client.SaltyRTC;
+import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.cookie.Cookie;
+import org.saltyrtc.client.cookie.CookiePair;
 import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
 import org.saltyrtc.client.exceptions.InternalException;
@@ -144,17 +146,33 @@ public class InitiatorSignaling extends Signaling {
     protected void validateSignalingNoncePeerCsn(SignalingChannelNonce nonce) throws ValidationError {
         final short source = nonce.getSource();
         if (isResponderId(source)) {
-            final Responder responder;
-            if (this.getState() == SignalingState.OPEN && this.responder != null && this.responder.getId() == source) {
-                responder = this.responder;
-            } else if (this.responders.containsKey(source)) {
-                responder = this.responders.get(source);
-            } else {
+            final Responder responder = this.getResponder(source);
+            if (responder == null) {
                 throw new ValidationError("Unknown responder: " + source);
             }
             this.validateSignalingNonceCsn(nonce, responder.getCsnPair(), "responder (" + source + ")");
         } else {
             throw new ValidationError("Invalid source byte, cannot validate CSN");
+        }
+    }
+
+    /**
+     * Validate cookie of the responder.
+     */
+    @Override
+    void validateSignalingNoncePeerCookie(SignalingChannelNonce nonce) throws ValidationError {
+        final short source = nonce.getSource();
+        if (isResponderId(source)) {
+            final Responder responder = this.getResponder(source);
+            if (responder == null) {
+                throw new ValidationError("Unknown responder: " + source);
+            }
+            final CookiePair cookiePair = responder.getCookiePair();
+            if (cookiePair.hasTheirs()) { // Responder cookie might not yet have been initialized
+                this.validateSignalingNonceCookie(nonce, responder.getCookiePair(), "responder");
+            }
+        } else {
+            throw new ValidationError("Invalid source byte, cannot validate cookie");
         }
     }
 
@@ -178,10 +196,10 @@ public class InitiatorSignaling extends Signaling {
 
         // Validate cookie
         final Cookie cookie = new Cookie(msg.getYourCookie());
-        if (!cookie.equals(this.cookiePair.getOurs())) {
+        if (!cookie.equals(this.serverCookiePair.getOurs())) {
             getLogger().error("Bad repeated cookie in server-auth message");
             getLogger().debug("Their response: " + Arrays.toString(msg.getYourCookie()) +
-                              ", our cookie: " + Arrays.toString(this.cookiePair.getOurs().getBytes()));
+                              ", our cookie: " + Arrays.toString(this.serverCookiePair.getOurs().getBytes()));
             throw new ProtocolException("Bad repeated cookie in server-auth message");
         }
 
@@ -290,7 +308,7 @@ public class InitiatorSignaling extends Signaling {
                     msg = MessageReader.read(payload);
                     if (msg instanceof Auth) {
                         getLogger().debug("Received auth");
-                        handleAuth((Auth) msg, responder);
+                        handleAuth((Auth) msg, responder, nonce);
                         dropResponders();
                     } else {
                         throw new ProtocolException("Expected auth message, but got " + msg.getType());
@@ -357,7 +375,7 @@ public class InitiatorSignaling extends Signaling {
      */
     protected void sendAuth(Responder responder, SignalingChannelNonce nonce) throws ProtocolException, ConnectionException {
         // Ensure that cookies are different
-        if (nonce.getCookie().equals(this.cookiePair.getOurs())) {
+        if (nonce.getCookie().equals(this.serverCookiePair.getOurs())) {
             throw new ProtocolException("Their cookie and our cookie are the same");
         }
 
@@ -371,9 +389,9 @@ public class InitiatorSignaling extends Signaling {
     /**
      * A responder repeats our cookie.
      */
-    protected void handleAuth(Auth msg, Responder responder) throws ProtocolException {
+    protected void handleAuth(Auth msg, Responder responder, SignalingChannelNonce nonce) throws ProtocolException {
         // Validate cookie
-        validateRepeatedCookie(msg);
+        validateRepeatedCookie(msg, responder.getCookiePair());
 
         // OK!
         getLogger().debug("Responder 0x" + NaCl.asHex(new int[] { responder.getId() }) + " authenticated");
@@ -381,6 +399,7 @@ public class InitiatorSignaling extends Signaling {
         // Store responder details and session key
         this.responder = responder;
         this.sessionKey = responder.getKeyStore();
+        this.responder.getCookiePair().setTheirs(nonce.getCookie());
 
         // Remove responder from responders list
         this.responders.remove(responder.getId());
@@ -413,6 +432,18 @@ public class InitiatorSignaling extends Signaling {
     protected byte[] getPeerSessionKey() {
         if (this.responder != null) {
             return this.responder.sessionKey;
+        }
+        return null;
+    }
+
+    /**
+     * Return the responder with the specified id, or null if it could not be found.
+     */
+    @Nullable protected Responder getResponder(short id) {
+        if (this.getState() == SignalingState.OPEN && this.responder != null && this.responder.getId() == id) {
+            return this.responder;
+        } else if (this.responders.containsKey(id)) {
+            return this.responders.get(id);
         }
         return null;
     }

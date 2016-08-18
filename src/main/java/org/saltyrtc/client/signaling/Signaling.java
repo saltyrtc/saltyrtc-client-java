@@ -107,7 +107,7 @@ public abstract class Signaling {
     // Signaling
     protected SignalingRole role;
     protected short address = SALTYRTC_ADDR_UNKNOWN;
-    protected CookiePair cookiePair;
+    protected CookiePair serverCookiePair;
     protected CombinedSequencePair serverCsn = new CombinedSequencePair();
 
     // Message history
@@ -399,7 +399,7 @@ public abstract class Signaling {
         final CombinedSequence csn = this.getNextCsn(receiver);
 
         // Create nonce
-        final byte[] cookie = this.cookiePair.getOurs().getBytes();
+        final byte[] cookie = this.serverCookiePair.getOurs().getBytes();
         final SignalingChannelNonce nonce = new SignalingChannelNonce(
                 cookie, this.address, receiver,
                 csn.getOverflow(), csn.getSequenceNumber());
@@ -615,7 +615,7 @@ public abstract class Signaling {
         do {
             ourCookie = new Cookie();
         } while (ourCookie.equals(serverCookie));
-        this.cookiePair = new CookiePair(ourCookie, serverCookie);
+        this.serverCookiePair = new CookiePair(ourCookie, serverCookie);
     }
 
     /**
@@ -627,7 +627,7 @@ public abstract class Signaling {
      * Send a client-auth message to the server.
      */
     protected void sendClientAuth() throws ProtocolException, ConnectionException {
-        final ClientAuth msg = new ClientAuth(this.cookiePair.getTheirs().getBytes());
+        final ClientAuth msg = new ClientAuth(this.serverCookiePair.getTheirs().getBytes());
         final byte[] packet = this.buildPacket(msg, Signaling.SALTYRTC_ADDR_SERVER);
         getLogger().debug("Sending client-auth");
         this.send(packet, msg);
@@ -669,6 +669,7 @@ public abstract class Signaling {
         validateSignalingNonceSender(nonce);
         validateSignalingNonceReceiver(nonce);
         validateSignalingNonceCsn(nonce);
+        validateSignalingNonceCookie(nonce);
     }
 
     /**
@@ -777,7 +778,7 @@ public abstract class Signaling {
      *
      * @param nonce The nonce from the incoming message.
      * @param csnPair The CSN pair for the message sender.
-     * @param peerName Name of the peer (e.g. "server" or "initiator") used in error messages
+     * @param peerName Name of the peer (e.g. "server" or "initiator") used in error messages.
      */
     protected void validateSignalingNonceCsn(SignalingChannelNonce nonce, CombinedSequencePair csnPair, String peerName)
             throws ValidationError {
@@ -809,16 +810,57 @@ public abstract class Signaling {
     abstract void validateSignalingNoncePeerCsn(SignalingChannelNonce nonce) throws ValidationError;
 
     /**
+     * Validate the cookie in the nonce.
+     */
+    private void validateSignalingNonceCookie(SignalingChannelNonce nonce) throws ValidationError {
+        if (nonce.getSource() == SALTYRTC_ADDR_SERVER) {
+            if (this.serverCookiePair != null) { // Server cookie pair might not yet have been initialized
+                this.validateSignalingNonceCookie(nonce, this.serverCookiePair, "server");
+            }
+        } else {
+            this.validateSignalingNoncePeerCookie(nonce);
+        }
+    }
+
+    /**
+     * Validate the cookie in the nonce.
+     *
+     * @param nonce The nonce from the incoming message.
+     * @param cookiePair The cookie pair for the message sender.
+     * @param peerName Name of the peer (e.g. "server" or "initiator") used in error messages
+     */
+    protected void validateSignalingNonceCookie(@NonNull SignalingChannelNonce nonce,
+                                                @NonNull CookiePair cookiePair,
+                                                @NonNull String peerName) throws ValidationError {
+        if (nonce.getCookie().equals(cookiePair.getOurs())) {
+            throw new ValidationError("Local and remote " + peerName + " cookies are equal");
+        }
+        if (!cookiePair.hasTheirs()) {
+            cookiePair.setTheirs(nonce.getCookie());
+        } else {
+            if (!nonce.getCookie().equals(cookiePair.getTheirs())) {
+                throw new ValidationError("Remote " + peerName + " cookie changed");
+            }
+        }
+    }
+
+    /**
+     * Validate the peer cookie in the nonce.
+     */
+    abstract void validateSignalingNoncePeerCookie(SignalingChannelNonce nonce) throws ValidationError;
+
+    /**
      * Validate a repeated cookie in an Auth message.
-     * @param msg The Auth message
+     * @param msg The Auth message.
+     * @param msg The cookie pair to use.
      * @throws ProtocolException Thrown if repeated cookie does not match our own cookie.
      */
-    protected void validateRepeatedCookie(Auth msg) throws ProtocolException {
+    protected void validateRepeatedCookie(Auth msg, CookiePair cookiePair) throws ProtocolException {
         // Verify the cookie
         final Cookie repeatedCookie = new Cookie(msg.getYourCookie());
-        if (!repeatedCookie.equals(this.cookiePair.getOurs())) {
+        if (!repeatedCookie.equals(cookiePair.getOurs())) {
             getLogger().debug("Peer repeated cookie: " + Arrays.toString(msg.getYourCookie()));
-            getLogger().debug("Our cookie: " + Arrays.toString(this.cookiePair.getOurs().getBytes()));
+            getLogger().debug("Our cookie: " + Arrays.toString(cookiePair.getOurs().getBytes()));
             throw new ProtocolException("Peer repeated cookie does not match our cookie");
         }
     }

@@ -12,6 +12,7 @@ import com.neilalexander.jnacl.NaCl;
 
 import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.cookie.Cookie;
+import org.saltyrtc.client.cookie.CookiePair;
 import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
 import org.saltyrtc.client.exceptions.InternalException;
@@ -32,7 +33,6 @@ import org.saltyrtc.client.messages.NewInitiator;
 import org.saltyrtc.client.messages.ResponderServerAuth;
 import org.saltyrtc.client.messages.Token;
 import org.saltyrtc.client.nonce.CombinedSequence;
-import org.saltyrtc.client.nonce.CombinedSequencePair;
 import org.saltyrtc.client.nonce.SignalingChannelNonce;
 import org.saltyrtc.client.signaling.state.InitiatorHandshakeState;
 import org.saltyrtc.client.signaling.state.ServerHandshakeState;
@@ -139,10 +139,10 @@ public class ResponderSignaling extends Signaling {
 
         // Validate cookie
         final Cookie cookie = new Cookie(msg.getYourCookie());
-        if (!cookie.equals(this.cookiePair.getOurs())) {
+        if (!cookie.equals(this.serverCookiePair.getOurs())) {
             getLogger().error("Bad repeated cookie in server-auth message");
             getLogger().debug("Their response: " + Arrays.toString(msg.getYourCookie()) +
-                    ", our cookie: " + Arrays.toString(this.cookiePair.getOurs().getBytes()));
+                    ", our cookie: " + Arrays.toString(this.serverCookiePair.getOurs().getBytes()));
             throw new ProtocolException("Bad repeated cookie in server-auth message");
         }
 
@@ -236,7 +236,7 @@ public class ResponderSignaling extends Signaling {
                     // Expect an auth message
                     if (msg instanceof Auth) {
                         getLogger().debug("Received auth");
-                        handleAuth((Auth) msg);
+                        handleAuth((Auth) msg, nonce);
                         sendAuth(nonce);
                     } else {
                         throw new ProtocolException("Expected auth message, but got " + msg.getType());
@@ -286,12 +286,13 @@ public class ResponderSignaling extends Signaling {
     /**
      * The initiator repeats our cookie.
      */
-    protected void handleAuth(Auth msg) throws ProtocolException {
+    protected void handleAuth(Auth msg, SignalingChannelNonce nonce) throws ProtocolException {
         // Validate cookie
-        validateRepeatedCookie(msg);
+        validateRepeatedCookie(msg, this.initiator.getCookiePair());
 
         // OK!
         getLogger().debug("Initiator authenticated");
+        this.initiator.getCookiePair().setTheirs(nonce.getCookie());
     }
 
     /**
@@ -299,7 +300,7 @@ public class ResponderSignaling extends Signaling {
      */
     protected void sendAuth(SignalingChannelNonce nonce) throws ProtocolException, ConnectionException {
         // Ensure that cookies are different
-        if (nonce.getCookie().equals(this.cookiePair.getOurs())) {
+        if (nonce.getCookie().equals(this.serverCookiePair.getOurs())) {
             throw new ProtocolException("Their cookie and our cookie are the same");
         }
 
@@ -337,4 +338,15 @@ public class ResponderSignaling extends Signaling {
         }
     }
 
+    @Override
+    void validateSignalingNoncePeerCookie(SignalingChannelNonce nonce) throws ValidationError {
+        if (nonce.getSource() == SALTYRTC_ADDR_INITIATOR) {
+            final CookiePair cookiePair = this.initiator.getCookiePair();
+            if (cookiePair.hasTheirs()) { // Initiator cookie might not yet have been initialized
+                this.validateSignalingNonceCookie(nonce, this.initiator.getCookiePair(), "initiator");
+            }
+        } else {
+            throw new ValidationError("Invalid source byte, cannot validate cookie");
+        }
+    }
 }
