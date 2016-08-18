@@ -1,6 +1,7 @@
 package org.saltyrtc.client.datachannel;
 
 import org.saltyrtc.client.cookie.Cookie;
+import org.saltyrtc.client.cookie.CookiePair;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
 import org.saltyrtc.client.exceptions.OverflowException;
@@ -31,13 +32,13 @@ public class SecureDataChannel {
     private final DataChannel dc;
     private final Signaling signaling;
     private final CombinedSequencePair csnPair;
-    private final Cookie cookie;
+    private final CookiePair cookiePair;
 
     public SecureDataChannel(DataChannel dc, Signaling signaling) {
         this.dc = dc;
         this.signaling = signaling;
         this.csnPair = new CombinedSequencePair();
-        this.cookie = new Cookie();
+        this.cookiePair = new CookiePair();
     }
 
     public void registerObserver(final DataChannel.Observer observer) {
@@ -118,7 +119,7 @@ public class SecureDataChannel {
         try {
             final byte[] data = buffer.data.array();
             final SecureDataChannel sdc = this;
-            final Cookie cookie = this.cookie;
+            final Cookie cookie = this.cookiePair.getOurs();
             final CombinedSequence csn = this.csnPair.getOurs().next();
             box = this.signaling.encryptData(data, sdc, cookie, csn);
         } catch (CryptoFailedException | InvalidKeyException e) {
@@ -146,8 +147,15 @@ public class SecureDataChannel {
      */
     private void validateNonce(DataChannelNonce nonce) throws ValidationError {
         // Validate cookie
-        if (nonce.getCookie().equals(this.cookie)) {
+        if (nonce.getCookie().equals(this.cookiePair.getOurs())) {
             throw new ValidationError("Local and remote cookies are equal");
+        }
+        if (!this.cookiePair.hasTheirs()) {
+            this.cookiePair.setTheirs(nonce.getCookie());
+        } else {
+            if (!nonce.getCookie().equals(this.cookiePair.getTheirs())) {
+                throw new ValidationError("Remote cookie changed");
+            }
         }
 
         // Validate CSN

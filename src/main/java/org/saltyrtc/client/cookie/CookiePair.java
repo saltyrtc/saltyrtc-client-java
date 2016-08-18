@@ -28,7 +28,15 @@ public class CookiePair {
         return ours;
     }
 
+    public boolean hasTheirs() {
+        return this.theirs != null;
+    }
+
     public Cookie getTheirs() {
         return theirs;
+    }
+
+    public void setTheirs(Cookie theirs) {
+        this.theirs = theirs;
     }
 }
