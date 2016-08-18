@@ -11,8 +11,8 @@ package org.saltyrtc.client.signaling;
 import com.neilalexander.jnacl.NaCl;
 
 import org.saltyrtc.client.SaltyRTC;
+import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.cookie.Cookie;
-import org.saltyrtc.client.cookie.CookiePair;
 import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
 import org.saltyrtc.client.exceptions.InternalException;
@@ -88,19 +88,6 @@ public class ResponderSignaling extends Signaling {
         }
     }
 
-    /**
-     * Return the cookie pair of the initiator.
-     */
-    @Override
-    protected CookiePair getCookiePair(short receiver) throws ProtocolException {
-        if (receiver == SALTYRTC_ADDR_SERVER) {
-            return this.serverCookiePair;
-        } else if (receiver == SALTYRTC_ADDR_INITIATOR) {
-            return this.initiator.getCookiePair();
-        }
-        throw new ProtocolException("Invalid receiver: " + receiver);
-    }
-
     @Override
     protected Box encryptForPeer(short receiver, String messageType, byte[] payload, byte[] nonce)
             throws CryptoFailedException, InvalidKeyException, ProtocolException {
@@ -152,10 +139,10 @@ public class ResponderSignaling extends Signaling {
 
         // Validate cookie
         final Cookie cookie = new Cookie(msg.getYourCookie());
-        if (!cookie.equals(this.serverCookiePair.getOurs())) {
+        if (!cookie.equals(this.cookie)) {
             getLogger().error("Bad repeated cookie in server-auth message");
             getLogger().debug("Their response: " + Arrays.toString(msg.getYourCookie()) +
-                    ", our cookie: " + Arrays.toString(this.serverCookiePair.getOurs().getBytes()));
+                    ", our cookie: " + Arrays.toString(this.cookie.getBytes()));
             throw new ProtocolException("Bad repeated cookie in server-auth message");
         }
 
@@ -301,11 +288,11 @@ public class ResponderSignaling extends Signaling {
      */
     protected void handleAuth(Auth msg, SignalingChannelNonce nonce) throws ProtocolException {
         // Validate cookie
-        validateRepeatedCookie(msg, this.initiator.getCookiePair());
+        validateRepeatedCookie(msg);
 
         // OK!
         getLogger().debug("Initiator authenticated");
-        this.initiator.getCookiePair().setTheirs(nonce.getCookie());
+        this.initiator.setCookie(nonce.getCookie());
     }
 
     /**
@@ -313,7 +300,7 @@ public class ResponderSignaling extends Signaling {
      */
     protected void sendAuth(SignalingChannelNonce nonce) throws ProtocolException, ConnectionException {
         // Ensure that cookies are different
-        if (nonce.getCookie().equals(this.serverCookiePair.getOurs())) {
+        if (nonce.getCookie().equals(this.cookie)) {
             throw new ProtocolException("Their cookie and our cookie are the same");
         }
 
@@ -325,6 +312,7 @@ public class ResponderSignaling extends Signaling {
     }
 
     @Override
+    @Nullable
     protected Short getPeerAddress() {
         if (this.initiator != null) {
             return this.initiator.getId();
@@ -333,6 +321,16 @@ public class ResponderSignaling extends Signaling {
     }
 
     @Override
+    @Nullable
+    public Cookie getPeerCookie() {
+        if (this.initiator != null) {
+            return this.initiator.getCookie();
+        }
+        return null;
+    }
+
+    @Override
+    @Nullable
     protected byte[] getPeerSessionKey() {
         if (this.initiator != null) {
             return this.initiator.sessionKey;
@@ -351,15 +349,4 @@ public class ResponderSignaling extends Signaling {
         }
     }
 
-    @Override
-    void validateSignalingNoncePeerCookie(SignalingChannelNonce nonce) throws ValidationError {
-        if (nonce.getSource() == SALTYRTC_ADDR_INITIATOR) {
-            final CookiePair cookiePair = this.initiator.getCookiePair();
-            if (cookiePair.hasTheirs()) { // Initiator cookie might not yet have been initialized
-                this.validateSignalingNonceCookie(nonce, this.initiator.getCookiePair(), "initiator");
-            }
-        } else {
-            throw new ValidationError("Invalid source byte, cannot validate cookie");
-        }
-    }
 }

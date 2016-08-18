@@ -19,7 +19,6 @@ import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.cookie.Cookie;
-import org.saltyrtc.client.cookie.CookiePair;
 import org.saltyrtc.client.datachannel.SecureDataChannel;
 import org.saltyrtc.client.events.DataEvent;
 import org.saltyrtc.client.events.SendErrorEvent;
@@ -107,7 +106,8 @@ public abstract class Signaling {
     // Signaling
     protected SignalingRole role;
     protected short address = SALTYRTC_ADDR_UNKNOWN;
-    protected CookiePair serverCookiePair;
+    protected Cookie cookie;
+    protected Cookie serverCookie;
     protected CombinedSequencePair serverCsn = new CombinedSequencePair();
 
     // Message history
@@ -404,13 +404,9 @@ public abstract class Signaling {
         // Choose proper combined sequence number
         final CombinedSequence csn = this.getNextCsn(receiver);
 
-        // Choose proper cookie
-        final byte[] cookie = this.getCookiePair(receiver).getOurs().getBytes();
-        getLogger().debug("Using cookie " );
-
         // Create nonce
         final SignalingChannelNonce nonce = new SignalingChannelNonce(
-                cookie, this.address, receiver,
+                this.cookie.getBytes(), this.address, receiver,
                 csn.getOverflow(), csn.getSequenceNumber());
         final byte[] nonceBytes = nonce.toBytes();
 
@@ -455,13 +451,23 @@ public abstract class Signaling {
      *
      * May return null if peer is not yet set.
      */
+    @Nullable
     protected abstract Short getPeerAddress();
+
+    /**
+     * Return the cookie of the peer.
+     *
+     * May return null if peer is not yet set or if cookie is not yet stored.
+     */
+    @Nullable
+    public abstract Cookie getPeerCookie();
 
     /**
      * Return the session key of the peer.
      *
      * May return null if peer is not yet set.
      */
+    @Nullable
     protected abstract byte[] getPeerSessionKey();
 
     /**
@@ -624,7 +630,10 @@ public abstract class Signaling {
         do {
             ourCookie = new Cookie();
         } while (ourCookie.equals(serverCookie));
-        this.serverCookiePair = new CookiePair(ourCookie, serverCookie);
+
+        // Store cookies
+        this.cookie = ourCookie;
+        this.serverCookie = serverCookie;
     }
 
     /**
@@ -636,7 +645,7 @@ public abstract class Signaling {
      * Send a client-auth message to the server.
      */
     protected void sendClientAuth() throws ProtocolException, ConnectionException {
-        final ClientAuth msg = new ClientAuth(this.serverCookiePair.getTheirs().getBytes());
+        final ClientAuth msg = new ClientAuth(this.serverCookie.getBytes());
         final byte[] packet = this.buildPacket(msg, Signaling.SALTYRTC_ADDR_SERVER);
         getLogger().debug("Sending client-auth");
         this.send(packet, msg);
@@ -661,11 +670,6 @@ public abstract class Signaling {
      * Choose proper combined sequence number
      */
     protected abstract CombinedSequence getNextCsn(short receiver) throws ProtocolException;
-
-    /**
-     * Choose proper cookie pair
-     */
-    protected abstract CookiePair getCookiePair(short receiver) throws ProtocolException;
 
     /**
      * Return `true` if receiver byte is a valid responder id (in the range 0x02-0xff).
@@ -828,53 +832,32 @@ public abstract class Signaling {
      */
     private void validateSignalingNonceCookie(SignalingChannelNonce nonce) throws ValidationError {
         if (nonce.getSource() == SALTYRTC_ADDR_SERVER) {
-            if (this.serverCookiePair != null) { // Server cookie pair might not yet have been initialized
-                this.validateSignalingNonceCookie(nonce, this.serverCookiePair, "server");
+            if (this.serverCookie != null) { // Server cookie might not yet have been set
+                if (!nonce.getCookie().equals(this.serverCookie)) {
+                    throw new ValidationError("Server cookie changed");
+                }
             }
         } else {
-            this.validateSignalingNoncePeerCookie(nonce);
-        }
-    }
-
-    /**
-     * Validate the cookie in the nonce.
-     *
-     * @param nonce The nonce from the incoming message.
-     * @param cookiePair The cookie pair for the message sender.
-     * @param peerName Name of the peer (e.g. "server" or "initiator") used in error messages
-     */
-    protected void validateSignalingNonceCookie(@NonNull SignalingChannelNonce nonce,
-                                                @NonNull CookiePair cookiePair,
-                                                @NonNull String peerName) throws ValidationError {
-        if (nonce.getCookie().equals(cookiePair.getOurs())) {
-            throw new ValidationError("Local and remote " + peerName + " cookies are equal");
-        }
-        if (!cookiePair.hasTheirs()) {
-            cookiePair.setTheirs(nonce.getCookie());
-        } else {
-            if (!nonce.getCookie().equals(cookiePair.getTheirs())) {
-                throw new ValidationError("Remote " + peerName + " cookie changed");
+            final Cookie cookie = this.getPeerCookie();
+            if (cookie != null) { // Peer cookie might not yet have been set
+                if (!nonce.getCookie().equals(cookie)) {
+                    throw new ValidationError("Peer cookie changed");
+                }
             }
         }
     }
 
     /**
-     * Validate the peer cookie in the nonce.
-     */
-    abstract void validateSignalingNoncePeerCookie(SignalingChannelNonce nonce) throws ValidationError;
-
-    /**
-     * Validate a repeated cookie in an Auth message.
+     * Validate a repeated cookie in a p2p Auth message.
      * @param msg The Auth message.
-     * @param msg The cookie pair to use.
      * @throws ProtocolException Thrown if repeated cookie does not match our own cookie.
      */
-    protected void validateRepeatedCookie(Auth msg, CookiePair cookiePair) throws ProtocolException {
+    protected void validateRepeatedCookie(Auth msg) throws ProtocolException {
         // Verify the cookie
         final Cookie repeatedCookie = new Cookie(msg.getYourCookie());
-        if (!repeatedCookie.equals(cookiePair.getOurs())) {
+        if (!repeatedCookie.equals(this.cookie)) {
             getLogger().debug("Peer repeated cookie: " + Arrays.toString(msg.getYourCookie()));
-            getLogger().debug("Our cookie: " + Arrays.toString(cookiePair.getOurs().getBytes()));
+            getLogger().debug("Our cookie: " + Arrays.toString(this.cookie.getBytes()));
             throw new ProtocolException("Peer repeated cookie does not match our cookie");
         }
     }
@@ -1035,18 +1018,16 @@ public abstract class Signaling {
      *
      * @param data Plain data bytes.
      * @param dc The secure data channel that will be used to send this data.
-     * @param cookie The `Cookie` instance to use.
      * @param csn The `CombinedSequenceNumber` instance to use.
      * @return Encrypted box.
      */
     public @Nullable Box encryptData(@NonNull byte[] data,
                                      @NonNull SecureDataChannel dc,
-                                     @NonNull Cookie cookie,
                                      @NonNull CombinedSequence csn)
             throws CryptoFailedException, InvalidKeyException {
         // Create nonce
         final DataChannelNonce nonce = new DataChannelNonce(
-                cookie.getBytes(),
+                this.cookie.getBytes(),
                 123, // TODO: Get actual dc id (https://bugs.chromium.org/p/webrtc/issues/detail?id=6106)
                 csn.getOverflow(), csn.getSequenceNumber());
 
