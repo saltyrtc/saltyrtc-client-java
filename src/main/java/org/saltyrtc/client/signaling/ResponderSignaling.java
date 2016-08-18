@@ -76,7 +76,7 @@ public class ResponderSignaling extends Signaling {
             if (receiver == Signaling.SALTYRTC_ADDR_SERVER) {
                 return this.serverCsn.next();
             } else if (receiver == Signaling.SALTYRTC_ADDR_INITIATOR) {
-                return this.initiator.getCsn().next();
+                return this.initiator.getCsnPair().getOurs().next();
             } else if (isResponderId(receiver)) {
                 throw new ProtocolException("Responder may not send messages to other responders: " + receiver);
             } else {

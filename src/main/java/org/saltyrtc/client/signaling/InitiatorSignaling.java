@@ -83,9 +83,9 @@ public class InitiatorSignaling extends Signaling {
             } else if (isResponderId(receiver)) {
                 if (this.getState() == SignalingState.OPEN) {
                     assert this.responder != null;
-                    return this.responder.getCsn().next();
+                    return this.responder.getCsnPair().getOurs().next();
                 } else if (this.responders.containsKey(receiver)) {
-                    return this.responders.get(receiver).getCsn().next();
+                    return this.responders.get(receiver).getCsnPair().getOurs().next();
                 } else {
                     throw new ProtocolException("Unknown responder: " + receiver);
                 }
