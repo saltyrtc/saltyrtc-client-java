@@ -1,5 +1,9 @@
 package org.saltyrtc.client.datachannel;
 
+import org.saltyrtc.chunkedDc.Chunker;
+import org.saltyrtc.chunkedDc.Unchunker;
+import org.saltyrtc.client.annotations.NonNull;
+import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
 import org.saltyrtc.client.exceptions.OverflowException;
@@ -13,6 +17,7 @@ import org.slf4j.Logger;
 import org.webrtc.DataChannel;
 
 import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * A wrapper for a DataChannel that will encrypt and decrypt data on the fly.
@@ -27,17 +32,45 @@ public class SecureDataChannel {
     // Logger
     private static final Logger LOG = org.slf4j.LoggerFactory.getLogger("SaltyRTC.SecureDataChannel");
 
-    private final DataChannel dc;
-    private final Signaling signaling;
-    private final CombinedSequencePair csnPair;
+    // Chunking
+    private static final int CHUNK_SIZE = 16000;
+    private static final int CHUNK_COUNT_GC = 32;
+    private static final int CHUNK_MAX_AGE = 60000;
+    private final AtomicInteger messageNumber = new AtomicInteger(0);
+    private final AtomicInteger chunkCount = new AtomicInteger(0);
+    private final Unchunker unchunker = new Unchunker();
 
-    public SecureDataChannel(DataChannel dc, Signaling signaling) {
+    @NonNull
+    private final DataChannel dc;
+    @NonNull
+    private final Signaling signaling;
+    @NonNull
+    private final CombinedSequencePair csnPair;
+    @Nullable
+    private DataChannel.Observer observer;
+
+    public SecureDataChannel(@NonNull DataChannel dc, @NonNull Signaling signaling) {
         this.dc = dc;
         this.signaling = signaling;
         this.csnPair = new CombinedSequencePair();
+
+        // Register a message listener for the unchunker
+        this.unchunker.onMessage(new Unchunker.MessageListener() {
+            @Override
+            public void onMessage(ByteBuffer buffer) {
+                SecureDataChannel.this.onMessage(buffer);
+            }
+        });
     }
 
+    /**
+     * Register a new data channel observer.
+     *
+     * It will be notified when something changes, e.g. when a new message
+     * arrives or if the state changes.
+     */
     public void registerObserver(final DataChannel.Observer observer) {
+        this.observer = observer;
         this.dc.registerObserver(new DataChannel.Observer() {
             @Override
             public void onBufferedAmountChange(long l) {
@@ -51,39 +84,59 @@ public class SecureDataChannel {
 
             @Override
             public void onMessage(DataChannel.Buffer buffer) {
-                LOG.debug("Decrypting incoming data...");
+                LOG.debug("Received chunk");
 
-                final Box box = new Box(buffer.data, DataChannelNonce.TOTAL_LENGTH);
+                // Register the chunk. Once the message is complete, the original
+                // observer will be called in the `onMessage` method.
+                SecureDataChannel.this.unchunker.add(buffer.data);
 
-                // Validate nonce
-                try {
-                    SecureDataChannel.this.validateNonce(new DataChannelNonce(ByteBuffer.wrap(box.getNonce())));
-                } catch (ValidationError e) {
-                    LOG.error("Invalid nonce: " + e);
-                    LOG.error("Closing data channel");
-                    SecureDataChannel.this.close();
-                    return;
+                // Clean up old chunks regularly
+                if (SecureDataChannel.this.chunkCount.getAndIncrement() > CHUNK_COUNT_GC) {
+                    SecureDataChannel.this.unchunker.gc(CHUNK_MAX_AGE);
+                    SecureDataChannel.this.chunkCount.set(0);
                 }
-
-                // Decrypt data
-                final byte[] data;
-                try {
-                    data = SecureDataChannel.this.signaling.decryptData(box);
-                } catch (CryptoFailedException | InvalidKeyException e) {
-                    LOG.error("Could not decrypt incoming data: ", e);
-                    return;
-                }
-
-                // Pass decrypted data to original observer
-                DataChannel.Buffer decryptedBuffer =
-                        new DataChannel.Buffer(ByteBuffer.wrap(data), true);
-                observer.onMessage(decryptedBuffer);
             }
         });
     }
 
     public void unregisterObserver() {
+        this.observer = null;
         this.dc.unregisterObserver();
+    }
+
+    private void onMessage(ByteBuffer buffer) {
+        LOG.debug("Decrypting incoming data...");
+
+        final Box box = new Box(buffer, DataChannelNonce.TOTAL_LENGTH);
+
+        // Validate nonce
+        try {
+            this.validateNonce(new DataChannelNonce(ByteBuffer.wrap(box.getNonce())));
+        } catch (ValidationError e) {
+            LOG.error("Invalid nonce: " + e);
+            LOG.error("Closing data channel");
+            this.close();
+            return;
+        }
+
+        // Decrypt data
+        final byte[] data;
+        try {
+            data = this.signaling.decryptData(box);
+        } catch (CryptoFailedException | InvalidKeyException e) {
+            LOG.error("Could not decrypt incoming data: ", e);
+            return;
+        }
+
+        // Pass decrypted data to original observer
+        DataChannel.Buffer decryptedBuffer =
+                new DataChannel.Buffer(ByteBuffer.wrap(data), true);
+        if (this.observer != null) {
+            this.observer.onMessage(decryptedBuffer);
+        } else {
+            // TODO: Cache message?
+            LOG.warn("Received new message, but no observer is configured.");
+        }
     }
 
     public String label() {
@@ -126,11 +179,20 @@ public class SecureDataChannel {
             this.close();
             return false;
         }
-
-        // Send
         final ByteBuffer encryptedBytes = ByteBuffer.wrap(box.toBytes());
-        final DataChannel.Buffer encryptedBuffer = new DataChannel.Buffer(encryptedBytes, true);
-        return this.dc.send(encryptedBuffer);
+
+        // Chunkify
+        final int msgId = this.messageNumber.getAndIncrement();
+        Chunker chunker = new Chunker(msgId, encryptedBytes, CHUNK_SIZE);
+
+        // Send chunks
+        while (chunker.hasNext()) {
+            final DataChannel.Buffer out = new DataChannel.Buffer(chunker.next(), true);
+            if (!this.dc.send(out)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public void dispose() {
