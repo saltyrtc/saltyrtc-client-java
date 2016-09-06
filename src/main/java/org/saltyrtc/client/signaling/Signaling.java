@@ -67,7 +67,7 @@ import javax.net.ssl.SSLContext;
 
 public abstract class Signaling {
 
-    protected final static String SALTYRTC_PROTOCOL = "saltyrtc-1.0";
+    protected final static String SALTYRTC_SUBPROTOCOL = "v0.saltyrtc.org";
     protected final static short SALTYRTC_WS_CONNECT_TIMEOUT = 2000;
     protected final static long SALTYRTC_WS_PING_INTERVAL = 20000;
     protected final static int SALTYRTC_WS_CLOSE_LINGER = 1000;
@@ -379,7 +379,7 @@ public abstract class Signaling {
                 .setSSLContext(this.sslContext)
                 .createSocket(uri)
                 .setPingInterval(SALTYRTC_WS_PING_INTERVAL)
-                .addProtocol(SALTYRTC_PROTOCOL)
+                .addProtocol(SALTYRTC_SUBPROTOCOL)
                 .addListener(listener);
 
     }
@@ -956,7 +956,7 @@ public abstract class Signaling {
         init.id = 0;
         init.negotiated = true;
         init.ordered = true;
-        init.protocol = SALTYRTC_PROTOCOL;
+        init.protocol = SALTYRTC_SUBPROTOCOL;
         this.dc = pc.createDataChannel(SALTYRTC_DC_LABEL, init);
         this.dc.registerObserver(new DataChannel.Observer() {
             @Override
