@@ -34,7 +34,10 @@ public class SecureDataChannel {
 
     // Chunking
     private static final int CHUNK_SIZE = 16000;
+    private static final int CHUNK_COUNT_GC = 32;
+    private static final int CHUNK_MAX_AGE = 60000;
     private final AtomicInteger messageNumber = new AtomicInteger(0);
+    private final AtomicInteger chunkCount = new AtomicInteger(0);
     private final Unchunker unchunker = new Unchunker();
 
     @NonNull
@@ -86,6 +89,12 @@ public class SecureDataChannel {
                 // Register the chunk. Once the message is complete, the original
                 // observer will be called in the `onMessage` method.
                 SecureDataChannel.this.unchunker.add(buffer.data);
+
+                // Clean up old chunks regularly
+                if (SecureDataChannel.this.chunkCount.getAndIncrement() > CHUNK_COUNT_GC) {
+                    SecureDataChannel.this.unchunker.gc(CHUNK_MAX_AGE);
+                    SecureDataChannel.this.chunkCount.set(0);
+                }
             }
         });
     }
