@@ -8,15 +8,17 @@
 
 package org.saltyrtc.client.signaling;
 
-import org.saltyrtc.client.nonce.CombinedSequence;
+import org.saltyrtc.client.cookie.Cookie;
+import org.saltyrtc.client.nonce.CombinedSequencePair;
 
 public abstract class Peer {
     protected byte[] permanentKey;
     protected byte[] sessionKey;
-    protected CombinedSequence csn;
+    protected CombinedSequencePair csnPair;
+    protected Cookie cookie;
 
     public Peer() {
-        this.csn = new CombinedSequence();
+        this.csnPair = new CombinedSequencePair();
     }
 
     public Peer(byte[] permanentKey) {
@@ -25,7 +27,7 @@ public abstract class Peer {
     }
 
     public byte[] getPermanentKey() {
-        return permanentKey;
+        return this.permanentKey;
     }
 
     public void setPermanentKey(byte[] permanentKey) {
@@ -33,14 +35,28 @@ public abstract class Peer {
     }
 
     public byte[] getSessionKey() {
-        return sessionKey;
+        return this.sessionKey;
     }
 
     public void setSessionKey(byte[] sessionKey) {
         this.sessionKey = sessionKey;
     }
 
-    public CombinedSequence getCsn() {
-        return csn;
+    public CombinedSequencePair getCsnPair() {
+        return this.csnPair;
+    }
+
+    /**
+     * Return the peer cookie.
+     */
+    public Cookie getCookie() {
+        return cookie;
+    }
+
+    /**
+     * Set the peer cookie.
+     */
+    public void setCookie(Cookie cookie) {
+        this.cookie = cookie;
     }
 }

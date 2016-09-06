@@ -19,7 +19,6 @@ import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.cookie.Cookie;
-import org.saltyrtc.client.cookie.CookiePair;
 import org.saltyrtc.client.datachannel.SecureDataChannel;
 import org.saltyrtc.client.events.DataEvent;
 import org.saltyrtc.client.events.SendErrorEvent;
@@ -48,6 +47,7 @@ import org.saltyrtc.client.messages.Restart;
 import org.saltyrtc.client.messages.SendError;
 import org.saltyrtc.client.messages.ServerHello;
 import org.saltyrtc.client.nonce.CombinedSequence;
+import org.saltyrtc.client.nonce.CombinedSequencePair;
 import org.saltyrtc.client.nonce.DataChannelNonce;
 import org.saltyrtc.client.nonce.SignalingChannelNonce;
 import org.saltyrtc.client.signaling.state.ServerHandshakeState;
@@ -67,49 +67,51 @@ import javax.net.ssl.SSLContext;
 
 public abstract class Signaling {
 
-    protected static String SALTYRTC_PROTOCOL = "saltyrtc-1.0";
-    protected static short SALTYRTC_WS_CONNECT_TIMEOUT = 2000;
-    protected static long SALTYRTC_WS_PING_INTERVAL = 20000;
-    protected static int SALTYRTC_WS_CLOSE_LINGER = 1000;
-    protected static String SALTYRTC_DC_LABEL = "saltyrtc-signaling";
-    protected static short SALTYRTC_ADDR_UNKNOWN = 0x00;
-    protected static short SALTYRTC_ADDR_SERVER = 0x00;
-    protected static short SALTYRTC_ADDR_INITIATOR = 0x01;
+    protected final static String SALTYRTC_PROTOCOL = "saltyrtc-1.0";
+    protected final static short SALTYRTC_WS_CONNECT_TIMEOUT = 2000;
+    protected final static long SALTYRTC_WS_PING_INTERVAL = 20000;
+    protected final static int SALTYRTC_WS_CLOSE_LINGER = 1000;
+    protected final static String SALTYRTC_DC_LABEL = "saltyrtc-signaling";
+    protected final static short SALTYRTC_ADDR_UNKNOWN = 0x00;
+    protected final static short SALTYRTC_ADDR_SERVER = 0x00;
+    protected final static short SALTYRTC_ADDR_INITIATOR = 0x01;
 
     // Logger
     protected abstract Logger getLogger();
 
     // WebSocket
-    protected String host;
-    protected int port;
-    protected String protocol = "wss";
+    protected final String host;
+    protected final int port;
+    protected final String protocol = "wss";
+    protected final SSLContext sslContext;
     protected WebSocket ws;
-    protected SSLContext sslContext;
 
     // WebRTC / ORTC
     protected DataChannel dc;
 
     // Connection state
-    private SignalingState state = SignalingState.NEW;
-    private SignalingChannel channel = SignalingChannel.WEBSOCKET;
+    protected SignalingState state = SignalingState.NEW;
+    protected SignalingChannel channel = SignalingChannel.WEBSOCKET;
     protected ServerHandshakeState serverHandshakeState = ServerHandshakeState.NEW;
 
     // Reference to main class
-    protected SaltyRTC salty;
+    protected final SaltyRTC salty;
 
     // Keys
     protected byte[] serverKey;
-    protected KeyStore permanentKey;
+    protected final KeyStore permanentKey;
     protected KeyStore sessionKey;
     protected AuthToken authToken;
 
     // Signaling
+    protected SignalingRole role;
     protected short address = SALTYRTC_ADDR_UNKNOWN;
-    protected CookiePair cookiePair;
-    protected CombinedSequence serverCsn = new CombinedSequence();
+    protected Cookie cookie;
+    protected Cookie serverCookie;
+    protected CombinedSequencePair serverCsn = new CombinedSequencePair();
 
     // Message history
-    protected MessageHistory history = new MessageHistory(10);
+    protected final MessageHistory history = new MessageHistory(10);
 
     public Signaling(SaltyRTC salty, String host, int port,
                      KeyStore permanentKey, SSLContext sslContext) {
@@ -228,7 +230,7 @@ public abstract class Signaling {
         // Reset
         this.setChannel(SignalingChannel.WEBSOCKET);
         this.serverHandshakeState = ServerHandshakeState.NEW;
-        this.serverCsn = new CombinedSequence();
+        this.serverCsn = new CombinedSequencePair();
         this.setState(SignalingState.NEW);
         getLogger().debug("Connection reset");
     }
@@ -278,8 +280,9 @@ public abstract class Signaling {
                     // Parse buffer
                     final Box box = new Box(ByteBuffer.wrap(binary), SignalingChannelNonce.TOTAL_LENGTH);
 
-                    // Parse nonce
+                    // Parse and validate nonce
                     final SignalingChannelNonce nonce = new SignalingChannelNonce(ByteBuffer.wrap(box.getNonce()));
+                    validateSignalingNonce(nonce);
 
                     // Dispatch message
                     switch (Signaling.this.getState()) {
@@ -342,7 +345,6 @@ public abstract class Signaling {
                             getLogger().error("Path full (no free responder byte)");
                             break;
                         case CloseCode.PROTOCOL_ERROR:
-                            getLogger().error("Protocol error"); // TODO handle?
                             break;
                         case CloseCode.INTERNAL_ERROR:
                             getLogger().error("Internal server error");
@@ -361,6 +363,13 @@ public abstract class Signaling {
             public void onError(WebSocket websocket, WebSocketException cause) throws Exception {
                 getLogger().error("A WebSocket connect error occured: " + cause.getMessage(), cause);
                 // TODO: Do we need to handle these?
+            }
+
+            @Override
+            public void handleCallbackError(WebSocket websocket, Throwable cause) throws Exception {
+                getLogger().error("WebSocket callback error: " + cause);
+                cause.printStackTrace();
+                Signaling.this.resetConnection(CloseCode.INTERNAL_ERROR);
             }
         };
 
@@ -396,9 +405,8 @@ public abstract class Signaling {
         final CombinedSequence csn = this.getNextCsn(receiver);
 
         // Create nonce
-        final byte[] cookie = this.cookiePair.getOurs().getBytes();
         final SignalingChannelNonce nonce = new SignalingChannelNonce(
-                cookie, this.address, receiver,
+                this.cookie.getBytes(), this.address, receiver,
                 csn.getOverflow(), csn.getSequenceNumber());
         final byte[] nonceBytes = nonce.toBytes();
 
@@ -443,14 +451,32 @@ public abstract class Signaling {
      *
      * May return null if peer is not yet set.
      */
+    @Nullable
     protected abstract Short getPeerAddress();
+
+    /**
+     * Return the cookie of the peer.
+     *
+     * May return null if peer is not yet set or if cookie is not yet stored.
+     */
+    @Nullable
+    public abstract Cookie getPeerCookie();
 
     /**
      * Return the session key of the peer.
      *
      * May return null if peer is not yet set.
      */
+    @Nullable
     protected abstract byte[] getPeerSessionKey();
+
+    /**
+     * Return the own cookie.
+     */
+    @Nullable
+    public Cookie getCookie() {
+        return this.cookie;
+    }
 
     /**
      * Decrypt the peer message using the session key.
@@ -480,24 +506,25 @@ public abstract class Signaling {
             InternalException, ConnectionException {
         // Decrypt if necessary
         final byte[] payload;
-        if (this.serverHandshakeState != ServerHandshakeState.NEW) {
+        if (this.serverHandshakeState == ServerHandshakeState.NEW) {
+            // The very first message is unencrypted
+            payload = box.getData();
+        } else {
+            // Later, they're encrypted with our permanent key and the server key
             try {
                 payload = this.permanentKey.decrypt(box, this.serverKey);
             } catch (CryptoFailedException | InvalidKeyException e) {
                 throw new ProtocolException("Could not decrypt server message", e);
             }
-        } else {
-            payload = box.getData();
         }
 
-        // Handle message
+        // Handle message depending on state
         Message msg = MessageReader.read(payload);
         switch (this.serverHandshakeState) {
             case NEW:
                 // Expect server-hello
                 if (msg instanceof ServerHello) {
                     getLogger().debug("Received server-hello");
-                    // TODO: Validate nonce
                     this.handleServerHello((ServerHello) msg, nonce);
                     this.sendClientHello();
                     this.sendClientAuth();
@@ -511,7 +538,6 @@ public abstract class Signaling {
                 // Expect server-auth
                 if (msg instanceof InitiatorServerAuth || msg instanceof ResponderServerAuth) {
                     getLogger().debug("Received server-auth");
-                    // TODO: Validate nonce
                     this.handleServerAuth(msg, nonce);
                 } else {
                     throw new ProtocolException("Expected server-auth message, but got " + msg.getType());
@@ -547,8 +573,6 @@ public abstract class Signaling {
      */
     protected void onPeerMessage(Box box, SignalingChannelNonce nonce) {
         getLogger().debug("Message received");
-
-        // TODO: Validate nonce?
 
         final Message message;
 
@@ -614,7 +638,10 @@ public abstract class Signaling {
         do {
             ourCookie = new Cookie();
         } while (ourCookie.equals(serverCookie));
-        this.cookiePair = new CookiePair(ourCookie, serverCookie);
+
+        // Store cookies
+        this.cookie = ourCookie;
+        this.serverCookie = serverCookie;
     }
 
     /**
@@ -626,7 +653,7 @@ public abstract class Signaling {
      * Send a client-auth message to the server.
      */
     protected void sendClientAuth() throws ProtocolException, ConnectionException {
-        final ClientAuth msg = new ClientAuth(this.cookiePair.getTheirs().getBytes());
+        final ClientAuth msg = new ClientAuth(this.serverCookie.getBytes());
         final byte[] packet = this.buildPacket(msg, Signaling.SALTYRTC_ADDR_SERVER);
         getLogger().debug("Sending client-auth");
         this.send(packet, msg);
@@ -660,16 +687,185 @@ public abstract class Signaling {
     }
 
     /**
-     * Validate a repeated cookie in an Auth message.
-     * @param msg The Auth message
+     * Validate the signaling nonce.
+     *
+     * See https://github.com/saltyrtc/saltyrtc-meta/issues/41
+     */
+    private void validateSignalingNonce(SignalingChannelNonce nonce) throws ValidationError {
+        validateSignalingNonceSender(nonce);
+        validateSignalingNonceReceiver(nonce);
+        validateSignalingNonceCsn(nonce);
+        validateSignalingNonceCookie(nonce);
+    }
+
+    /**
+     * Validate the sender address in the nonce.
+     */
+    private void validateSignalingNonceSender(SignalingChannelNonce nonce) throws ValidationError {
+        switch (this.getState()) {
+            case SERVER_HANDSHAKE:
+                // Messages during server handshake must come from the server.
+                if (nonce.getSource() != SALTYRTC_ADDR_SERVER) {
+                    throw new ValidationError("Received message during server handshake " +
+                            "with invalid sender address (" +
+                            nonce.getSource() + " != " + SALTYRTC_ADDR_SERVER + ")");
+                }
+                break;
+            case PEER_HANDSHAKE:
+                // Messages during peer handshake may come from server or peer.
+                if (nonce.getSource() != SALTYRTC_ADDR_SERVER) {
+                    switch (this.role) {
+                        case Initiator:
+                            if (!this.isResponderId(nonce.getSource())) {
+                                throw new ValidationError("Initiator peer message does not come from " +
+                                        "a valid responder address: " + nonce.getSource());
+                            }
+                            break;
+                        case Responder:
+                            if (nonce.getSource() != SALTYRTC_ADDR_INITIATOR) {
+                                throw new ValidationError("Responder peer message does not come from " +
+                                        "intitiator (" + SALTYRTC_ADDR_INITIATOR + "), " +
+                                        "but from " + nonce.getSource());
+                            }
+                            break;
+                    }
+                }
+                break;
+            case OPEN:
+                // Messages after the handshake must come from the peer.
+                if (nonce.getSource() != this.getPeerAddress()) {
+                    // TODO: Ignore instead of throw?
+                    throw new ValidationError("Received message with invalid sender address (" +
+                            nonce.getSource() + " != " + this.getPeerAddress() + ")");
+                }
+                break;
+            default:
+                throw new ValidationError("Cannot validate message nonce with signaling state " +
+                        this.getState());
+        }
+    }
+
+    /**
+     * Validate the receiver address in the nonce.
+     */
+    private void validateSignalingNonceReceiver(SignalingChannelNonce nonce) throws ValidationError {
+        Short expected = null;
+        if (this.getState() == SignalingState.SERVER_HANDSHAKE) {
+            switch (this.serverHandshakeState) {
+                // Before receiving the server auth-message, the receiver byte is 0x00
+                case NEW:
+                case HELLO_SENT:
+                    expected = SALTYRTC_ADDR_UNKNOWN;
+                    break;
+                // The server auth-message contains the assigned receiver byte for the first time
+                case AUTH_SENT:
+                    if (this.role == SignalingRole.Initiator) {
+                        expected = SALTYRTC_ADDR_INITIATOR;
+                    } else if (this.role == SignalingRole.Responder) {
+                        if (!isResponderId(nonce.getDestination())) {
+                            throw new ValidationError("Received message during server handshake " +
+                                    "with invalid receiver address (" + nonce.getDestination() +
+                                    " is not a valid responder id)");
+                        }
+                    }
+                    break;
+                // Afterwards, the receiver byte is the assigned address
+                case DONE:
+                    expected = this.address;
+                    break;
+            }
+        }
+
+        if (expected != null && nonce.getDestination() != expected) {
+            throw new ValidationError("Received message during server handshake with invalid " +
+                    "receiver address (" + nonce.getDestination() + " != " + expected + ")");
+        }
+    }
+
+    /**
+     * Validate the CSN in the nonce.
+     *
+     * @param nonce The nonce from the incoming message.
+     */
+    private void validateSignalingNonceCsn(SignalingChannelNonce nonce) throws ValidationError {
+        if (nonce.getSource() == SALTYRTC_ADDR_SERVER) {
+            this.validateSignalingNonceCsn(nonce, this.serverCsn, "server");
+        } else {
+            this.validateSignalingNoncePeerCsn(nonce);
+        }
+    }
+
+    /**
+     * Validate the CSN in the nonce.
+     *
+     * If it's the first message from that sender, validate the overflow number and store the CSN.
+     *
+     * Otherwise, make sure that the CSN has been increased.
+     *
+     * @param nonce The nonce from the incoming message.
+     * @param csnPair The CSN pair for the message sender.
+     * @param peerName Name of the peer (e.g. "server" or "initiator") used in error messages.
+     */
+    protected void validateSignalingNonceCsn(SignalingChannelNonce nonce, CombinedSequencePair csnPair, String peerName)
+            throws ValidationError {
+        // If this is the first message from the initiator, validate the overflow number
+        // and store it for future reference.
+        if (!csnPair.hasTheirs()) {
+            if (nonce.getOverflow() != 0) {
+                throw new ValidationError("First message from " + peerName + " must have set the overflow number to 0");
+            }
+            csnPair.setTheirs(nonce.getCombinedSequence());
+
+        // Otherwise, make sure that the CSN has been incremented
+        } else {
+            final long previous = csnPair.getTheirs();
+            final long current = nonce.getCombinedSequence();
+            if (current < previous) {
+                throw new ValidationError(peerName + " CSN is lower than last time");
+            } else if (current == previous) {
+                throw new ValidationError(peerName + " CSN hasn't been incremented");
+            } else {
+                csnPair.setTheirs(current);
+            }
+        }
+    }
+
+    /**
+     * Validate the peer CSN in the nonce.
+     */
+    abstract void validateSignalingNoncePeerCsn(SignalingChannelNonce nonce) throws ValidationError;
+
+    /**
+     * Validate the cookie in the nonce.
+     */
+    private void validateSignalingNonceCookie(SignalingChannelNonce nonce) throws ValidationError {
+        if (nonce.getSource() == SALTYRTC_ADDR_SERVER) {
+            if (this.serverCookie != null) { // Server cookie might not yet have been set
+                if (!nonce.getCookie().equals(this.serverCookie)) {
+                    throw new ValidationError("Server cookie changed");
+                }
+            }
+        } else {
+            final Cookie cookie = this.getPeerCookie();
+            if (cookie != null) { // Peer cookie might not yet have been set
+                if (!nonce.getCookie().equals(cookie)) {
+                    throw new ValidationError("Peer cookie changed");
+                }
+            }
+        }
+    }
+
+    /**
+     * Validate a repeated cookie in a p2p Auth message.
+     * @param msg The Auth message.
      * @throws ProtocolException Thrown if repeated cookie does not match our own cookie.
      */
     protected void validateRepeatedCookie(Auth msg) throws ProtocolException {
         // Verify the cookie
         final Cookie repeatedCookie = new Cookie(msg.getYourCookie());
-        if (!repeatedCookie.equals(this.cookiePair.getOurs())) {
+        if (!repeatedCookie.equals(this.cookie)) {
             getLogger().debug("Peer repeated cookie: " + Arrays.toString(msg.getYourCookie()));
-            getLogger().debug("Our cookie: " + Arrays.toString(this.cookiePair.getOurs().getBytes()));
+            getLogger().debug("Our cookie: " + Arrays.toString(this.cookie.getBytes()));
             throw new ProtocolException("Peer repeated cookie does not match our cookie");
         }
     }
@@ -752,7 +948,7 @@ public abstract class Signaling {
      * To get notified when the connection is up and running,
      * subscribe to the `SignalingChannelChangedEvent`.
      */
-    public void handover(final PeerConnection pc) throws ConnectionException {
+    public void handover(final PeerConnection pc) {
         // Create new signaling DataChannel
         // TODO (https://github.com/saltyrtc/saltyrtc-meta/issues/3): Negotiate channel id
         getLogger().debug("Initiate handover");
@@ -814,32 +1010,33 @@ public abstract class Signaling {
 
                 final Box box = new Box(buffer.data, SignalingChannelNonce.TOTAL_LENGTH);
                 final SignalingChannelNonce nonce = new SignalingChannelNonce(ByteBuffer.wrap(box.getNonce()));
-                Signaling.this.onPeerMessage(box, nonce);
+                try {
+                    validateSignalingNonce(nonce);
+                    Signaling.this.onPeerMessage(box, nonce);
+                } catch (ValidationError e) {
+                    getLogger().error("Protocol error: Invalid incoming message: " + e.getMessage());
+                    Signaling.this.resetConnection(CloseCode.PROTOCOL_ERROR);
+                }
             }
         });
     }
 
     /**
      * Encrypt arbitrary data for the peer using the session keys.
+     *
      * @param data Plain data bytes.
      * @param dc The secure data channel that will be used to send this data.
+     * @param csn The `CombinedSequenceNumber` instance to use.
      * @return Encrypted box.
      */
-    public @Nullable Box encryptData(@NonNull byte[] data, @NonNull SecureDataChannel dc)
+    public @Nullable Box encryptData(@NonNull byte[] data,
+                                     @NonNull SecureDataChannel dc,
+                                     @NonNull CombinedSequence csn)
             throws CryptoFailedException, InvalidKeyException {
-        // Choose proper CSN
-        final CombinedSequence csn;
-        try {
-            csn = this.getNextCsn(this.getPeerAddress());
-        } catch (ProtocolException e) {
-            this.resetConnection(CloseCode.PROTOCOL_ERROR);
-            return null;
-        }
-
         // Create nonce
         final DataChannelNonce nonce = new DataChannelNonce(
-                this.cookiePair.getOurs().getBytes(),
-                123, // TODO: Get actual dc id
+                this.cookie.getBytes(),
+                123, // TODO: Get actual dc id (https://bugs.chromium.org/p/webrtc/issues/detail?id=6106)
                 csn.getOverflow(), csn.getSequenceNumber());
 
         // Encrypt

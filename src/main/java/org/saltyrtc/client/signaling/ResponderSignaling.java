@@ -11,6 +11,7 @@ package org.saltyrtc.client.signaling;
 import com.neilalexander.jnacl.NaCl;
 
 import org.saltyrtc.client.SaltyRTC;
+import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.cookie.Cookie;
 import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
@@ -49,14 +50,15 @@ public class ResponderSignaling extends Signaling {
         return org.slf4j.LoggerFactory.getLogger("SaltyRTC.RSignaling");
     }
 
-    private Initiator initiator;
-    private AuthToken authToken;
+    private final Initiator initiator;
+    private final AuthToken authToken;
 
     public ResponderSignaling(SaltyRTC saltyRTC, String host, int port,
                               KeyStore permanentKey, SSLContext sslContext,
                               byte[] initiatorPublicKey, byte[] authToken)
                               throws java.security.InvalidKeyException {
         super(saltyRTC, host, port, permanentKey, sslContext);
+        this.role = SignalingRole.Responder;
         this.initiator = new Initiator(initiatorPublicKey);
         this.authToken = new AuthToken(authToken);
     }
@@ -73,9 +75,9 @@ public class ResponderSignaling extends Signaling {
     protected CombinedSequence getNextCsn(short receiver) throws ProtocolException {
         try {
             if (receiver == Signaling.SALTYRTC_ADDR_SERVER) {
-                return this.serverCsn.next();
+                return this.serverCsn.getOurs().next();
             } else if (receiver == Signaling.SALTYRTC_ADDR_INITIATOR) {
-                return this.initiator.getCsn().next();
+                return this.initiator.getCsnPair().getOurs().next();
             } else if (isResponderId(receiver)) {
                 throw new ProtocolException("Responder may not send messages to other responders: " + receiver);
             } else {
@@ -129,7 +131,6 @@ public class ResponderSignaling extends Signaling {
         }
 
         // Set proper address
-        // TODO: validate nonce
         if (nonce.getDestination() > 0xff || nonce.getDestination() < 0x02) {
             throw new ProtocolException("Invalid nonce destination: " + nonce.getDestination());
         }
@@ -138,10 +139,10 @@ public class ResponderSignaling extends Signaling {
 
         // Validate cookie
         final Cookie cookie = new Cookie(msg.getYourCookie());
-        if (!cookie.equals(this.cookiePair.getOurs())) {
+        if (!cookie.equals(this.cookie)) {
             getLogger().error("Bad repeated cookie in server-auth message");
             getLogger().debug("Their response: " + Arrays.toString(msg.getYourCookie()) +
-                    ", our cookie: " + Arrays.toString(this.cookiePair.getOurs().getBytes()));
+                    ", our cookie: " + Arrays.toString(this.cookie.getBytes()));
             throw new ProtocolException("Bad repeated cookie in server-auth message");
         }
 
@@ -235,7 +236,7 @@ public class ResponderSignaling extends Signaling {
                     // Expect an auth message
                     if (msg instanceof Auth) {
                         getLogger().debug("Received auth");
-                        handleAuth((Auth) msg);
+                        handleAuth((Auth) msg, nonce);
                         sendAuth(nonce);
                     } else {
                         throw new ProtocolException("Expected auth message, but got " + msg.getType());
@@ -285,12 +286,13 @@ public class ResponderSignaling extends Signaling {
     /**
      * The initiator repeats our cookie.
      */
-    protected void handleAuth(Auth msg) throws ProtocolException {
+    protected void handleAuth(Auth msg, SignalingChannelNonce nonce) throws ProtocolException {
         // Validate cookie
         validateRepeatedCookie(msg);
 
         // OK!
         getLogger().debug("Initiator authenticated");
+        this.initiator.setCookie(nonce.getCookie());
     }
 
     /**
@@ -298,7 +300,7 @@ public class ResponderSignaling extends Signaling {
      */
     protected void sendAuth(SignalingChannelNonce nonce) throws ProtocolException, ConnectionException {
         // Ensure that cookies are different
-        if (nonce.getCookie().equals(this.cookiePair.getOurs())) {
+        if (nonce.getCookie().equals(this.cookie)) {
             throw new ProtocolException("Their cookie and our cookie are the same");
         }
 
@@ -310,6 +312,7 @@ public class ResponderSignaling extends Signaling {
     }
 
     @Override
+    @Nullable
     protected Short getPeerAddress() {
         if (this.initiator != null) {
             return this.initiator.getId();
@@ -318,6 +321,16 @@ public class ResponderSignaling extends Signaling {
     }
 
     @Override
+    @Nullable
+    public Cookie getPeerCookie() {
+        if (this.initiator != null) {
+            return this.initiator.getCookie();
+        }
+        return null;
+    }
+
+    @Override
+    @Nullable
     protected byte[] getPeerSessionKey() {
         if (this.initiator != null) {
             return this.initiator.sessionKey;
@@ -325,5 +338,15 @@ public class ResponderSignaling extends Signaling {
         return null;
     }
 
+    /**
+     * Validate CSN of the initiator.
+     */
+    protected void validateSignalingNoncePeerCsn(SignalingChannelNonce nonce) throws ValidationError {
+        if (nonce.getSource() == SALTYRTC_ADDR_INITIATOR) {
+            this.validateSignalingNonceCsn(nonce, this.initiator.getCsnPair(), "initiator");
+        } else {
+            throw new ValidationError("Invalid source byte, cannot validate CSN");
+        }
+    }
 
 }
