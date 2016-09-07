@@ -11,6 +11,27 @@ for Java 7+.
 The development is still ongoing, the current version is only at alpha-level
 and should not be used for production yet.
 
+## Installing
+
+The package is available [on Bintray](https://bintray.com/saltyrtc/maven/saltyrtc-client/).
+
+Gradle:
+
+```groovy
+compile 'org.saltyrtc.client:saltyrtc-client:0.1.0'
+```
+
+Maven:
+
+```xml
+<dependency>
+  <groupId>org.saltyrtc.client</groupId>
+  <artifactId>saltyrtc-client</artifactId>
+  <version>0.1.0</version>
+  <type>pom</type>
+</dependency>
+```
+
 ## Logging
 
 The library uses the slf4j logging API. Configure a logger (e.g. slf4j-simple)
