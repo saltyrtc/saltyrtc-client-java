@@ -206,7 +206,7 @@ public abstract class Signaling {
      * This operation is asynchronous, once the connection is closed, the
      * `SignalingStateChangedEvent` will be emitted.
      *
-     * @see this.resetConnection(int)
+     * See `this.resetConnection(int)`
      */
     public void disconnect() {
         this.disconnect(CloseCode.CLOSING_NORMAL);

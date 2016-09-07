@@ -1,10 +1,3 @@
-// Apply the java plugin to add support for Java
-apply plugin: 'java'
-apply plugin: 'witness'
-
-targetCompatibility = '1.7'
-sourceCompatibility = '1.7'
-
 buildscript {
     repositories {
         jcenter()
@@ -13,6 +6,21 @@ buildscript {
         classpath files('libs/gradle-witness.jar')
     }
 }
+
+plugins {
+    // Base
+    id 'java'
+
+    // Publishing on bintray
+    id 'maven'
+    id 'maven-publish'
+    id 'com.jfrog.bintray' version '1.7'
+}
+
+apply plugin: 'witness'
+
+targetCompatibility = '1.7'
+sourceCompatibility = '1.7'
 
 // In this section you declare where to find the dependencies of your project
 repositories {
@@ -63,5 +71,58 @@ dependencyVerification {
 test {
     testLogging {
         events "passed", "skipped", "failed", "standardError"
+    }
+}
+
+// custom tasks for creating source/javadoc jars
+task sourcesJar(type: Jar, dependsOn: classes) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+// add javadoc/source jar tasks as artifacts
+artifacts {
+    archives sourcesJar, javadocJar
+}
+
+publishing {
+    publications {
+        SaltyRTC(MavenPublication) {
+            from components.java
+            groupId 'org.saltyrtc.client'
+            artifactId 'saltyrtc-client'
+            version '0.1.0'
+            artifact sourcesJar
+            artifact javadocJar
+        }
+    }
+}
+
+bintray {
+    user = System.getenv('BINTRAY_USER')
+    key = System.getenv('BINTRAY_KEY')
+    publications = ['SaltyRTC']
+    pkg {
+        repo = 'maven'
+        name = 'saltyrtc-client'
+        userOrg = 'saltyrtc'
+        desc = 'Java client for SaltyRTC.'
+        websiteUrl = 'http://saltyrtc.org/'
+        issueTrackerUrl = 'https://github.com/saltyrtc/saltyrtc-client-java/issues'
+        vcsUrl = 'https://github.com/saltyrtc/saltyrtc-client-java.git'
+        githubRepo = 'saltyrtc/saltyrtc-client-java'
+        publicDownloadNumbers = true
+        licenses = ['MIT', 'Apache-2.0']
+        labels = ['saltyrtc', 'webrtc', 'ortc', 'data channels', 'signaling', 'secure']
+        version {
+            name = '0.1.0'
+            desc = 'SaltyRTC Java Client v0.1.0'
+            released = new Date()
+            vcsTag = 'v0.1.0'
+        }
     }
 }
