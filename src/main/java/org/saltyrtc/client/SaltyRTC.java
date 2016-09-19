@@ -77,8 +77,9 @@ public class SaltyRTC {
                 this.signaling = new InitiatorSignaling(
                         this, host, port, permanentKey, sslContext, peerTrustedKey);
                 break;
+            default:
+                throw new IllegalArgumentException("Invalid role: " + role);
         }
-        throw new IllegalArgumentException("Invalid role: " + role);
     }
 
     public byte[] getPublicPermanentKey() {
