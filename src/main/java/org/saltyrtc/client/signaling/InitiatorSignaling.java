@@ -398,17 +398,24 @@ public class InitiatorSignaling extends Signaling {
     }
 
     /**
+     * Drop specific responder.
+     */
+    protected void dropResponder(short responderId) throws ProtocolException, ConnectionException {
+        final DropResponder msg = new DropResponder(responderId);
+        final byte[] packet = this.buildPacket(msg, responderId);
+        getLogger().debug("Sending drop-responder " + responderId);
+        this.send(packet, msg);
+        this.responders.remove(responderId);
+    }
+
+    /**
      * Drop all responders.
      */
     protected void dropResponders() throws ProtocolException, ConnectionException {
         getLogger().debug("Dropping " + this.responders.size() + " other responders");
         final Set<Short> ids = this.responders.keySet();
         for (short id : ids) {
-            final DropResponder msg = new DropResponder(id);
-            final byte[] packet = this.buildPacket(msg, id);
-            getLogger().debug("Sending drop-responder " + id);
-            this.send(packet, msg);
-            this.responders.remove(id);
+            dropResponder(id);
         }
     }
 
