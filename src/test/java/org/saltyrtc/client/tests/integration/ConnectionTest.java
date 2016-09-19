@@ -278,6 +278,138 @@ public class ConnectionTest {
                    durationMs < MAX_DURATION);
     }
 
+    @Test
+    public void testTrustedHandshakeInitiatorFirst() throws Exception {
+        // Create trusting peers
+        final SSLContext sslContext = SSLContextHelper.getSSLContext();
+        final SaltyRTC trustingInitiator = new SaltyRTCBuilder()
+                .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
+                .withKeyStore(this.initiator.getKeyStore())
+                .withTrustedPeerKey(this.responder.getPublicPermanentKey())
+                .asInitiator();
+        final SaltyRTC trustingResponder = new SaltyRTCBuilder()
+                .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
+                .withKeyStore(this.responder.getKeyStore())
+                .withTrustedPeerKey(this.initiator.getPublicPermanentKey())
+                .asResponder();
+
+        // Signaling state should still be NEW
+        assertEquals(SignalingState.NEW, trustingInitiator.getSignalingState());
+        assertEquals(SignalingState.NEW, trustingResponder.getSignalingState());
+
+        // Latches to test connection state
+        final CountDownLatch connectedPeers = new CountDownLatch(2);
+        trustingInitiator.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
+            @Override
+            public boolean handle(SignalingStateChangedEvent event) {
+                if (event.getState() == SignalingState.OPEN) {
+                    connectedPeers.countDown();
+                }
+                return false;
+            }
+        });
+        trustingResponder.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
+            @Override
+            public boolean handle(SignalingStateChangedEvent event) {
+                if (event.getState() == SignalingState.OPEN) {
+                    connectedPeers.countDown();
+                }
+                return false;
+            }
+        });
+
+        // Connect server
+        trustingInitiator.connect();
+        Thread.sleep(1000);
+        trustingResponder.connect();
+
+        // Wait for full handshake
+        final boolean bothConnected = connectedPeers.await(4, TimeUnit.SECONDS);
+        assertTrue(bothConnected);
+
+        // Signaling state should be OPEN
+        assertEquals(SignalingState.OPEN, trustingInitiator.getSignalingState());
+        assertEquals(SignalingState.OPEN, trustingResponder.getSignalingState());
+
+        // Disconnect
+        trustingInitiator.disconnect();
+        trustingResponder.disconnect();
+
+        // Await close events
+        Thread.sleep(300);
+
+        // Signaling state should be CLOSED
+        assertEquals(SignalingState.CLOSED, trustingInitiator.getSignalingState());
+        assertEquals(SignalingState.CLOSED, trustingResponder.getSignalingState());
+    }
+
+    @Test
+    public void testTrustedHandshakeResponderFirst() throws Exception {
+        // Create trusting peers
+        final SSLContext sslContext = SSLContextHelper.getSSLContext();
+        final SaltyRTC trustingInitiator = new SaltyRTCBuilder()
+                .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
+                .withKeyStore(this.initiator.getKeyStore())
+                .withTrustedPeerKey(this.responder.getPublicPermanentKey())
+                .asInitiator();
+        final SaltyRTC trustingResponder = new SaltyRTCBuilder()
+                .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
+                .withKeyStore(this.responder.getKeyStore())
+                .withTrustedPeerKey(this.initiator.getPublicPermanentKey())
+                .asResponder();
+
+        // Signaling state should still be NEW
+        assertEquals(SignalingState.NEW, trustingInitiator.getSignalingState());
+        assertEquals(SignalingState.NEW, trustingResponder.getSignalingState());
+
+        // Latches to test connection state
+        final CountDownLatch connectedPeers = new CountDownLatch(2);
+
+        // Register onConnect handler
+        trustingInitiator.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
+            @Override
+            public boolean handle(SignalingStateChangedEvent event) {
+                if (event.getState() == SignalingState.OPEN) {
+                    connectedPeers.countDown();
+                }
+                return false;
+            }
+        });
+        trustingResponder.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
+            @Override
+            public boolean handle(SignalingStateChangedEvent event) {
+                if (event.getState() == SignalingState.OPEN) {
+                    connectedPeers.countDown();
+                }
+                return false;
+            }
+        });
+
+        // Connect server
+        trustingResponder.connect();
+        Thread.sleep(1000);
+        trustingInitiator.connect();
+
+        // Wait for full handshake
+        final boolean bothConnected = connectedPeers.await(4, TimeUnit.SECONDS);
+        assertTrue(bothConnected);
+
+        // Signaling state should be OPEN
+        assertEquals(SignalingState.OPEN, trustingInitiator.getSignalingState());
+        assertEquals(SignalingState.OPEN, trustingResponder.getSignalingState());
+
+        // Disconnect
+        trustingInitiator.disconnect();
+        trustingResponder.disconnect();
+
+        // Await close events
+        Thread.sleep(300);
+
+        // Signaling state should be CLOSED
+        assertEquals(SignalingState.CLOSED, trustingInitiator.getSignalingState());
+        assertEquals(SignalingState.CLOSED, trustingResponder.getSignalingState());
+    }
+
     // Note: Unfortunately right now we cannot test the handover outside of Android,
     // as the libjingle peerconnection only works on the Android platform.
 

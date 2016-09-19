@@ -100,10 +100,10 @@ public abstract class Signaling {
     // Keys
     protected byte[] serverKey;
     protected KeyStore sessionKey;
+    @NonNull
+    protected final KeyStore permanentKey;
     @Nullable
-    protected KeyStore permanentKey = null;
-    @Nullable
-    protected AuthToken authToken = null;
+    protected AuthToken authToken;
     @Nullable
     protected byte[] peerTrustedKey = null;
 
@@ -138,14 +138,20 @@ public abstract class Signaling {
         return this.permanentKey;
     }
 
+    @NonNull
     public byte[] getPublicPermanentKey() {
         return this.permanentKey.getPublicKey();
     }
 
+    @Nullable
     public byte[] getAuthToken() {
-        return this.authToken.getAuthToken();
+        if (this.authToken != null) {
+            return this.authToken.getAuthToken();
+        }
+        return null;
     }
 
+    @NonNull
     public SignalingState getState() {
         return this.state;
     }
@@ -687,7 +693,8 @@ public abstract class Signaling {
      * That needs to be done (differently) in the initiator and
      * responder signaling subclasses.
      */
-    protected abstract void handleServerAuth(Message baseMsg, SignalingChannelNonce nonce) throws ProtocolException;
+    protected abstract void handleServerAuth(Message baseMsg, SignalingChannelNonce nonce) throws
+            ProtocolException, ConnectionException;
 
     /**
      * Initialize the peer handshake.
