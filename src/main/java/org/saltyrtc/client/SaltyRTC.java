@@ -70,11 +70,11 @@ public class SaltyRTC {
              byte[] peerTrustedKey, SignalingRole role) throws InvalidKeyException {
         switch (role) {
             case Initiator:
-                this.signaling = new ResponderSignaling(
+                this.signaling = new InitiatorSignaling(
                         this, host, port, permanentKey, sslContext, peerTrustedKey);
                 break;
             case Responder:
-                this.signaling = new InitiatorSignaling(
+                this.signaling = new ResponderSignaling(
                         this, host, port, permanentKey, sslContext, peerTrustedKey);
                 break;
             default:
