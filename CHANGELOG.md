@@ -12,7 +12,7 @@ Possible log types:
 - `[security]` to invite users to upgrade in case of vulnerabilities.
 
 
-### UNRELEASED
+### v0.2.0 (2016-09-19)
 
 - [changed] Introduce `SaltyRTCBuilder` (#15)
 - [added] Implement trusted keys (#16)
