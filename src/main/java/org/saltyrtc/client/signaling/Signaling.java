@@ -318,15 +318,19 @@ public abstract class Signaling {
                 // TODO: The following errors could also be handled using `handleCallbackError` on the websocket.
                 } catch (ValidationError | SerializationError e) {
                     getLogger().error("Protocol error: Invalid incoming message: " + e.getMessage());
+                    e.printStackTrace();
                     Signaling.this.resetConnection(CloseCode.PROTOCOL_ERROR);
                 } catch (ProtocolException e) {
                     getLogger().error("Protocol error: " + e.getMessage());
+                    e.printStackTrace();
                     Signaling.this.resetConnection(CloseCode.PROTOCOL_ERROR);
                 } catch (InternalException e) {
                     getLogger().error("Internal server error: " + e.getMessage());
+                    e.printStackTrace();
                     Signaling.this.resetConnection(CloseCode.INTERNAL_ERROR);
                 } catch (ConnectionException e) {
                     getLogger().error("Connection error: " + e.getMessage());
+                    e.printStackTrace();
                     Signaling.this.resetConnection(CloseCode.INTERNAL_ERROR);
                 }
             }
