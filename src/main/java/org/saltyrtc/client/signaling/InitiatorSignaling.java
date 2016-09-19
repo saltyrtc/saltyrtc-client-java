@@ -66,6 +66,14 @@ public class InitiatorSignaling extends Signaling {
         this.authToken = new AuthToken();
     }
 
+    public InitiatorSignaling(SaltyRTC saltyRTC, String host, int port,
+                              KeyStore permanentKey, SSLContext sslContext,
+                              byte[] responderTrustedKey) {
+        super(saltyRTC, host, port, permanentKey, sslContext, responderTrustedKey);
+        this.role = SignalingRole.Initiator;
+        this.authToken = new AuthToken();
+    }
+
     /**
      * The initiator needs to use its own public permanent key as connection path.
      */

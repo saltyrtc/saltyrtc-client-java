@@ -23,14 +23,15 @@ public class SaltyRTCBuilder {
     private boolean hasKeyStore = false;
     private boolean hasConnectionInfo = false;
     private boolean hasInitiatorInfo = false;
+    private boolean hasTrustedPeerKey = false;
 
     private KeyStore keyStore;
     private String host;
     private Integer port;
     private SSLContext sslContext;
-
     private byte[] initiatorPublicKey;
     private byte[] authToken;
+    private byte[] peerTrustedKey;
 
     /**
      * Validate the specified host, throw an IllegalArgumentException if it's invalid.
@@ -101,6 +102,17 @@ public class SaltyRTCBuilder {
     public SaltyRTCBuilder withKeyStore(KeyStore keyStore) {
         this.keyStore = keyStore;
         this.hasKeyStore = true;
+        return this;
+    }
+
+    /**
+     * Set the trusted public key of the peer.
+     *
+     * @param peerTrustedKey The trusted public key of the peer.
+     */
+    public SaltyRTCBuilder withTrustedPeerKey(byte[] peerTrustedKey) {
+        this.peerTrustedKey = peerTrustedKey;
+        this.hasTrustedPeerKey = true;
         return this;
     }
 

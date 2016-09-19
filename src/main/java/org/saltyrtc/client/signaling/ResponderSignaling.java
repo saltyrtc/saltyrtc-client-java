@@ -11,6 +11,7 @@ package org.saltyrtc.client.signaling;
 import com.neilalexander.jnacl.NaCl;
 
 import org.saltyrtc.client.SaltyRTC;
+import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.cookie.Cookie;
 import org.saltyrtc.client.exceptions.ConnectionException;
@@ -50,8 +51,10 @@ public class ResponderSignaling extends Signaling {
         return org.slf4j.LoggerFactory.getLogger("SaltyRTC.RSignaling");
     }
 
+    @NonNull
     private final Initiator initiator;
-    private final AuthToken authToken;
+    @Nullable
+    private AuthToken authToken = null;
 
     public ResponderSignaling(SaltyRTC saltyRTC, String host, int port,
                               KeyStore permanentKey, SSLContext sslContext,
@@ -61,6 +64,15 @@ public class ResponderSignaling extends Signaling {
         this.role = SignalingRole.Responder;
         this.initiator = new Initiator(initiatorPublicKey);
         this.authToken = new AuthToken(authToken);
+    }
+
+    public ResponderSignaling(SaltyRTC saltyRTC, String host, int port,
+                              KeyStore permanentKey, SSLContext sslContext,
+                              byte[] initiatorTrustedKey)
+            throws java.security.InvalidKeyException {
+        super(saltyRTC, host, port, permanentKey, sslContext, initiatorTrustedKey);
+        this.role = SignalingRole.Responder;
+        this.initiator = new Initiator(initiatorTrustedKey);
     }
 
     /**

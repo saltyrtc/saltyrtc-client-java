@@ -99,9 +99,13 @@ public abstract class Signaling {
 
     // Keys
     protected byte[] serverKey;
-    protected final KeyStore permanentKey;
     protected KeyStore sessionKey;
-    protected AuthToken authToken;
+    @Nullable
+    protected KeyStore permanentKey = null;
+    @Nullable
+    protected AuthToken authToken = null;
+    @Nullable
+    protected byte[] peerTrustedKey = null;
 
     // Signaling
     protected SignalingRole role;
@@ -120,6 +124,13 @@ public abstract class Signaling {
         this.port = port;
         this.permanentKey = permanentKey;
         this.sslContext = sslContext;
+    }
+
+    public Signaling(SaltyRTC salty, String host, int port,
+                     KeyStore permanentKey, SSLContext sslContext,
+                     byte[] peerTrustedKey) {
+        this(salty, host, port, permanentKey, sslContext);
+        this.peerTrustedKey = peerTrustedKey;
     }
 
     public byte[] getPublicPermanentKey() {
