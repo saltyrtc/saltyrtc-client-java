@@ -14,7 +14,8 @@ Possible log types:
 
 ### UNRELEASED
 
-- [changed] Introduce `SaltyRTCBuilder`
+- [changed] Introduce `SaltyRTCBuilder` (#15)
+- [added] Implement trusted keys (#16)
 
 ### v0.1.0 (2016-09-07)
 

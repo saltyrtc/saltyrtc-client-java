@@ -22,6 +22,7 @@ import org.saltyrtc.client.signaling.InitiatorSignaling;
 import org.saltyrtc.client.signaling.ResponderSignaling;
 import org.saltyrtc.client.signaling.Signaling;
 import org.saltyrtc.client.signaling.SignalingChannel;
+import org.saltyrtc.client.signaling.SignalingRole;
 import org.saltyrtc.client.signaling.state.SignalingState;
 import org.slf4j.Logger;
 import org.webrtc.DataChannel;
@@ -51,15 +52,38 @@ public class SaltyRTC {
     // Internal constructor used by SaltyRTCBuilder.
     // Initialize as initiator without trusted key.
     SaltyRTC(KeyStore permanentKey, String host, int port, SSLContext sslContext) {
-        this.signaling = new InitiatorSignaling(this, host, port, permanentKey, sslContext);
+        this.signaling = new InitiatorSignaling(
+                this, host, port, permanentKey, sslContext);
     }
 
     // Internal constructor used by SaltyRTCBuilder.
-    // Initialize as initiator without trusted key.
+    // Initialize as responder without trusted key.
     SaltyRTC(KeyStore permanentKey, String host, int port, SSLContext sslContext,
                        byte[] initiatorPublicKey, byte[] authToken) throws InvalidKeyException {
         this.signaling = new ResponderSignaling(
                 this, host, port, permanentKey, sslContext, initiatorPublicKey, authToken);
+    }
+
+    // Internal constructor used by SaltyRTCBuilder.
+    // Initialize as initiator or responder with trusted key.
+    SaltyRTC(KeyStore permanentKey, String host, int port, SSLContext sslContext,
+             byte[] peerTrustedKey, SignalingRole role) throws InvalidKeyException {
+        switch (role) {
+            case Initiator:
+                this.signaling = new InitiatorSignaling(
+                        this, host, port, permanentKey, sslContext, peerTrustedKey);
+                break;
+            case Responder:
+                this.signaling = new ResponderSignaling(
+                        this, host, port, permanentKey, sslContext, peerTrustedKey);
+                break;
+            default:
+                throw new IllegalArgumentException("Invalid role: " + role);
+        }
+    }
+
+    public KeyStore getKeyStore() {
+        return this.signaling.getKeyStore();
     }
 
     public byte[] getPublicPermanentKey() {

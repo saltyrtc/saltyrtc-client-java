@@ -10,6 +10,7 @@ package org.saltyrtc.client;
 
 import org.saltyrtc.client.exceptions.InvalidBuilderStateException;
 import org.saltyrtc.client.keystore.KeyStore;
+import org.saltyrtc.client.signaling.SignalingRole;
 
 import java.security.InvalidKeyException;
 
@@ -23,14 +24,15 @@ public class SaltyRTCBuilder {
     private boolean hasKeyStore = false;
     private boolean hasConnectionInfo = false;
     private boolean hasInitiatorInfo = false;
+    private boolean hasTrustedPeerKey = false;
 
     private KeyStore keyStore;
     private String host;
     private Integer port;
     private SSLContext sslContext;
-
     private byte[] initiatorPublicKey;
     private byte[] authToken;
+    private byte[] peerTrustedKey;
 
     /**
      * Validate the specified host, throw an IllegalArgumentException if it's invalid.
@@ -105,6 +107,17 @@ public class SaltyRTCBuilder {
     }
 
     /**
+     * Set the trusted public key of the peer.
+     *
+     * @param peerTrustedKey The trusted public key of the peer.
+     */
+    public SaltyRTCBuilder withTrustedPeerKey(byte[] peerTrustedKey) {
+        this.peerTrustedKey = peerTrustedKey;
+        this.hasTrustedPeerKey = true;
+        return this;
+    }
+
+    /**
      * Set initiator connection info transferred via a secure data channel.
      * @param initiatorPublicKey The public key of the initiator.
      * @param authToken The secret auth token.
@@ -121,10 +134,16 @@ public class SaltyRTCBuilder {
      *
      * @throws InvalidBuilderStateException Thrown if key or connection info haven't been set yet.
      */
-    public SaltyRTC asInitiator() throws InvalidBuilderStateException {
+    public SaltyRTC asInitiator() throws InvalidBuilderStateException, InvalidKeyException {
         this.requireKeyStore();
         this.requireConnectionInfo();
-        return new SaltyRTC(this.keyStore, this.host, this.port, this.sslContext);
+        if (this.hasTrustedPeerKey) {
+            return new SaltyRTC(
+                    this.keyStore, this.host, this.port, this.sslContext,
+                    this.peerTrustedKey, SignalingRole.Initiator);
+        } else {
+            return new SaltyRTC(this.keyStore, this.host, this.port, this.sslContext);
+        }
     }
 
     /**
@@ -137,8 +156,13 @@ public class SaltyRTCBuilder {
     public SaltyRTC asResponder() throws InvalidBuilderStateException, InvalidKeyException {
         this.requireKeyStore();
         this.requireConnectionInfo();
-        this.requireInitiatorInfo();
-        return new SaltyRTC(this.keyStore, this.host, this.port, this.sslContext,
-                this.initiatorPublicKey, this.authToken);
+        if (this.hasTrustedPeerKey) {
+            return new SaltyRTC(this.keyStore, this.host, this.port, this.sslContext,
+                    this.peerTrustedKey, SignalingRole.Responder);
+        } else {
+            this.requireInitiatorInfo();
+            return new SaltyRTC(this.keyStore, this.host, this.port, this.sslContext,
+                    this.initiatorPublicKey, this.authToken);
+        }
     }
 }

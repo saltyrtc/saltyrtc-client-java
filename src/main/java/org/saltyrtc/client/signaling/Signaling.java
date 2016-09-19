@@ -99,9 +99,13 @@ public abstract class Signaling {
 
     // Keys
     protected byte[] serverKey;
-    protected final KeyStore permanentKey;
     protected KeyStore sessionKey;
+    @NonNull
+    protected final KeyStore permanentKey;
+    @Nullable
     protected AuthToken authToken;
+    @Nullable
+    protected byte[] peerTrustedKey = null;
 
     // Signaling
     protected SignalingRole role;
@@ -122,14 +126,32 @@ public abstract class Signaling {
         this.sslContext = sslContext;
     }
 
+    public Signaling(SaltyRTC salty, String host, int port,
+                     KeyStore permanentKey, SSLContext sslContext,
+                     byte[] peerTrustedKey) {
+        this(salty, host, port, permanentKey, sslContext);
+        this.peerTrustedKey = peerTrustedKey;
+    }
+
+    @NonNull
+    public KeyStore getKeyStore() {
+        return this.permanentKey;
+    }
+
+    @NonNull
     public byte[] getPublicPermanentKey() {
         return this.permanentKey.getPublicKey();
     }
 
+    @Nullable
     public byte[] getAuthToken() {
-        return this.authToken.getAuthToken();
+        if (this.authToken != null) {
+            return this.authToken.getAuthToken();
+        }
+        return null;
     }
 
+    @NonNull
     public SignalingState getState() {
         return this.state;
     }
@@ -302,15 +324,19 @@ public abstract class Signaling {
                 // TODO: The following errors could also be handled using `handleCallbackError` on the websocket.
                 } catch (ValidationError | SerializationError e) {
                     getLogger().error("Protocol error: Invalid incoming message: " + e.getMessage());
+                    e.printStackTrace();
                     Signaling.this.resetConnection(CloseCode.PROTOCOL_ERROR);
                 } catch (ProtocolException e) {
                     getLogger().error("Protocol error: " + e.getMessage());
+                    e.printStackTrace();
                     Signaling.this.resetConnection(CloseCode.PROTOCOL_ERROR);
                 } catch (InternalException e) {
                     getLogger().error("Internal server error: " + e.getMessage());
+                    e.printStackTrace();
                     Signaling.this.resetConnection(CloseCode.INTERNAL_ERROR);
                 } catch (ConnectionException e) {
                     getLogger().error("Connection error: " + e.getMessage());
+                    e.printStackTrace();
                     Signaling.this.resetConnection(CloseCode.INTERNAL_ERROR);
                 }
             }
@@ -667,7 +693,8 @@ public abstract class Signaling {
      * That needs to be done (differently) in the initiator and
      * responder signaling subclasses.
      */
-    protected abstract void handleServerAuth(Message baseMsg, SignalingChannelNonce nonce) throws ProtocolException;
+    protected abstract void handleServerAuth(Message baseMsg, SignalingChannelNonce nonce) throws
+            ProtocolException, ConnectionException;
 
     /**
      * Initialize the peer handshake.

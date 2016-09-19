@@ -59,11 +59,25 @@ public class InitiatorSignaling extends Signaling {
     // Once the handshake is done, this is the chosen responder
     protected Responder responder;
 
+    /**
+     * Create an instance without a trusted key.
+     */
     public InitiatorSignaling(SaltyRTC saltyRTC, String host, int port,
                               KeyStore permanentKey, SSLContext sslContext) {
         super(saltyRTC, host, port, permanentKey, sslContext);
         this.role = SignalingRole.Initiator;
         this.authToken = new AuthToken();
+    }
+
+    /**
+     * Create an instance with a trusted key.
+     */
+    public InitiatorSignaling(SaltyRTC saltyRTC, String host, int port,
+                              KeyStore permanentKey, SSLContext sslContext,
+                              byte[] responderTrustedKey) {
+        super(saltyRTC, host, port, permanentKey, sslContext, responderTrustedKey);
+        this.role = SignalingRole.Initiator;
+        this.authToken = null;
     }
 
     /**
@@ -161,7 +175,8 @@ public class InitiatorSignaling extends Signaling {
     }
 
     @Override
-    protected void handleServerAuth(Message baseMsg, SignalingChannelNonce nonce) throws ProtocolException {
+    protected void handleServerAuth(Message baseMsg, SignalingChannelNonce nonce)
+            throws ProtocolException, ConnectionException {
         // Cast to proper subtype
         final InitiatorServerAuth msg;
         try {
@@ -182,10 +197,10 @@ public class InitiatorSignaling extends Signaling {
             throw new ProtocolException("Bad repeated cookie in server-auth message");
         }
 
-        // Store responders
+        // Process responders
         for (int number : msg.getResponders()) {
             final short id = this.validateResponderId(number);
-            this.responders.put(id, new Responder(id));
+            this.processNewResponder(id);
         }
         getLogger().debug(this.responders.size() + " responder(s) connected.");
 
@@ -238,6 +253,7 @@ public class InitiatorSignaling extends Signaling {
             switch (responder.handshakeState) {
                 case NEW:
                     // Expect token message, encrypted with authentication token
+                    // TODO: What if we get a token message? See saltyrtc-meta#15
                     try {
                         payload = this.authToken.decrypt(box);
                     } catch (CryptoFailedException e) {
@@ -257,10 +273,20 @@ public class InitiatorSignaling extends Signaling {
                     // Expect key message, encrypted with our public permanent key
                     // and responder private permanent key
                     try {
-                        payload = this.permanentKey.decrypt(box, responder.permanentKey);
+                        final byte[] peerPublicKey = this.peerTrustedKey == null
+                                ? responder.permanentKey
+                                : this.peerTrustedKey;
+                        payload = this.permanentKey.decrypt(box, peerPublicKey);
                     } catch (CryptoFailedException | InvalidKeyException e) {
                         e.printStackTrace();
-                        throw new ProtocolException("Could not decrypt key message");
+                        if (this.peerTrustedKey == null) {
+                            // We don't trust a responder, so this should not happen.
+                            throw new ProtocolException("Could not decrypt key message");
+                        } else {
+                            // We trust a responder, but this responder used a different key.
+                            this.dropResponder(responder.getId());
+                            break;
+                        }
                     }
 
                     msg = MessageReader.read(payload);
@@ -309,7 +335,7 @@ public class InitiatorSignaling extends Signaling {
     /**
      * A new responder wants to connect.
      */
-    protected void handleNewResponder(NewResponder msg) throws ProtocolException {
+    protected void handleNewResponder(NewResponder msg) throws ProtocolException, ConnectionException {
         // Validate responder id
         final short id = this.validateResponderId(msg.getId());
 
@@ -319,8 +345,35 @@ public class InitiatorSignaling extends Signaling {
                                         "already known responder (" + id + ")");
         }
 
+        // Process responder
+        processNewResponder(id);
+    }
+
+    /**
+     * Store a new responder.
+     *
+     * If we trust the responder, send our session key.
+     */
+    protected void processNewResponder(short responderId) throws ConnectionException, ProtocolException {
+        // Create responder instance
+        final Responder responder = new Responder(responderId);
+
+        // If we trust the responder...
+        if (this.peerTrustedKey != null) {
+            // ...don't expect a token message.
+            responder.handshakeState = ResponderHandshakeState.TOKEN_RECEIVED;
+
+            // Set the public permanent key.
+            responder.setPermanentKey(this.peerTrustedKey);
+        }
+
         // Store responder
-        this.responders.put(id, new Responder(id));
+        this.responders.put(responderId, responder);
+
+        // If we trust the responder, send our session key directly.
+        if (this.peerTrustedKey != null) {
+            this.sendKey(responder);
+        }
     }
 
     /**
@@ -390,17 +443,24 @@ public class InitiatorSignaling extends Signaling {
     }
 
     /**
+     * Drop specific responder.
+     */
+    protected void dropResponder(short responderId) throws ProtocolException, ConnectionException {
+        final DropResponder msg = new DropResponder(responderId);
+        final byte[] packet = this.buildPacket(msg, responderId);
+        getLogger().debug("Sending drop-responder " + responderId);
+        this.send(packet, msg);
+        this.responders.remove(responderId);
+    }
+
+    /**
      * Drop all responders.
      */
     protected void dropResponders() throws ProtocolException, ConnectionException {
         getLogger().debug("Dropping " + this.responders.size() + " other responders");
         final Set<Short> ids = this.responders.keySet();
         for (short id : ids) {
-            final DropResponder msg = new DropResponder(id);
-            final byte[] packet = this.buildPacket(msg, id);
-            getLogger().debug("Sending drop-responder " + id);
-            this.send(packet, msg);
-            this.responders.remove(id);
+            dropResponder(id);
         }
     }
 
