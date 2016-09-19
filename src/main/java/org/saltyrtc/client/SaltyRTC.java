@@ -40,53 +40,26 @@ public class SaltyRTC {
     private static final Logger LOG = org.slf4j.LoggerFactory.getLogger("SaltyRTC");
 
     // Whether to enable debug mode
-    protected boolean debug = false;
+    private boolean debug = false;
 
     // Reference to signaling class
-    protected Signaling signaling;
+    private Signaling signaling;
 
     // Event registry
     public final SaltyRTC.Events events = new SaltyRTC.Events();
 
-    /**
-     * Create a SaltyRTC instance as initiator.
-     *
-     * @param permanentKey A KeyStore instance containing the permanent key.
-     * @param host The SaltyRTC server host.
-     * @param port The SaltyRTC server port.
-     * @param sslContext The SSL context used to create the encrypted WebSocket connection.
-     */
-    public SaltyRTC(KeyStore permanentKey, String host, int port, SSLContext sslContext) {
-        validateHost(host);
+    // Internal constructor used by SaltyRTCBuilder.
+    // Initialize as initiator without trusted key.
+    SaltyRTC(KeyStore permanentKey, String host, int port, SSLContext sslContext) {
         this.signaling = new InitiatorSignaling(this, host, port, permanentKey, sslContext);
     }
 
-    /**
-     * Create a SaltyRTC instance as responder.
-     *
-     * @param permanentKey A KeyStore instance containing the permanent key.
-     * @param host The SaltyRTC server host.
-     * @param port The SaltyRTC server port.
-     * @throws InvalidKeyException Either the public key or the auth token is invalid.
-     */
-    public SaltyRTC(KeyStore permanentKey, String host, int port, SSLContext sslContext,
-                    byte[] initiatorPublicKey, byte[] authToken)
-                    throws InvalidKeyException {
-        validateHost(host);
+    // Internal constructor used by SaltyRTCBuilder.
+    // Initialize as initiator without trusted key.
+    SaltyRTC(KeyStore permanentKey, String host, int port, SSLContext sslContext,
+                       byte[] initiatorPublicKey, byte[] authToken) throws InvalidKeyException {
         this.signaling = new ResponderSignaling(
                 this, host, port, permanentKey, sslContext, initiatorPublicKey, authToken);
-    }
-
-    /**
-     * Validate the specified host, throw an IllegalArgumentException if it's invalid.
-     */
-    private void validateHost(String host) {
-        if (host.endsWith("/")) {
-            throw new IllegalArgumentException("SaltyRTC host may not end with a slash");
-        }
-        if (host.contains("//")) {
-            throw new IllegalArgumentException("SaltyRTC host should not contain protocol");
-        }
     }
 
     public byte[] getPublicPermanentKey() {
