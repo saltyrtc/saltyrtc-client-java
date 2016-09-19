@@ -82,6 +82,10 @@ public class SaltyRTC {
         }
     }
 
+    public KeyStore getKeyStore() {
+        return this.signaling.getKeyStore();
+    }
+
     public byte[] getPublicPermanentKey() {
         return this.signaling.getPublicPermanentKey();
     }

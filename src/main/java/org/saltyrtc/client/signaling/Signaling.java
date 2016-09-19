@@ -133,6 +133,11 @@ public abstract class Signaling {
         this.peerTrustedKey = peerTrustedKey;
     }
 
+    @NonNull
+    public KeyStore getKeyStore() {
+        return this.permanentKey;
+    }
+
     public byte[] getPublicPermanentKey() {
         return this.permanentKey.getPublicKey();
     }
