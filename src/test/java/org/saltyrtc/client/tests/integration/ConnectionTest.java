@@ -12,6 +12,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.saltyrtc.client.SaltyRTC;
+import org.saltyrtc.client.SaltyRTCBuilder;
 import org.saltyrtc.client.events.EventHandler;
 import org.saltyrtc.client.events.SignalingStateChangedEvent;
 import org.saltyrtc.client.keystore.KeyStore;
@@ -48,11 +49,15 @@ public class ConnectionTest {
         final SSLContext sslContext = SSLContextHelper.getSSLContext();
 
         // Create SaltyRTC instances for initiator and responder
-        initiator = new SaltyRTC(
-            new KeyStore(), Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext);
-        responder = new SaltyRTC(
-            new KeyStore(), Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext,
-            initiator.getPublicPermanentKey(), initiator.getAuthToken());
+        initiator = new SaltyRTCBuilder()
+                .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
+                .withKeyStore(new KeyStore())
+                .asInitiator();
+        responder = new SaltyRTCBuilder()
+                .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
+                .withKeyStore(new KeyStore())
+                .initiatorInfo(initiator.getPublicPermanentKey(), initiator.getAuthToken())
+                .asResponder();
 
         // Enable verbose debug mode
         if (Config.VERBOSE) {
