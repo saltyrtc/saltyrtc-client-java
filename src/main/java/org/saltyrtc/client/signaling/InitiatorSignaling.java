@@ -59,6 +59,9 @@ public class InitiatorSignaling extends Signaling {
     // Once the handshake is done, this is the chosen responder
     protected Responder responder;
 
+    /**
+     * Create an instance without a trusted key.
+     */
     public InitiatorSignaling(SaltyRTC saltyRTC, String host, int port,
                               KeyStore permanentKey, SSLContext sslContext) {
         super(saltyRTC, host, port, permanentKey, sslContext);
@@ -66,12 +69,15 @@ public class InitiatorSignaling extends Signaling {
         this.authToken = new AuthToken();
     }
 
+    /**
+     * Create an instance with a trusted key.
+     */
     public InitiatorSignaling(SaltyRTC saltyRTC, String host, int port,
                               KeyStore permanentKey, SSLContext sslContext,
                               byte[] responderTrustedKey) {
         super(saltyRTC, host, port, permanentKey, sslContext, responderTrustedKey);
         this.role = SignalingRole.Initiator;
-        this.authToken = new AuthToken();
+        this.authToken = null;
     }
 
     /**
