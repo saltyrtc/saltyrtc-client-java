@@ -25,7 +25,7 @@ public class KeyStore {
     private static final Logger LOG = org.slf4j.LoggerFactory.getLogger("SaltyRTC.KeyStore");
 
     // Keys
-    private byte[] privateKey = new byte[NaCl.SECRETKEYBYTES];
+    private byte[] secretKey = new byte[NaCl.SECRETKEYBYTES];
     private byte[] publicKey = new byte[NaCl.PUBLICKEYBYTES];
 
     /**
@@ -33,19 +33,31 @@ public class KeyStore {
      */
     public KeyStore() {
         LOG.debug("Generating new key pair");
-        NaCl.genkeypair(this.publicKey, this.privateKey);
-        LOG.debug("Private key: " + NaCl.asHex(this.privateKey));
+        NaCl.genkeypair(this.publicKey, this.secretKey);
+        LOG.debug("Secret key: " + NaCl.asHex(this.secretKey));
         LOG.debug("Public key: " + NaCl.asHex(this.publicKey));
     }
 
     /**
      * Create a new key store from an existing secret key.
+     * The public key will automatically be derived.
      */
-    public KeyStore(byte[] privateKey) {
-        LOG.debug("Deriving public key from private key");
-        this.privateKey = privateKey;
-        this.publicKey = NaCl.derivePublicKey(privateKey);
-        LOG.debug("Private key: " + NaCl.asHex(this.privateKey));
+    public KeyStore(byte[] secretKey) {
+        LOG.debug("Deriving public key from secret key");
+        this.secretKey = secretKey;
+        this.publicKey = NaCl.derivePublicKey(secretKey);
+        LOG.debug("Secret key: " + NaCl.asHex(this.secretKey));
+        LOG.debug("Public key: " + NaCl.asHex(this.publicKey));
+    }
+
+    /**
+     * Create a new key store from an existing keypair.
+     */
+    public KeyStore(byte[] publicKey, byte[] secretKey) {
+        LOG.debug("Using existing keypair");
+        this.secretKey = secretKey;
+        this.publicKey = publicKey;
+        LOG.debug("Secret key: " + NaCl.asHex(this.secretKey));
         LOG.debug("Public key: " + NaCl.asHex(this.publicKey));
     }
 
@@ -53,8 +65,8 @@ public class KeyStore {
         return publicKey;
     }
 
-    public byte[] getPrivateKey() {
-        return privateKey;
+    public byte[] getSecretKey() {
+        return secretKey;
     }
 
     /**
@@ -71,7 +83,7 @@ public class KeyStore {
         // Create NaCl instance
         final NaCl nacl;
         try {
-            nacl = new NaCl(this.privateKey, otherKey);
+            nacl = new NaCl(this.secretKey, otherKey);
         } catch (Error e) {
             throw new InvalidKeyException(e.toString());
         }
@@ -103,7 +115,7 @@ public class KeyStore {
         // Create NaCl instance
         final NaCl nacl;
         try {
-            nacl = new NaCl(this.privateKey, otherKey);
+            nacl = new NaCl(this.secretKey, otherKey);
         } catch (Error e) {
             throw new InvalidKeyException(e.toString());
         }

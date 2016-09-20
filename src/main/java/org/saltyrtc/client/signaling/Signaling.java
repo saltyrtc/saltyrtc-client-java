@@ -891,8 +891,8 @@ public abstract class Signaling {
         // Verify the cookie
         final Cookie repeatedCookie = new Cookie(msg.getYourCookie());
         if (!repeatedCookie.equals(this.cookie)) {
-            getLogger().debug("Peer repeated cookie: " + Arrays.toString(msg.getYourCookie()));
-            getLogger().debug("Our cookie: " + Arrays.toString(this.cookie.getBytes()));
+            this.getLogger().debug("Peer repeated cookie: " + Arrays.toString(msg.getYourCookie()));
+            this.getLogger().debug("Our cookie: " + Arrays.toString(this.cookie.getBytes()));
             throw new ProtocolException("Peer repeated cookie does not match our cookie");
         }
     }
@@ -920,7 +920,7 @@ public abstract class Signaling {
         if (state != SignalingState.OPEN &&
                 state != SignalingState.SERVER_HANDSHAKE &&
                 state != SignalingState.PEER_HANDSHAKE) {
-            getLogger().error("Trying to send data message, but connection state is " + this.getState());
+            this.getLogger().error("Trying to send data message, but connection state is " + this.getState());
             throw new ConnectionException("SaltyRTC instance is not connected");
         }
 
@@ -962,7 +962,7 @@ public abstract class Signaling {
             // Build packet
             final byte[] packet = this.buildPacket(data, this.getPeerAddress());
             // Send message
-            getLogger().debug("Sending " + data.getDataType() + " data message through " + this.getChannel());
+            this.getLogger().debug("Sending " + data.getDataType() + " data message through " + this.getChannel());
             this.send(packet, data);
         } catch (ProtocolException e) {
             this.resetConnection(CloseCode.PROTOCOL_ERROR);
@@ -978,7 +978,7 @@ public abstract class Signaling {
     public void handover(final PeerConnection pc) {
         // Create new signaling DataChannel
         // TODO (https://github.com/saltyrtc/saltyrtc-meta/issues/3): Negotiate channel id
-        getLogger().debug("Initiate handover");
+        this.getLogger().debug("Initiate handover");
         DataChannel.Init init = new DataChannel.Init();
         init.id = 0;
         init.negotiated = true;

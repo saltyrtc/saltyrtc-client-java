@@ -12,6 +12,11 @@ Possible log types:
 - `[security]` to invite users to upgrade in case of vulnerabilities.
 
 
+### v0.3.0 (UNRELEASED)
+
+- [changed] `keyStore.getPrivateKey()` is now `keyStore.getSecretKey()`
+- [added] Add `KeyStore(publicKey, secretKey)` constructor
+
 ### v0.2.0 (2016-09-19)
 
 - [changed] Introduce `SaltyRTCBuilder` (#15)
