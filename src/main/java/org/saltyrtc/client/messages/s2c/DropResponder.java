@@ -6,43 +6,46 @@
  * copied, modified, or distributed except according to those terms.
  */
 
-package org.saltyrtc.client.messages;
+package org.saltyrtc.client.messages.s2c;
 
 import org.msgpack.core.MessagePacker;
 import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.helpers.ValidationHelper;
+import org.saltyrtc.client.messages.Message;
 
 import java.io.IOException;
 import java.util.Map;
 
-public class ClientAuth extends Message {
+public class DropResponder extends Message {
 
-    public static String TYPE = "client-auth";
+    public static String TYPE = "drop-responder";
 
-    private byte[] yourCookie;
+    private Integer id;
 
-    public ClientAuth(byte[] yourCookie) {
-        this.yourCookie = yourCookie;
+    public DropResponder(Integer id) {
+        this.id = id;
     }
 
-    public ClientAuth(Map<String, Object> map) throws ValidationError {
+    public DropResponder(short id) {
+        this.id = (int) id;
+    }
+
+    public DropResponder(Map<String, Object> map) throws ValidationError {
         ValidationHelper.validateType(map.get("type"), TYPE);
-        final int COOKIE_LENGTH = 16;
-        this.yourCookie = ValidationHelper.validateByteArray(map.get("your_cookie"), COOKIE_LENGTH, "your_cookie");
+        this.id = ValidationHelper.validateInteger(map.get("id"), 0x00, 0xff, "id");
     }
 
-    public byte[] getYourCookie() {
-        return yourCookie;
+    public Integer getId() {
+        return id;
     }
 
     @Override
     public void write(MessagePacker packer) throws IOException {
         packer.packMapHeader(2)
                 .packString("type")
-                    .packString("client-auth")
-                .packString("your_cookie")
-                    .packBinaryHeader(this.yourCookie.length)
-                    .writePayload(this.yourCookie);
+                    .packString(TYPE)
+                .packString("id")
+                    .packInt(this.id);
     }
 
     @Override

@@ -6,42 +6,44 @@
  * copied, modified, or distributed except according to those terms.
  */
 
-package org.saltyrtc.client.messages;
+package org.saltyrtc.client.messages.s2c;
 
 import org.msgpack.core.MessagePacker;
 import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.helpers.ValidationHelper;
+import org.saltyrtc.client.messages.Message;
 
 import java.io.IOException;
 import java.util.Map;
 
-public class SendError extends Message {
+public class ClientAuth extends Message {
 
-    public static String TYPE = "send-error";
+    public static String TYPE = "client-auth";
 
-    private byte[] hash;
+    private byte[] yourCookie;
 
-    public SendError(byte[] hash) {
-        this.hash = hash;
+    public ClientAuth(byte[] yourCookie) {
+        this.yourCookie = yourCookie;
     }
 
-    public SendError(Map<String, Object> map) throws ValidationError {
+    public ClientAuth(Map<String, Object> map) throws ValidationError {
         ValidationHelper.validateType(map.get("type"), TYPE);
-        this.hash = ValidationHelper.validateByteArray(map.get("hash"), 32, "Hash");
+        final int COOKIE_LENGTH = 16;
+        this.yourCookie = ValidationHelper.validateByteArray(map.get("your_cookie"), COOKIE_LENGTH, "your_cookie");
     }
 
-    public byte[] getHash() {
-        return hash;
+    public byte[] getYourCookie() {
+        return yourCookie;
     }
 
     @Override
     public void write(MessagePacker packer) throws IOException {
         packer.packMapHeader(2)
                 .packString("type")
-                    .packString(TYPE)
-                .packString("hash")
-                    .packBinaryHeader(this.hash.length)
-                    .writePayload(this.hash);
+                    .packString("client-auth")
+                .packString("your_cookie")
+                    .packBinaryHeader(this.yourCookie.length)
+                    .writePayload(this.yourCookie);
     }
 
     @Override

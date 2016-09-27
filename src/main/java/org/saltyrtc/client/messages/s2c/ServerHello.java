@@ -6,13 +6,14 @@
  * copied, modified, or distributed except according to those terms.
  */
 
-package org.saltyrtc.client.messages;
+package org.saltyrtc.client.messages.s2c;
 
 import com.neilalexander.jnacl.NaCl;
 
 import org.msgpack.core.MessagePacker;
 import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.helpers.ValidationHelper;
+import org.saltyrtc.client.messages.Message;
 
 import java.io.IOException;
 import java.util.Map;

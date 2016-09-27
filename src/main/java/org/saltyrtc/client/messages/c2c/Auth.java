@@ -6,34 +6,34 @@
  * copied, modified, or distributed except according to those terms.
  */
 
-package org.saltyrtc.client.messages;
-
-import com.neilalexander.jnacl.NaCl;
+package org.saltyrtc.client.messages.c2c;
 
 import org.msgpack.core.MessagePacker;
 import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.helpers.ValidationHelper;
+import org.saltyrtc.client.messages.Message;
 
 import java.io.IOException;
 import java.util.Map;
 
-public class Token extends Message {
+public class Auth extends Message {
 
-    public static String TYPE = "token";
+    public static String TYPE = "auth";
 
-    private byte[] key;
+    private byte[] yourCookie;
 
-    public Token(byte[] key) {
-        this.key = key;
+    public Auth(byte[] key) {
+        this.yourCookie = key;
     }
 
-    public Token(Map<String, Object> map) throws ValidationError {
+    public Auth(Map<String, Object> map) throws ValidationError {
         ValidationHelper.validateType(map.get("type"), TYPE);
-        this.key = ValidationHelper.validateByteArray(map.get("key"), NaCl.SYMMKEYBYTES, "Key");
+        final int COOKIE_LENGTH = 16;
+        this.yourCookie = ValidationHelper.validateByteArray(map.get("your_cookie"), COOKIE_LENGTH, "Cookie");
     }
 
-    public byte[] getKey() {
-        return key;
+    public byte[] getYourCookie() {
+        return yourCookie;
     }
 
     @Override
@@ -41,9 +41,9 @@ public class Token extends Message {
         packer.packMapHeader(2)
                 .packString("type")
                     .packString(TYPE)
-                .packString("key")
-                    .packBinaryHeader(this.key.length)
-                    .writePayload(this.key);
+                .packString("your_cookie")
+                    .packBinaryHeader(this.yourCookie.length)
+                    .writePayload(this.yourCookie);
     }
 
     @Override

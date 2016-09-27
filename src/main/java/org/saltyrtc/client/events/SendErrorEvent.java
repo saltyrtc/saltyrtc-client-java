@@ -9,7 +9,7 @@
 package org.saltyrtc.client.events;
 
 import org.saltyrtc.client.annotations.NonNull;
-import org.saltyrtc.client.messages.SendError;
+import org.saltyrtc.client.messages.s2c.SendError;
 
 /**
  * This event is thrown when a send-error message arrives.

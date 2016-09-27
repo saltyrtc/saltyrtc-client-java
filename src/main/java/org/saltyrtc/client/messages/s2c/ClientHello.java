@@ -6,28 +6,29 @@
  * copied, modified, or distributed except according to those terms.
  */
 
-package org.saltyrtc.client.messages;
+package org.saltyrtc.client.messages.s2c;
 
 import com.neilalexander.jnacl.NaCl;
 
 import org.msgpack.core.MessagePacker;
 import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.helpers.ValidationHelper;
+import org.saltyrtc.client.messages.Message;
 
 import java.io.IOException;
 import java.util.Map;
 
-public class Key extends Message {
+public class ClientHello extends Message {
 
-    public static String TYPE = "key";
+    public static String TYPE = "client-hello";
 
     private byte[] key;
 
-    public Key(byte[] key) {
+    public ClientHello(byte[] key) {
         this.key = key;
     }
 
-    public Key(Map<String, Object> map) throws ValidationError {
+    public ClientHello(Map<String, Object> map) throws ValidationError {
         ValidationHelper.validateType(map.get("type"), TYPE);
         this.key = ValidationHelper.validateByteArray(map.get("key"), NaCl.PUBLICKEYBYTES, "Key");
     }

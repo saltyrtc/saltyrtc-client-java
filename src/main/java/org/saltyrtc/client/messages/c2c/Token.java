@@ -6,36 +6,35 @@
  * copied, modified, or distributed except according to those terms.
  */
 
-package org.saltyrtc.client.messages;
+package org.saltyrtc.client.messages.c2c;
+
+import com.neilalexander.jnacl.NaCl;
 
 import org.msgpack.core.MessagePacker;
 import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.helpers.ValidationHelper;
+import org.saltyrtc.client.messages.Message;
 
 import java.io.IOException;
 import java.util.Map;
 
-public class DropResponder extends Message {
+public class Token extends Message {
 
-    public static String TYPE = "drop-responder";
+    public static String TYPE = "token";
 
-    private Integer id;
+    private byte[] key;
 
-    public DropResponder(Integer id) {
-        this.id = id;
+    public Token(byte[] key) {
+        this.key = key;
     }
 
-    public DropResponder(short id) {
-        this.id = (int) id;
-    }
-
-    public DropResponder(Map<String, Object> map) throws ValidationError {
+    public Token(Map<String, Object> map) throws ValidationError {
         ValidationHelper.validateType(map.get("type"), TYPE);
-        this.id = ValidationHelper.validateInteger(map.get("id"), 0x00, 0xff, "id");
+        this.key = ValidationHelper.validateByteArray(map.get("key"), NaCl.SYMMKEYBYTES, "Key");
     }
 
-    public Integer getId() {
-        return id;
+    public byte[] getKey() {
+        return key;
     }
 
     @Override
@@ -43,8 +42,9 @@ public class DropResponder extends Message {
         packer.packMapHeader(2)
                 .packString("type")
                     .packString(TYPE)
-                .packString("id")
-                    .packInt(this.id);
+                .packString("key")
+                    .packBinaryHeader(this.key.length)
+                    .writePayload(this.key);
     }
 
     @Override
