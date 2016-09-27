@@ -17,7 +17,9 @@ import org.saltyrtc.client.events.EventHandler;
 import org.saltyrtc.client.events.SignalingStateChangedEvent;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.signaling.state.SignalingState;
+import org.saltyrtc.client.tasks.Task;
 import org.saltyrtc.client.tests.Config;
+import org.saltyrtc.client.tests.DummyTask;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -52,10 +54,12 @@ public class ConnectionTest {
         initiator = new SaltyRTCBuilder()
                 .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
                 .withKeyStore(new KeyStore())
+                .usingTasks(new Task[]{ new DummyTask() })
                 .asInitiator();
         responder = new SaltyRTCBuilder()
                 .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
                 .withKeyStore(new KeyStore())
+                .usingTasks(new Task[]{ new DummyTask() })
                 .initiatorInfo(initiator.getPublicPermanentKey(), initiator.getAuthToken())
                 .asResponder();
 
@@ -286,11 +290,13 @@ public class ConnectionTest {
                 .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
                 .withKeyStore(this.initiator.getKeyStore())
                 .withTrustedPeerKey(this.responder.getPublicPermanentKey())
+                .usingTasks(new Task[]{ new DummyTask() })
                 .asInitiator();
         final SaltyRTC trustingResponder = new SaltyRTCBuilder()
                 .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
                 .withKeyStore(this.responder.getKeyStore())
                 .withTrustedPeerKey(this.initiator.getPublicPermanentKey())
+                .usingTasks(new Task[]{ new DummyTask() })
                 .asResponder();
 
         // Signaling state should still be NEW
@@ -351,11 +357,13 @@ public class ConnectionTest {
                 .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
                 .withKeyStore(this.initiator.getKeyStore())
                 .withTrustedPeerKey(this.responder.getPublicPermanentKey())
+                .usingTasks(new Task[]{ new DummyTask() })
                 .asInitiator();
         final SaltyRTC trustingResponder = new SaltyRTCBuilder()
                 .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
                 .withKeyStore(this.responder.getKeyStore())
                 .withTrustedPeerKey(this.initiator.getPublicPermanentKey())
+                .usingTasks(new Task[]{ new DummyTask() })
                 .asResponder();
 
         // Signaling state should still be NEW

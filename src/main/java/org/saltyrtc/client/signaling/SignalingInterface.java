@@ -15,6 +15,6 @@ public interface SignalingInterface {
 	/**
 	 * Return the current signaling channel.
      */
-    SignalingChannel getSignalingChannel();
+    SignalingChannel getChannel();
 
 }

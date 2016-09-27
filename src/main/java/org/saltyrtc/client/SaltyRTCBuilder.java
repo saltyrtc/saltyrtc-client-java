@@ -11,6 +11,7 @@ package org.saltyrtc.client;
 import org.saltyrtc.client.exceptions.InvalidBuilderStateException;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.signaling.SignalingRole;
+import org.saltyrtc.client.tasks.Task;
 
 import java.security.InvalidKeyException;
 
@@ -25,6 +26,7 @@ public class SaltyRTCBuilder {
     private boolean hasConnectionInfo = false;
     private boolean hasInitiatorInfo = false;
     private boolean hasTrustedPeerKey = false;
+    private boolean hasTasks = false;
 
     private KeyStore keyStore;
     private String host;
@@ -33,6 +35,7 @@ public class SaltyRTCBuilder {
     private byte[] initiatorPublicKey;
     private byte[] authToken;
     private byte[] peerTrustedKey;
+    private Task[] tasks;
 
     /**
      * Validate the specified host, throw an IllegalArgumentException if it's invalid.
@@ -63,6 +66,16 @@ public class SaltyRTCBuilder {
         if (!this.hasConnectionInfo) {
             throw new InvalidBuilderStateException(
                     "Connection info not set yet. Please call .connectTo method first.");
+        }
+    }
+
+    /**
+     * Assert that tasks have been set.
+     */
+    private void requireTasks() throws InvalidBuilderStateException {
+        if (!this.hasTasks) {
+            throw new InvalidBuilderStateException(
+                "Tasks not set yet. Please call .usingTasks method first.");
         }
     }
 
@@ -130,6 +143,18 @@ public class SaltyRTCBuilder {
     }
 
     /**
+     * Set a list of tasks in order of descending preference.
+     */
+    public SaltyRTCBuilder usingTasks(Task[] tasks) {
+        if (tasks.length < 1) {
+            throw new IllegalArgumentException("You must specify at least 1 task");
+        }
+        this.tasks = tasks;
+        this.hasTasks = true;
+        return this;
+    }
+
+    /**
      * Return a SaltyRTC instance configured as initiator.
      *
      * @throws InvalidBuilderStateException Thrown if key or connection info haven't been set yet.
@@ -137,12 +162,13 @@ public class SaltyRTCBuilder {
     public SaltyRTC asInitiator() throws InvalidBuilderStateException, InvalidKeyException {
         this.requireKeyStore();
         this.requireConnectionInfo();
+        this.requireTasks();
         if (this.hasTrustedPeerKey) {
             return new SaltyRTC(
                     this.keyStore, this.host, this.port, this.sslContext,
-                    this.peerTrustedKey, SignalingRole.Initiator);
+                    this.peerTrustedKey, this.tasks, SignalingRole.Initiator);
         } else {
-            return new SaltyRTC(this.keyStore, this.host, this.port, this.sslContext);
+            return new SaltyRTC(this.keyStore, this.host, this.port, this.sslContext, this.tasks);
         }
     }
 
@@ -156,13 +182,14 @@ public class SaltyRTCBuilder {
     public SaltyRTC asResponder() throws InvalidBuilderStateException, InvalidKeyException {
         this.requireKeyStore();
         this.requireConnectionInfo();
+        this.requireTasks();
         if (this.hasTrustedPeerKey) {
             return new SaltyRTC(this.keyStore, this.host, this.port, this.sslContext,
-                    this.peerTrustedKey, SignalingRole.Responder);
+                    this.peerTrustedKey, this.tasks, SignalingRole.Responder);
         } else {
             this.requireInitiatorInfo();
             return new SaltyRTC(this.keyStore, this.host, this.port, this.sslContext,
-                    this.initiatorPublicKey, this.authToken);
+                    this.initiatorPublicKey, this.authToken, this.tasks);
         }
     }
 }

@@ -37,6 +37,7 @@ import org.saltyrtc.client.nonce.SignalingChannelNonce;
 import org.saltyrtc.client.signaling.state.ResponderHandshakeState;
 import org.saltyrtc.client.signaling.state.ServerHandshakeState;
 import org.saltyrtc.client.signaling.state.SignalingState;
+import org.saltyrtc.client.tasks.Task;
 import org.slf4j.Logger;
 
 import java.util.Arrays;
@@ -63,8 +64,9 @@ public class InitiatorSignaling extends Signaling {
      * Create an instance without a trusted key.
      */
     public InitiatorSignaling(SaltyRTC saltyRTC, String host, int port,
-                              KeyStore permanentKey, SSLContext sslContext) {
-        super(saltyRTC, host, port, permanentKey, sslContext);
+                              KeyStore permanentKey, SSLContext sslContext,
+                              Task[] tasks) {
+        super(saltyRTC, host, port, permanentKey, sslContext, tasks);
         this.role = SignalingRole.Initiator;
         this.authToken = new AuthToken();
     }
@@ -74,8 +76,9 @@ public class InitiatorSignaling extends Signaling {
      */
     public InitiatorSignaling(SaltyRTC saltyRTC, String host, int port,
                               KeyStore permanentKey, SSLContext sslContext,
-                              byte[] responderTrustedKey) {
-        super(saltyRTC, host, port, permanentKey, sslContext, responderTrustedKey);
+                              byte[] responderTrustedKey,
+                              Task[] tasks) {
+        super(saltyRTC, host, port, permanentKey, sslContext, responderTrustedKey, tasks);
         this.role = SignalingRole.Initiator;
         this.authToken = null;
     }

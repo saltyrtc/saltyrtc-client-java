@@ -48,6 +48,7 @@ import org.saltyrtc.client.nonce.DataChannelNonce;
 import org.saltyrtc.client.nonce.SignalingChannelNonce;
 import org.saltyrtc.client.signaling.state.ServerHandshakeState;
 import org.saltyrtc.client.signaling.state.SignalingState;
+import org.saltyrtc.client.tasks.Task;
 import org.slf4j.Logger;
 
 import java.io.IOException;
@@ -106,22 +107,29 @@ public abstract class Signaling implements SignalingInterface {
     protected Cookie serverCookie;
     protected CombinedSequencePair serverCsn = new CombinedSequencePair();
 
+    // Tasks
+    final protected Task[] tasks;
+    protected Task task;
+
     // Message history
     protected final MessageHistory history = new MessageHistory(10);
 
     public Signaling(SaltyRTC salty, String host, int port,
-                     KeyStore permanentKey, SSLContext sslContext) {
+                     KeyStore permanentKey, SSLContext sslContext,
+                     Task[] tasks) {
         this.salty = salty;
         this.host = host;
         this.port = port;
         this.permanentKey = permanentKey;
         this.sslContext = sslContext;
+        this.tasks = tasks;
     }
 
     public Signaling(SaltyRTC salty, String host, int port,
                      KeyStore permanentKey, SSLContext sslContext,
-                     byte[] peerTrustedKey) {
-        this(salty, host, port, permanentKey, sslContext);
+                     byte[] peerTrustedKey,
+                     Task[] tasks) {
+        this(salty, host, port, permanentKey, sslContext, tasks);
         this.peerTrustedKey = peerTrustedKey;
     }
 

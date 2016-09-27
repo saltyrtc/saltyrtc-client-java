@@ -38,6 +38,7 @@ import org.saltyrtc.client.nonce.SignalingChannelNonce;
 import org.saltyrtc.client.signaling.state.InitiatorHandshakeState;
 import org.saltyrtc.client.signaling.state.ServerHandshakeState;
 import org.saltyrtc.client.signaling.state.SignalingState;
+import org.saltyrtc.client.tasks.Task;
 import org.slf4j.Logger;
 
 import java.util.Arrays;
@@ -61,9 +62,10 @@ public class ResponderSignaling extends Signaling {
      */
     public ResponderSignaling(SaltyRTC saltyRTC, String host, int port,
                               KeyStore permanentKey, SSLContext sslContext,
-                              byte[] initiatorPublicKey, byte[] authToken)
+                              byte[] initiatorPublicKey, byte[] authToken,
+                              Task[] tasks)
                               throws java.security.InvalidKeyException {
-        super(saltyRTC, host, port, permanentKey, sslContext);
+        super(saltyRTC, host, port, permanentKey, sslContext, tasks);
         this.role = SignalingRole.Responder;
         this.initiator = new Initiator(initiatorPublicKey);
         this.authToken = new AuthToken(authToken);
@@ -74,9 +76,10 @@ public class ResponderSignaling extends Signaling {
      */
     public ResponderSignaling(SaltyRTC saltyRTC, String host, int port,
                               KeyStore permanentKey, SSLContext sslContext,
-                              byte[] initiatorTrustedKey)
+                              byte[] initiatorTrustedKey,
+                              Task[] tasks)
             throws java.security.InvalidKeyException {
-        super(saltyRTC, host, port, permanentKey, sslContext, initiatorTrustedKey);
+        super(saltyRTC, host, port, permanentKey, sslContext, initiatorTrustedKey, tasks);
         this.role = SignalingRole.Responder;
         this.initiator = new Initiator(initiatorTrustedKey);
         // If we trust the initiator, don't send a token message
