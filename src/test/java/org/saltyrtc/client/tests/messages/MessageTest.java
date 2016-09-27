@@ -16,7 +16,6 @@ import org.saltyrtc.client.helpers.RandomHelper;
 import org.saltyrtc.client.messages.Auth;
 import org.saltyrtc.client.messages.ClientAuth;
 import org.saltyrtc.client.messages.ClientHello;
-import org.saltyrtc.client.messages.Data;
 import org.saltyrtc.client.messages.DropResponder;
 import org.saltyrtc.client.messages.InitiatorServerAuth;
 import org.saltyrtc.client.messages.Key;
@@ -29,16 +28,13 @@ import org.saltyrtc.client.messages.SendError;
 import org.saltyrtc.client.messages.ServerHello;
 import org.saltyrtc.client.messages.Token;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import static java.util.Arrays.asList;
 
+import static java.util.Arrays.asList;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 public class MessageTest {
@@ -187,43 +183,4 @@ public class MessageTest {
         assertEquals("auth", auth.getType());
     }
 
-    @SuppressWarnings("unchecked")
-    @Test
-    public void testDataPojo() throws ValidationError, SerializationError {
-
-        class Pojo {
-            public Integer number;
-            public List<String> list;
-            public Pojo(Integer number, List<String> list) {
-                this.number = number;
-                this.list = list;
-            }
-        }
-
-        List<String> list = new ArrayList<>();
-        list.add("a");
-        list.add("b");
-        Pojo pojo = new Pojo(42, list);
-
-        final Data original = new Data(pojo);
-        final Data returned = roundTrip(original);
-        assertEquals("data", returned.getType());
-        assertNull(returned.getDataType());
-
-        Map<String, Object> data = (HashMap<String, Object>) returned.getData();
-        assertEquals(Integer.class, data.get("number").getClass());
-        assertEquals(42, data.get("number"));
-        assertEquals(ArrayList.class, data.get("list").getClass());
-        assertEquals(2, ((ArrayList)data.get("list")).size());
-    }
-
-    @Test
-    public void testGenericData() throws ValidationError, SerializationError {
-        Integer number = 42;
-        final Data original = new Data(number);
-        final Data returned = roundTrip(original);
-        assertEquals("data", returned.getType());
-        assertNull(returned.getDataType());
-        assertEquals(number, returned.getData());
-    }
 }

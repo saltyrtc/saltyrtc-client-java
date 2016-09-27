@@ -19,9 +19,6 @@ import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.cookie.Cookie;
-import org.saltyrtc.client.datachannel.SecureDataChannel;
-import org.saltyrtc.client.events.DataEvent;
-import org.saltyrtc.client.events.SendErrorEvent;
 import org.saltyrtc.client.events.SignalingChannelChangedEvent;
 import org.saltyrtc.client.events.SignalingStateChangedEvent;
 import org.saltyrtc.client.exceptions.ConnectionException;
@@ -39,7 +36,6 @@ import org.saltyrtc.client.keystore.Box;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.messages.Auth;
 import org.saltyrtc.client.messages.ClientAuth;
-import org.saltyrtc.client.messages.Data;
 import org.saltyrtc.client.messages.InitiatorServerAuth;
 import org.saltyrtc.client.messages.Message;
 import org.saltyrtc.client.messages.ResponderServerAuth;
@@ -53,8 +49,6 @@ import org.saltyrtc.client.nonce.SignalingChannelNonce;
 import org.saltyrtc.client.signaling.state.ServerHandshakeState;
 import org.saltyrtc.client.signaling.state.SignalingState;
 import org.slf4j.Logger;
-import org.webrtc.DataChannel;
-import org.webrtc.PeerConnection;
 
 import java.io.IOException;
 import java.net.URI;
@@ -65,13 +59,14 @@ import java.util.Map;
 
 import javax.net.ssl.SSLContext;
 
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
+
 public abstract class Signaling {
 
     protected final static String SALTYRTC_SUBPROTOCOL = "v0.saltyrtc.org";
     protected final static short SALTYRTC_WS_CONNECT_TIMEOUT = 2000;
     protected final static long SALTYRTC_WS_PING_INTERVAL = 20000;
     protected final static int SALTYRTC_WS_CLOSE_LINGER = 1000;
-    protected final static String SALTYRTC_DC_LABEL = "saltyrtc-signaling";
     protected final static short SALTYRTC_ADDR_UNKNOWN = 0x00;
     protected final static short SALTYRTC_ADDR_SERVER = 0x00;
     protected final static short SALTYRTC_ADDR_INITIATOR = 0x01;
@@ -85,9 +80,6 @@ public abstract class Signaling {
     protected final String protocol = "wss";
     protected final SSLContext sslContext;
     protected WebSocket ws;
-
-    // WebRTC / ORTC
-    protected DataChannel dc;
 
     // Connection state
     protected SignalingState state = SignalingState.NEW;
@@ -208,18 +200,6 @@ public abstract class Signaling {
             this.ws.disconnect(reason);
             this.ws = null;
         }
-        // Close datachannel instance
-        if (this.dc != null) {
-            getLogger().debug("Disconnecting data channel");
-            //this.dc.close();
-            // The line above will cause a deadlock as of 2016-07-12.
-            // Instead, we'll let the GC handle this.
-            this.dc.unregisterObserver();
-            this.setState(SignalingState.CLOSING);
-            this.dc = null;
-            this.setState(SignalingState.CLOSED);
-        }
-
     }
 
     /**
@@ -241,9 +221,6 @@ public abstract class Signaling {
         // Unregister listeners
         if (this.ws != null) {
             this.ws.clearListeners();
-        }
-        if (this.dc != null) {
-            this.dc.unregisterObserver();
         }
 
         // Disconnect
@@ -638,11 +615,7 @@ public abstract class Signaling {
                 return;
             }
 
-            if (message instanceof Data) {
-                getLogger().debug("Received data");
-                // TODO: move this to handleData method for consistency
-                salty.events.data.notifyHandlers(new DataEvent((Data) message));
-            } else if (message instanceof Restart) {
+            if (message instanceof Restart) {
                 getLogger().debug("Received restart");
                 handleRestart((Restart) message);
             } else {
@@ -930,9 +903,8 @@ public abstract class Signaling {
                 this.ws.sendBinary(payload);
                 break;
             case DATA_CHANNEL:
-                final boolean success = this.dc.send(new DataChannel.Buffer(ByteBuffer.wrap(payload), true));
-                // TODO: Return code indicates success. Handle.
-                break;
+                // TODO: Implement via task
+                throw new NotImplementedException();
             default:
                 throw new ProtocolException("Unknown or invalid signaling channel: " + channel);
         }
@@ -952,112 +924,15 @@ public abstract class Signaling {
     }
 
     /**
-     * Send a data message to the peer through the signaling channel,
-     * encrypted with the session key.
-     *
-     * If a ProtocolException occurs during sending, the connection will be reset.
-     */
-    public void sendSignalingData(Data data) throws ConnectionException {
-        try {
-            // Build packet
-            final byte[] packet = this.buildPacket(data, this.getPeerAddress());
-            // Send message
-            this.getLogger().debug("Sending " + data.getDataType() + " data message through " + this.getChannel());
-            this.send(packet, data);
-        } catch (ProtocolException e) {
-            this.resetConnection(CloseCode.PROTOCOL_ERROR);
-        }
-    }
-
-    /**
-     * Handover asynchronously from WebSocket to WebRTC data channel.
-     *
-     * To get notified when the connection is up and running,
-     * subscribe to the `SignalingChannelChangedEvent`.
-     */
-    public void handover(final PeerConnection pc) {
-        // Create new signaling DataChannel
-        // TODO (https://github.com/saltyrtc/saltyrtc-meta/issues/3): Negotiate channel id
-        this.getLogger().debug("Initiate handover");
-        DataChannel.Init init = new DataChannel.Init();
-        init.id = 0;
-        init.negotiated = true;
-        init.ordered = true;
-        init.protocol = SALTYRTC_SUBPROTOCOL;
-        this.dc = pc.createDataChannel(SALTYRTC_DC_LABEL, init);
-        this.dc.registerObserver(new DataChannel.Observer() {
-            @Override
-            public void onBufferedAmountChange(long l) {
-                Signaling.this.getLogger().info("DataChannel: Buffered amount changed");
-            }
-
-            @Override
-            public void onStateChange() {
-                Signaling.this.getLogger().info("DataChannel: State changed to " + Signaling.this.dc.state());
-                switch (Signaling.this.dc.state()) {
-                    case OPEN:
-                        Signaling.this.setChannel(SignalingChannel.DATA_CHANNEL);
-                        Signaling.this.getLogger().info("Handover to data channel finished");
-
-                        // Close the websocket with some delay.
-                        new Thread(new Runnable() {
-                            @Override
-                            public void run() {
-                                try {
-                                    // Hacks solution, maybe there's a better way?
-                                    Thread.sleep(SALTYRTC_WS_CLOSE_LINGER);
-                                } catch (InterruptedException e) {
-                                    getLogger().warn("Websocket closing thread was interrupted early while lingering.");
-                                }
-                                Signaling.this.ws.sendClose(CloseCode.HANDOVER);
-                            }
-                        }, "close-websocket").start();
-
-                        break;
-                    case CLOSING:
-                        Signaling.this.setState(SignalingState.CLOSING);
-                        break;
-                    case CLOSED:
-                        Signaling.this.setState(SignalingState.CLOSED);
-                        break;
-                }
-            }
-
-            @Override
-            public synchronized void onMessage(DataChannel.Buffer buffer) {
-                final String type = buffer.binary ? "Binary" : "Text";
-                getLogger().info("DataChannel: " + type + " message arrived ("
-                        + buffer.data.remaining() + " bytes)");
-
-                // We only support binary messages
-                if (!buffer.binary) {
-                    getLogger().warn("Received non-binary message through data channel. Ignoring.");
-                    return;
-                }
-
-                final Box box = new Box(buffer.data, SignalingChannelNonce.TOTAL_LENGTH);
-                final SignalingChannelNonce nonce = new SignalingChannelNonce(ByteBuffer.wrap(box.getNonce()));
-                try {
-                    validateSignalingNonce(nonce);
-                    Signaling.this.onPeerMessage(box, nonce);
-                } catch (ValidationError e) {
-                    getLogger().error("Protocol error: Invalid incoming message: " + e.getMessage());
-                    Signaling.this.resetConnection(CloseCode.PROTOCOL_ERROR);
-                }
-            }
-        });
-    }
-
-    /**
      * Encrypt arbitrary data for the peer using the session keys.
      *
+     * TODO: Rewrite this after tasks have been implemented
+     *
      * @param data Plain data bytes.
-     * @param dc The secure data channel that will be used to send this data.
      * @param csn The `CombinedSequenceNumber` instance to use.
      * @return Encrypted box.
      */
     public @Nullable Box encryptData(@NonNull byte[] data,
-                                     @NonNull SecureDataChannel dc,
                                      @NonNull CombinedSequence csn)
             throws CryptoFailedException, InvalidKeyException {
         // Create nonce
@@ -1092,16 +967,8 @@ public abstract class Signaling {
         final Message message = this.history.find(hash);
 
         if (message != null) {
-            if (message instanceof Data) {
-                final Data dataMsg = (Data) message;
-                final String description = dataMsg.getType() + "/" + dataMsg.getDataType();
-                getLogger().warn("SendError: Could not send " + description + " message " + hashPrefix);
-                // Notify subscribers about the send-error, so they can take appropriate action.
-                this.salty.events.sendError.notifyHandlers(new SendErrorEvent(msg, dataMsg));
-            } else {
-                getLogger().warn("SendError: Could not send " + message.getType() + " message " + hashPrefix);
-                // TODO: Handle
-            }
+            getLogger().warn("SendError: Could not send " + message.getType() + " message " + hashPrefix);
+            // TODO: Implement. See git history for old implementation.
         } else {
             getLogger().warn("SendError: " + NaCl.asHex(hash));
         }

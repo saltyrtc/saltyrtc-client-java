@@ -15,7 +15,6 @@ import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.messages.Auth;
 import org.saltyrtc.client.messages.ClientAuth;
 import org.saltyrtc.client.messages.ClientHello;
-import org.saltyrtc.client.messages.Data;
 import org.saltyrtc.client.messages.DropResponder;
 import org.saltyrtc.client.messages.InitiatorServerAuth;
 import org.saltyrtc.client.messages.Key;
@@ -58,7 +57,6 @@ public class MessageTypeTest {
                 { Key.class, "key" },
                 { Auth.class, "auth" },
                 { Restart.class, "restart" },
-                { Data.class, "data" }
         });
     }
 

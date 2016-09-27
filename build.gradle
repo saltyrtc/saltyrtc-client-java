@@ -43,9 +43,6 @@ dependencies {
     // Dependency: WebSockets
     compile 'com.neovisionaries:nv-websocket-client:1.28'
 
-    // Dependency: libjingle
-    compile files('libs/libjingle_peerconnection.jar')
-
     // Dependency: Binary chunking
     compile 'org.saltyrtc.chunked-dc:chunked-dc:0.2.0'
 

@@ -410,9 +410,6 @@ public class ConnectionTest {
         assertEquals(SignalingState.CLOSED, trustingResponder.getSignalingState());
     }
 
-    // Note: Unfortunately right now we cannot test the handover outside of Android,
-    // as the libjingle peerconnection only works on the Android platform.
-
     @After
     public void tearDown() {
         initiator.disconnect();
