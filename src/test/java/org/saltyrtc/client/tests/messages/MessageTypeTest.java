@@ -21,7 +21,7 @@ import org.saltyrtc.client.messages.c2c.Key;
 import org.saltyrtc.client.messages.s2c.NewInitiator;
 import org.saltyrtc.client.messages.s2c.NewResponder;
 import org.saltyrtc.client.messages.s2c.ResponderServerAuth;
-import org.saltyrtc.client.messages.Restart;
+import org.saltyrtc.client.messages.c2c.Close;
 import org.saltyrtc.client.messages.s2c.SendError;
 import org.saltyrtc.client.messages.s2c.ServerHello;
 import org.saltyrtc.client.messages.c2c.Token;
@@ -56,7 +56,7 @@ public class MessageTypeTest {
                 { Token.class, "token" },
                 { Key.class, "key" },
                 { Auth.class, "auth" },
-                { Restart.class, "restart" },
+                { Close.class, "close" },
         });
     }
 

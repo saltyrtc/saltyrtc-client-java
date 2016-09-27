@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.msgpack.jackson.dataformat.MessagePackFactory;
 import org.saltyrtc.client.exceptions.SerializationError;
 import org.saltyrtc.client.exceptions.ValidationError;
+import org.saltyrtc.client.messages.c2c.Close;
 import org.saltyrtc.client.messages.c2c.Auth;
 import org.saltyrtc.client.messages.s2c.ClientAuth;
 import org.saltyrtc.client.messages.s2c.ClientHello;
@@ -24,7 +25,6 @@ import org.saltyrtc.client.messages.Message;
 import org.saltyrtc.client.messages.s2c.NewInitiator;
 import org.saltyrtc.client.messages.s2c.NewResponder;
 import org.saltyrtc.client.messages.s2c.ResponderServerAuth;
-import org.saltyrtc.client.messages.Restart;
 import org.saltyrtc.client.messages.s2c.SendError;
 import org.saltyrtc.client.messages.s2c.ServerHello;
 import org.saltyrtc.client.messages.c2c.Token;
@@ -92,8 +92,8 @@ public class MessageReader {
                 return new Key(map);
             case "auth":
                 return new Auth(map);
-            case "restart":
-                return new Restart(map);
+            case "close":
+                return new Close(map);
             default:
                 throw new ValidationError("Unknown message type: " + type);
         }

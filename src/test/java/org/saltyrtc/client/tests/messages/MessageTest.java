@@ -13,6 +13,7 @@ import org.saltyrtc.client.exceptions.SerializationError;
 import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.helpers.MessageReader;
 import org.saltyrtc.client.helpers.RandomHelper;
+import org.saltyrtc.client.messages.c2c.Close;
 import org.saltyrtc.client.messages.c2c.Auth;
 import org.saltyrtc.client.messages.s2c.ClientAuth;
 import org.saltyrtc.client.messages.s2c.ClientHello;
@@ -23,10 +24,10 @@ import org.saltyrtc.client.messages.Message;
 import org.saltyrtc.client.messages.s2c.NewInitiator;
 import org.saltyrtc.client.messages.s2c.NewResponder;
 import org.saltyrtc.client.messages.s2c.ResponderServerAuth;
-import org.saltyrtc.client.messages.Restart;
 import org.saltyrtc.client.messages.s2c.SendError;
 import org.saltyrtc.client.messages.s2c.ServerHello;
 import org.saltyrtc.client.messages.c2c.Token;
+import org.saltyrtc.client.signaling.CloseCode;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -51,7 +52,7 @@ public class MessageTest {
     @Test
     public void testServerHelloRoundtrip() throws SerializationError, ValidationError {
         final ServerHello original = new ServerHello(RandomHelper.pseudoRandomBytes(32));
-        final ServerHello returned = roundTrip(original);
+        final ServerHello returned = this.roundTrip(original);
         assertArrayEquals(original.getKey(), returned.getKey());
     }
 
@@ -69,14 +70,14 @@ public class MessageTest {
     @Test
     public void testClientHelloRoundtrip() throws SerializationError, ValidationError {
         final ClientHello original = new ClientHello(RandomHelper.pseudoRandomBytes(32));
-        final ClientHello returned = roundTrip(original);
+        final ClientHello returned = this.roundTrip(original);
         assertArrayEquals(original.getKey(), returned.getKey());
     }
 
     @Test
     public void testClientAuthRoundtrip() throws SerializationError, ValidationError {
         final ClientAuth original = new ClientAuth(RandomHelper.pseudoRandomBytes(16));
-        final ClientAuth returned = roundTrip(original);
+        final ClientAuth returned = this.roundTrip(original);
         assertArrayEquals(original.getYourCookie(), returned.getYourCookie());
     }
 
@@ -84,7 +85,7 @@ public class MessageTest {
     public void testInitiatorServerAuthRoundtrip() throws SerializationError, ValidationError {
         final InitiatorServerAuth original = new InitiatorServerAuth(
                 RandomHelper.pseudoRandomBytes(16), asList(1, 2, 3));
-        final InitiatorServerAuth returned = roundTrip(original);
+        final InitiatorServerAuth returned = this.roundTrip(original);
         assertArrayEquals(original.getYourCookie(), returned.getYourCookie());
         assertArrayEquals(original.getResponders().toArray(), returned.getResponders().toArray());
     }
@@ -93,7 +94,7 @@ public class MessageTest {
     public void testResponderServerAuthRoundtrip() throws SerializationError, ValidationError {
         final ResponderServerAuth original = new ResponderServerAuth(
                 RandomHelper.pseudoRandomBytes(16), false);
-        final ResponderServerAuth returned = roundTrip(original);
+        final ResponderServerAuth returned = this.roundTrip(original);
         assertArrayEquals(original.getYourCookie(), returned.getYourCookie());
         assertFalse(original.isInitiatorConnected());
         assertFalse(returned.isInitiatorConnected());
@@ -103,13 +104,13 @@ public class MessageTest {
     public void testNewInitiatorRoundtrip() throws SerializationError, ValidationError {
         final NewInitiator original = new NewInitiator();
         // There are no real fields in this message, so let's just ensure that there are no exceptions
-        roundTrip(original);
+        this.roundTrip(original);
     }
 
     @Test
     public void testNewResponderRoundtrip() throws SerializationError, ValidationError {
         final NewResponder original = new NewResponder(42);
-        final NewResponder returned = roundTrip(original);
+        final NewResponder returned = this.roundTrip(original);
         assertEquals(original.getId(), returned.getId());
     }
 
@@ -117,7 +118,7 @@ public class MessageTest {
     public void testNewResponderValidation() throws SerializationError, ValidationError {
         final NewResponder original = new NewResponder(0xff + 1);
         try {
-            roundTrip(original);
+            this.roundTrip(original);
             fail("No ValidationError thrown");
         } catch (ValidationError e) {
             assertEquals("id must be < 255", e.getMessage());
@@ -127,7 +128,7 @@ public class MessageTest {
     @Test
     public void testDropResponderRoundtrip() throws SerializationError, ValidationError {
         final DropResponder original = new DropResponder(42);
-        final DropResponder returned = roundTrip(original);
+        final DropResponder returned = this.roundTrip(original);
         assertEquals(original.getId(), returned.getId());
     }
 
@@ -145,36 +146,47 @@ public class MessageTest {
     @Test
     public void testSendErrorRoundtrip() throws SerializationError, ValidationError {
         final SendError original = new SendError(RandomHelper.pseudoRandomBytes(32));
-        final SendError returned = roundTrip(original);
+        final SendError returned = this.roundTrip(original);
         assertArrayEquals(original.getHash(), returned.getHash());
     }
 
     @Test
     public void testTokenRoundtrip() throws SerializationError, ValidationError {
         final Token original = new Token(RandomHelper.pseudoRandomBytes(32));
-        final Token returned = roundTrip(original);
+        final Token returned = this.roundTrip(original);
         assertArrayEquals(original.getKey(), returned.getKey());
     }
 
     @Test
     public void testKeyRoundtrip() throws SerializationError, ValidationError {
         final Key original = new Key(RandomHelper.pseudoRandomBytes(32));
-        final Key returned = roundTrip(original);
+        final Key returned = this.roundTrip(original);
         assertArrayEquals(original.getKey(), returned.getKey());
     }
 
     @Test
     public void testAuthRoundtrip() throws SerializationError, ValidationError {
         final Auth original = new Auth(RandomHelper.pseudoRandomBytes(16));
-        final Auth returned = roundTrip(original);
+        final Auth returned = this.roundTrip(original);
         assertArrayEquals(original.getYourCookie(), returned.getYourCookie());
     }
 
     @Test
-    public void testRestartRoundtrip() throws SerializationError, ValidationError {
-        final Restart original = new Restart();
-        // There are no real fields in this message, so let's just ensure that there are no exceptions
-        roundTrip(original);
+    public void testCloseValidation() throws SerializationError, ValidationError {
+        final Close original = new Close(4000);
+        try {
+            this.roundTrip(original);
+            fail("No ValidationError thrown");
+        } catch (ValidationError e) {
+            assertEquals("reason must be a valid close code", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testCloseRoundtrip() throws SerializationError, ValidationError {
+        final Close original = new Close(CloseCode.PROTOCOL_ERROR);
+        final Close returned = this.roundTrip(original);
+        assertEquals(original.getReason(), returned.getReason());
     }
 
     @Test

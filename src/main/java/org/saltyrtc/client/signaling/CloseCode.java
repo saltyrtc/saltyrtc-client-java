@@ -8,6 +8,8 @@
 
 package org.saltyrtc.client.signaling;
 
+import org.omg.CORBA.INTERNAL;
+
 /**
  * WebSocket close codes
  */
@@ -65,6 +67,22 @@ public class CloseCode {
      * No shared task was found.
      */
     public static final int NO_SHARED_TASK = 3006;
+
+	/**
+	 * Valid close codes for drop-responder messages.
+     */
+    public static final int[] CLOSE_CODES_DROP_RESPONDER = new int[] {
+        PROTOCOL_ERROR, INTERNAL_ERROR, DROPPED_BY_INITIATOR,
+        INITIATOR_COULD_NOT_DECRYPT, NO_SHARED_TASK
+    };
+
+    /**
+     * aLL Valid close codes.
+     */
+    public static final int[] CLOSE_CODES_ALL = new int[] {
+        GOING_AWAY, NO_SHARED_SUBPROTOCOL, PATH_FULL, PROTOCOL_ERROR, INTERNAL_ERROR,
+        HANDOVER, DROPPED_BY_INITIATOR, INITIATOR_COULD_NOT_DECRYPT, NO_SHARED_TASK
+    };
 
     /**
      * Explain the close code.

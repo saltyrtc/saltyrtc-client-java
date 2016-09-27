@@ -191,4 +191,38 @@ public class ValidationHelperTest {
         }
     }
 
+    @Test
+    public void testValidateCloseCode() throws ValidationError {
+        Object closeCode = 1002;
+        final Integer validated = ValidationHelper.validateCloseCode(closeCode, false, "Number");
+        assertEquals(Integer.valueOf(1002), validated);
+    }
+
+    @Test
+    public void testValidateCloseCodeDroppedResponder() throws ValidationError {
+        Object closeCode = 3004;
+        final Integer validated = ValidationHelper.validateCloseCode(closeCode, true, "Number");
+        assertEquals(Integer.valueOf(3004), validated);
+    }
+
+    @Test
+    public void testValidateCloseCodeFails() throws ValidationError {
+        try {
+            ValidationHelper.validateCloseCode(2000, false, "Number");
+            fail("No ValidationError thrown");
+        } catch (ValidationError e) {
+            assertEquals("Number must be a valid close code", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testValidateCloseCodeDroppedResponderFails() throws ValidationError {
+        try {
+            ValidationHelper.validateCloseCode(1002, true, "Number");
+            fail("No ValidationError thrown");
+        } catch (ValidationError e) {
+            assertEquals("Number must be a valid close code", e.getMessage());
+        }
+    }
+
 }

@@ -9,7 +9,9 @@
 package org.saltyrtc.client.helpers;
 
 import org.saltyrtc.client.exceptions.ValidationError;
+import org.saltyrtc.client.signaling.CloseCode;
 
+import java.util.Arrays;
 import java.util.List;
 
 public class ValidationHelper {
@@ -93,5 +95,19 @@ public class ValidationHelper {
             throw new ValidationError(name + " must be a String, not " + value.getClass().getName());
         }
         return (String) value;
+    }
+
+    public static Integer validateCloseCode(Object value, boolean dropResponder, String name) throws ValidationError {
+        if (!(value instanceof Integer)) {
+            throw new ValidationError(name + " must be an Integer");
+        }
+        final Integer number = (Integer) value;
+        final int[] codes = dropResponder ? CloseCode.CLOSE_CODES_DROP_RESPONDER : CloseCode.CLOSE_CODES_ALL;
+        for (int code : codes) {
+            if (code == number) {
+                return number;
+            }
+        }
+        throw new ValidationError(name + " must be a valid close code");
     }
 }

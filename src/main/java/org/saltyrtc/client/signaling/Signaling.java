@@ -34,12 +34,12 @@ import org.saltyrtc.client.helpers.MessageReader;
 import org.saltyrtc.client.keystore.AuthToken;
 import org.saltyrtc.client.keystore.Box;
 import org.saltyrtc.client.keystore.KeyStore;
+import org.saltyrtc.client.messages.c2c.Close;
 import org.saltyrtc.client.messages.c2c.Auth;
 import org.saltyrtc.client.messages.s2c.ClientAuth;
 import org.saltyrtc.client.messages.s2c.InitiatorServerAuth;
 import org.saltyrtc.client.messages.Message;
 import org.saltyrtc.client.messages.s2c.ResponderServerAuth;
-import org.saltyrtc.client.messages.Restart;
 import org.saltyrtc.client.messages.s2c.SendError;
 import org.saltyrtc.client.messages.s2c.ServerHello;
 import org.saltyrtc.client.nonce.CombinedSequence;
@@ -621,9 +621,9 @@ public abstract class Signaling {
                 return;
             }
 
-            if (message instanceof Restart) {
-                getLogger().debug("Received restart");
-                handleRestart((Restart) message);
+            if (message instanceof Close) {
+                getLogger().debug("Received close");
+                handleClose((Close) message);
             } else {
                 getLogger().error("Received message with invalid type from peer");
             }
@@ -956,15 +956,13 @@ public abstract class Signaling {
      * @param box Encrypted box.
      * @return Decrypted bytes.
      */
-    public @NonNull
-    byte[] decryptData(@NonNull Box box)
-            throws CryptoFailedException, InvalidKeyException {
+    public @NonNull byte[] decryptData(@NonNull Box box) throws CryptoFailedException, InvalidKeyException {
         // TODO: Do we need to verify the nonce?
         return this.sessionKey.decrypt(box, this.getPeerSessionKey());
     }
 
-    protected void handleRestart(Restart msg) {
-        throw new UnsupportedOperationException("Restart not yet implemented");
+    protected void handleClose(Close msg) {
+        throw new UnsupportedOperationException("Close not yet implemented"); // TODO
     }
 
     protected void handleSendError(SendError msg) {
