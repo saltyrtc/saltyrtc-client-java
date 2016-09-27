@@ -61,7 +61,7 @@ import javax.net.ssl.SSLContext;
 
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
-public abstract class Signaling {
+public abstract class Signaling implements SignalingInterface {
 
     protected final static String SALTYRTC_SUBPROTOCOL = "v0.saltyrtc.org";
     protected final static short SALTYRTC_WS_CONNECT_TIMEOUT = 2000;
@@ -908,7 +908,7 @@ public abstract class Signaling {
             case WEBSOCKET:
                 this.ws.sendBinary(payload);
                 break;
-            case DATA_CHANNEL:
+            case TASK:
                 // TODO: Implement via task
                 throw new NotImplementedException();
             default:

@@ -10,5 +10,5 @@ package org.saltyrtc.client.signaling;
 
 public enum SignalingChannel {
     WEBSOCKET,
-    DATA_CHANNEL,
+    TASK,
 }
