@@ -24,7 +24,7 @@ before_script:
   - openssl x509 -req -days 365 -in saltyrtc.csr -signkey saltyrtc.key -out saltyrtc.crt
   - keytool -import -trustcacerts -alias root -file saltyrtc.crt -keystore saltyrtc.jks -storetype JKS -storepass saltyrtc -noprompt
   # Start SaltyRTC server
-  - git clone https://github.com/saltyrtc/saltyrtc-server-python -b develop
+  - git clone https://github.com/saltyrtc/saltyrtc-server-python -b master
   - export SALTYRTC_TLS_CERT=../saltyrtc.crt SALTYRTC_TLS_KEY=../saltyrtc.key
   - |
     cd saltyrtc-server-python
