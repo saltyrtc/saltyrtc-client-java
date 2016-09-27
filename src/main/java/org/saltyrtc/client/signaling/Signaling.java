@@ -341,7 +341,7 @@ public abstract class Signaling {
                         case CloseCode.GOING_AWAY:
                             getLogger().error("Server is being shut down");
                             break;
-                        case CloseCode.SUBPROTOCOL_ERROR:
+                        case CloseCode.NO_SHARED_SUBPROTOCOL:
                             getLogger().error("No shared sub-protocol could be found");
                             break;
                         case CloseCode.PATH_FULL:
@@ -352,8 +352,14 @@ public abstract class Signaling {
                         case CloseCode.INTERNAL_ERROR:
                             getLogger().error("Internal server error");
                             break;
-                        case CloseCode.DROPPED:
+                        case CloseCode.DROPPED_BY_INITIATOR:
                             getLogger().warn("Dropped by initiator");
+                            break;
+                        case CloseCode.INITIATOR_COULD_NOT_DECRYPT:
+                            getLogger().error("Initiator could not decrypt message");
+                            break;
+                        case CloseCode.NO_SHARED_TASK:
+                            getLogger().error("No shared task was found");
                             break;
                     }
                 }
