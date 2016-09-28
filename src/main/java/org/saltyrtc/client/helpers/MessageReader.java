@@ -76,6 +76,7 @@ public class MessageReader {
                 } else if (map.containsKey("responders")) {
                     return new InitiatorServerAuth(map);
                 }
+                throw new ValidationError("Invalid server-auth message");
             case "client-auth":
                 return new ClientAuth(map);
             case "new-initiator":
