@@ -11,8 +11,8 @@ package org.saltyrtc.client.helpers;
 import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.signaling.CloseCode;
 
-import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 public class ValidationHelper {
 
@@ -107,5 +107,21 @@ public class ValidationHelper {
             }
         }
         throw new ValidationError(name + " must be a valid close code");
+    }
+
+    @SuppressWarnings("unchecked")
+    public static Map<String, Object> validateStringObjectMap(Object value, String name) throws ValidationError {
+        // Check main type
+        if (!(value instanceof Map)) {
+            throw new ValidationError(name + " must be a Map");
+        }
+        // Check key types
+        for (Object element : ((Map<Object, Object>) value).keySet()) {
+            if (!(element instanceof String)) {
+                throw new ValidationError(name + " must be a Map with Strings as keys");
+            }
+        }
+        // Cast
+        return (Map<String, Object>) value;
     }
 }
