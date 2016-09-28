@@ -33,7 +33,7 @@ public class InitiatorServerAuth extends Message {
         ValidationHelper.validateType(map.get("type"), TYPE);
         final int COOKIE_LENGTH = 16;
         this.yourCookie = ValidationHelper.validateByteArray(map.get("your_cookie"), COOKIE_LENGTH, "your_cookie");
-        this.responders = ValidationHelper.validateIntegerList(map.get("responders"), Integer.class, "responders");
+        this.responders = ValidationHelper.validateTypedList(map.get("responders"), Integer.class, "responders");
     }
 
     public byte[] getYourCookie() {

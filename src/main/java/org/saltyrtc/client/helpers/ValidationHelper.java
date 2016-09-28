@@ -51,13 +51,11 @@ public class ValidationHelper {
     /**
      * This is suitable for validating MessagePack array format family.
      *
-     * Currently the function only supports integer arrays, but could be made generic in the future.
-     *
      * Note that array types in MessagePack don't have a fixed type,
      * so an array is always deserialized as Object[].
      */
     @SuppressWarnings("unchecked")
-    public static List<Integer> validateIntegerList(Object values, Class type, String name) throws ValidationError {
+    public static <T> List<T> validateTypedList(Object values, Class type, String name) throws ValidationError {
         if (!(values instanceof List)) {
             throw new ValidationError(name + " must be a list");
         }
@@ -66,7 +64,7 @@ public class ValidationHelper {
                 throw new ValidationError(name + " must be a " + type.getSimpleName() + " list");
             }
         }
-        return (List<Integer>) values;
+        return (List<T>) values;
     }
 
     public static Boolean validateBoolean(Object value, String name) throws ValidationError {

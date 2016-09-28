@@ -18,6 +18,7 @@ import java.util.List;
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
 public class ValidationHelperTest {
@@ -101,14 +102,14 @@ public class ValidationHelperTest {
     }
 
     @Test
-    public void testValidateArray() throws ValidationError {
+    public void testValidateIntegerList() throws ValidationError {
         // Create an object that is a list of integers
         final List<Object> values = new ArrayList<>();
         values.add(1); values.add(2); values.add(3);
         final Object value = values;
 
         // Convert
-        final List<Integer> validated = ValidationHelper.validateIntegerList(value, Integer.class, "IntArray");
+        final List<Integer> validated = ValidationHelper.validateTypedList(value, Integer.class, "IntArray");
 
         // Verify
         final List<Integer> expected = new ArrayList<>();
@@ -117,10 +118,26 @@ public class ValidationHelperTest {
     }
 
     @Test
+    public void testValidateStringList() throws ValidationError {
+        // Create an object that is a list of integers
+        final List<Object> values = new ArrayList<>();
+        values.add("a"); values.add("b"); values.add("c");
+        final Object value = values;
+
+        // Convert
+        final List<String> validated = ValidationHelper.validateTypedList(value, String.class, "StringArray");
+
+        // Verify
+        final List<String> expected = new ArrayList<>();
+        expected.add("a"); expected.add("b"); expected.add("c");
+        assertArrayEquals(expected.toArray(), validated.toArray());
+    }
+
+    @Test
     public void testValidateIntegerListOuterTypeFails() throws ValidationError {
         final Object value = "hello";
         try {
-            ValidationHelper.validateIntegerList(value, Integer.class, "IntArray");
+            ValidationHelper.validateTypedList(value, Integer.class, "IntArray");
             fail("No ValidationError thrown");
         } catch (ValidationError e) {
             assertEquals("IntArray must be a list", e.getMessage());
@@ -130,10 +147,20 @@ public class ValidationHelperTest {
     @Test
     public void testValidateIntegerListInnerTypeFails() {
         try {
-            ValidationHelper.validateIntegerList(asList('y', 'o'), Integer.class, "IntArray");
+            ValidationHelper.validateTypedList(asList('y', 'o'), Integer.class, "IntArray");
             fail("No ValidationError thrown");
         } catch (ValidationError e) {
             assertEquals("IntArray must be a Integer list", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testValidateStringListInnerTypeFails() {
+        try {
+            ValidationHelper.validateTypedList(asList('y', 'o'), String.class, "StringArray");
+            fail("No ValidationError thrown");
+        } catch (ValidationError e) {
+            assertEquals("StringArray must be a String list", e.getMessage());
         }
     }
 
