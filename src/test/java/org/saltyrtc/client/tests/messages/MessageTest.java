@@ -13,23 +13,26 @@ import org.saltyrtc.client.exceptions.SerializationError;
 import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.helpers.MessageReader;
 import org.saltyrtc.client.helpers.RandomHelper;
+import org.saltyrtc.client.messages.Message;
 import org.saltyrtc.client.messages.c2c.Close;
-import org.saltyrtc.client.messages.c2c.Auth;
+import org.saltyrtc.client.messages.c2c.InitiatorAuth;
+import org.saltyrtc.client.messages.c2c.Key;
+import org.saltyrtc.client.messages.c2c.ResponderAuth;
+import org.saltyrtc.client.messages.c2c.Token;
 import org.saltyrtc.client.messages.s2c.ClientAuth;
 import org.saltyrtc.client.messages.s2c.ClientHello;
 import org.saltyrtc.client.messages.s2c.DropResponder;
 import org.saltyrtc.client.messages.s2c.InitiatorServerAuth;
-import org.saltyrtc.client.messages.c2c.Key;
-import org.saltyrtc.client.messages.Message;
 import org.saltyrtc.client.messages.s2c.NewInitiator;
 import org.saltyrtc.client.messages.s2c.NewResponder;
 import org.saltyrtc.client.messages.s2c.ResponderServerAuth;
 import org.saltyrtc.client.messages.s2c.SendError;
 import org.saltyrtc.client.messages.s2c.ServerHello;
-import org.saltyrtc.client.messages.c2c.Token;
 import org.saltyrtc.client.signaling.CloseCode;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static java.util.Arrays.asList;
@@ -165,9 +168,29 @@ public class MessageTest {
     }
 
     @Test
-    public void testAuthRoundtrip() throws SerializationError, ValidationError {
-        final Auth original = new Auth(RandomHelper.pseudoRandomBytes(16));
-        final Auth returned = this.roundTrip(original);
+    public void testInitiatorAuthRoundtrip() throws SerializationError, ValidationError {
+        final String task = "dummytask";
+        final Map<String, Map<Object, Object>> data = new HashMap<>();
+        final Map<Object, Object> dummytaskData = new HashMap<>();
+        dummytaskData.put("do_something", "yes");
+        data.put(task, dummytaskData);
+
+        final InitiatorAuth original = new InitiatorAuth(RandomHelper.pseudoRandomBytes(16), task, data);
+        final InitiatorAuth returned = this.roundTrip(original);
+        assertArrayEquals(original.getYourCookie(), returned.getYourCookie());
+    }
+
+    @Test
+    public void testResponderAuthRoundtrip() throws SerializationError, ValidationError {
+        final List<String> tasks = Arrays.asList("dummytask", "alternative");
+        final Map<String, Map<Object, Object>> data = new HashMap<>();
+        final Map<Object, Object> dummytaskData = new HashMap<>();
+        dummytaskData.put("do_something", "yes");
+        data.put(tasks.get(0), dummytaskData);
+        data.put(tasks.get(1), null);
+
+        final ResponderAuth original = new ResponderAuth(RandomHelper.pseudoRandomBytes(16), tasks, data);
+        final ResponderAuth returned = this.roundTrip(original);
         assertArrayEquals(original.getYourCookie(), returned.getYourCookie());
     }
 
@@ -191,8 +214,8 @@ public class MessageTest {
 
     @Test
     public void testGetType() {
-        final Auth auth = new Auth(RandomHelper.pseudoRandomBytes(32));
-        assertEquals("auth", auth.getType());
+        final Key auth = new Key(RandomHelper.pseudoRandomBytes(32));
+        assertEquals("key", auth.getType());
     }
 
 }

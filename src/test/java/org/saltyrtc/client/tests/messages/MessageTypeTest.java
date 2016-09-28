@@ -12,19 +12,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.saltyrtc.client.exceptions.ValidationError;
-import org.saltyrtc.client.messages.c2c.Auth;
-import org.saltyrtc.client.messages.s2c.ClientAuth;
-import org.saltyrtc.client.messages.s2c.ClientHello;
-import org.saltyrtc.client.messages.s2c.DropResponder;
-import org.saltyrtc.client.messages.s2c.InitiatorServerAuth;
-import org.saltyrtc.client.messages.c2c.Key;
-import org.saltyrtc.client.messages.s2c.NewInitiator;
-import org.saltyrtc.client.messages.s2c.NewResponder;
-import org.saltyrtc.client.messages.s2c.ResponderServerAuth;
-import org.saltyrtc.client.messages.c2c.Close;
-import org.saltyrtc.client.messages.s2c.SendError;
-import org.saltyrtc.client.messages.s2c.ServerHello;
-import org.saltyrtc.client.messages.c2c.Token;
+import org.saltyrtc.client.messages.c2c.*;
+import org.saltyrtc.client.messages.s2c.*;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -55,7 +44,8 @@ public class MessageTypeTest {
                 { SendError.class, "send-error" },
                 { Token.class, "token" },
                 { Key.class, "key" },
-                { Auth.class, "auth" },
+                { InitiatorAuth.class, "auth" },
+                { ResponderAuth.class, "auth" },
                 { Close.class, "close" },
         });
     }

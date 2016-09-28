@@ -26,7 +26,8 @@ import org.saltyrtc.client.helpers.MessageReader;
 import org.saltyrtc.client.keystore.AuthToken;
 import org.saltyrtc.client.keystore.Box;
 import org.saltyrtc.client.keystore.KeyStore;
-import org.saltyrtc.client.messages.c2c.Auth;
+import org.saltyrtc.client.messages.c2c.InitiatorAuth;
+import org.saltyrtc.client.messages.c2c.ResponderAuth;
 import org.saltyrtc.client.messages.s2c.ClientHello;
 import org.saltyrtc.client.messages.c2c.Key;
 import org.saltyrtc.client.messages.Message;
@@ -41,7 +42,9 @@ import org.saltyrtc.client.signaling.state.SignalingState;
 import org.saltyrtc.client.tasks.Task;
 import org.slf4j.Logger;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import javax.net.ssl.SSLContext;
 
@@ -101,7 +104,7 @@ public class ResponderSignaling extends Signaling {
                 return this.serverCsn.getOurs().next();
             } else if (receiver == Signaling.SALTYRTC_ADDR_INITIATOR) {
                 return this.initiator.getCsnPair().getOurs().next();
-            } else if (isResponderId(receiver)) {
+            } else if (this.isResponderId(receiver)) {
                 throw new ProtocolException("Responder may not send messages to other responders: " + receiver);
             } else {
                 throw new ProtocolException("Bad receiver byte: " + receiver);
@@ -114,7 +117,7 @@ public class ResponderSignaling extends Signaling {
     @Override
     protected Box encryptForPeer(short receiver, String messageType, byte[] payload, byte[] nonce)
             throws CryptoFailedException, InvalidKeyException, ProtocolException {
-        if (isResponderId(receiver)) {
+        if (this.isResponderId(receiver)) {
             throw new ProtocolException("Responder may not encrypt messages for other responders: " + receiver);
         } else if (receiver != Signaling.SALTYRTC_ADDR_INITIATOR) {
             throw new ProtocolException("Bad receiver byte: " + receiver);
@@ -125,7 +128,7 @@ public class ResponderSignaling extends Signaling {
             case "key":
                 return this.permanentKey.encrypt(payload, nonce, this.initiator.permanentKey);
             default:
-                byte[] peerSessionKey = getPeerSessionKey();
+                byte[] peerSessionKey = this.getPeerSessionKey();
                 if (peerSessionKey == null) {
                     throw new ProtocolException(
                             "Trying to encrypt for peer using session key, but session key is null");
@@ -138,7 +141,7 @@ public class ResponderSignaling extends Signaling {
     protected void sendClientHello() throws ProtocolException, ConnectionException {
         final ClientHello msg = new ClientHello(this.permanentKey.getPublicKey());
         final byte[] packet = this.buildPacket(msg, Signaling.SALTYRTC_ADDR_SERVER, false);
-        getLogger().debug("Sending client-hello");
+        this.getLogger().debug("Sending client-hello");
         this.send(packet, msg);
         this.serverHandshakeState = ServerHandshakeState.HELLO_SENT;
     }
@@ -158,20 +161,20 @@ public class ResponderSignaling extends Signaling {
             throw new ProtocolException("Invalid nonce destination: " + nonce.getDestination());
         }
         this.address = nonce.getDestination();
-        getLogger().debug("Server assigned address 0x" + NaCl.asHex(new int[] { this.address }));
+        this.getLogger().debug("Server assigned address 0x" + NaCl.asHex(new int[] { this.address }));
 
         // Validate cookie
         final Cookie cookie = new Cookie(msg.getYourCookie());
         if (!cookie.equals(this.cookie)) {
-            getLogger().error("Bad repeated cookie in server-auth message");
-            getLogger().debug("Their response: " + Arrays.toString(msg.getYourCookie()) +
+            this.getLogger().error("Bad repeated cookie in server-auth message");
+            this.getLogger().debug("Their response: " + Arrays.toString(msg.getYourCookie()) +
                     ", our cookie: " + Arrays.toString(this.cookie.getBytes()));
             throw new ProtocolException("Bad repeated cookie in server-auth message");
         }
 
         // Store whether initiator is connected
         this.initiator.setConnected(msg.isInitiatorConnected());
-        getLogger().debug("Initiator is " + (msg.isInitiatorConnected() ? "" : "not ") + "connected.");
+        this.getLogger().debug("Initiator is " + (msg.isInitiatorConnected() ? "" : "not ") + "connected.");
 
         // Server handshake is done!
         this.serverHandshakeState = ServerHandshakeState.DONE;
@@ -181,18 +184,124 @@ public class ResponderSignaling extends Signaling {
     protected void initPeerHandshake() throws ProtocolException, ConnectionException {
         if (this.initiator.isConnected()) {
             // Only send token if we don't trust the initiator
-            if (this.peerTrustedKey == null) {
+            if (!this.hasTrustedKey()) {
                 this.sendToken();
             }
+            this.sendKey();
         }
     }
 
-    protected void sendToken() throws ProtocolException, ConnectionException {
+	/**
+     * Send our token to the initiator.
+     */
+    private void sendToken() throws ProtocolException, ConnectionException {
         final Token msg = new Token(this.permanentKey.getPublicKey());
         final byte[] packet = this.buildPacket(msg, Signaling.SALTYRTC_ADDR_INITIATOR);
-        getLogger().debug("Sending token");
+        this.getLogger().debug("Sending token");
         this.send(packet, msg);
         this.initiator.handshakeState = InitiatorHandshakeState.TOKEN_SENT;
+    }
+
+    /**
+     * Send our public session key to the initiator.
+     */
+    private void sendKey() throws ProtocolException, ConnectionException {
+        // Generate our own session key
+        this.sessionKey = new KeyStore();
+        final Key msg = new Key(this.sessionKey.getPublicKey());
+        final byte[] packet = this.buildPacket(msg, SALTYRTC_ADDR_INITIATOR);
+        this.getLogger().debug("Sending key");
+        this.send(packet, msg);
+        this.initiator.handshakeState = InitiatorHandshakeState.KEY_SENT;
+    }
+
+    /**
+     * The initiator sends his public session key.
+     */
+    private void handleKey(Key msg) {
+        this.initiator.setSessionKey(msg.getKey());
+        this.initiator.handshakeState = InitiatorHandshakeState.KEY_RECEIVED;
+    }
+
+    /**
+     * Repeat the initiator's cookie and send task list.
+     */
+    private void sendAuth(SignalingChannelNonce nonce) throws ProtocolException, ConnectionException {
+        // Ensure that cookies are different
+        if (nonce.getCookie().equals(this.cookie)) {
+            throw new ProtocolException("Their cookie and our cookie are the same");
+        }
+
+        // Send auth
+        final ResponderAuth msg;
+        try {
+            // Build list of task names
+            List<String> taskNames = new ArrayList<>();
+            for (Task task : this.tasks) {
+                taskNames.add(task.getName());
+            }
+            // Create auth message
+            msg = new ResponderAuth(nonce.getCookieBytes(), taskNames, this.tasksData);
+        } catch (ValidationError e) {
+            throw new ProtocolException("Invalid task data", e);
+        }
+        final byte[] packet = this.buildPacket(msg, SALTYRTC_ADDR_INITIATOR);
+        this.getLogger().debug("Sending auth");
+        this.send(packet, msg);
+        this.initiator.handshakeState = InitiatorHandshakeState.AUTH_SENT;
+    }
+
+    /**
+     * The initiator repeats our cookie.
+     */
+    private void handleAuth(InitiatorAuth msg, SignalingChannelNonce nonce) throws ProtocolException {
+        // Validate cookie
+        this.validateRepeatedCookie(msg.getYourCookie());
+
+        // TODO: Validate task
+        // TODO: Find task instance matching msg.getTask()
+
+        // OK!
+        this.getLogger().debug("Initiator authenticated");
+        this.initiator.setCookie(nonce.getCookie());
+        this.initiator.handshakeState = InitiatorHandshakeState.AUTH_RECEIVED;
+    }
+
+	/**
+     * Decrypt messages from the initiator.
+     *
+     * @param box encrypted box containing message.
+     * @return The decrypted message bytes.
+     * @throws ProtocolException if decryption fails or when receiving messages in an invalid state.
+     */
+    private byte[] decryptInitiatorMessage(Box box) throws ProtocolException {
+        switch (this.initiator.handshakeState) {
+            case NEW:
+            case TOKEN_SENT:
+            case KEY_RECEIVED:
+                throw new ProtocolException(
+                    "Received message in " + this.initiator.handshakeState.name() + " state.");
+            case KEY_SENT:
+                // Expect a key message, encrypted with the permanent keys
+                try {
+                    return this.permanentKey.decrypt(box, this.initiator.getPermanentKey());
+                } catch (CryptoFailedException | InvalidKeyException e) {
+                    e.printStackTrace();
+                    throw new ProtocolException("Could not decrypt key message");
+                }
+            case AUTH_SENT:
+            case AUTH_RECEIVED:
+                // Otherwise, it must be encrypted with the session key.
+                try {
+                    return this.sessionKey.decrypt(box, this.initiator.getSessionKey());
+                } catch (CryptoFailedException | InvalidKeyException e) {
+                    e.printStackTrace();
+                    throw new ProtocolException("Could not decrypt message using session key");
+                }
+            default:
+                throw new ProtocolException(
+                    "Invalid handshake state: " + this.initiator.handshakeState.name());
+        }
     }
 
     @Override
@@ -218,63 +327,42 @@ public class ResponderSignaling extends Signaling {
 
             final Message msg = MessageReader.read(payload);
             if (msg instanceof NewInitiator) {
-                getLogger().debug("Received new-initiator");
-                handleNewInitiator((NewInitiator) msg);
+                this.getLogger().debug("Received new-initiator");
+                this.handleNewInitiator((NewInitiator) msg);
             } else {
                 throw new ProtocolException("Got unexpected server message: " + msg.getType());
             }
         } else if (nonce.getSource() == SALTYRTC_ADDR_INITIATOR) {
-            // Decrypt. The key messages are encrypted with a different key than the rest.
-            if (this.initiator.handshakeState == InitiatorHandshakeState.TOKEN_SENT) {
-                // Expect a key message, encrypted with the permanent keys
-                try {
-                    payload = this.permanentKey.decrypt(box, this.initiator.getPermanentKey());
-                } catch (CryptoFailedException | InvalidKeyException e) {
-                    e.printStackTrace();
-                    throw new ProtocolException("Could not decrypt key message");
-                }
-            } else {
-                // Otherwise, it must be encrypted with the session key.
-                try {
-                    payload = this.sessionKey.decrypt(box, this.initiator.getSessionKey());
-                } catch (CryptoFailedException | InvalidKeyException e) {
-                    e.printStackTrace();
-                    throw new ProtocolException("Could not decrypt message using session key");
-                }
-            }
-
             // Dispatch message
+            payload = this.decryptInitiatorMessage(box);
             final Message msg = MessageReader.read(payload);
             switch (this.initiator.handshakeState) {
-                case NEW:
-                    throw new ProtocolException("Unexpected " + msg.getType() + " message");
-                case TOKEN_SENT:
+                case KEY_SENT:
                     // Expect a key message
                     if (msg instanceof Key) {
-                        getLogger().debug("Received key");
-                        handleKey((Key) msg);
-                        sendKey();
+                        this.getLogger().debug("Received key");
+                        this.handleKey((Key) msg);
+                        this.sendAuth(nonce);
                     } else {
                         throw new ProtocolException("Expected key message, but got " + msg.getType());
                     }
                     break;
-                case KEY_SENT:
+                case AUTH_SENT:
                     // Expect an auth message
-                    if (msg instanceof Auth) {
-                        getLogger().debug("Received auth");
-                        handleAuth((Auth) msg, nonce);
-                        sendAuth(nonce);
+                    if (msg instanceof InitiatorAuth) {
+                        this.getLogger().debug("Received auth");
+                        this.handleAuth((InitiatorAuth) msg, nonce);
                     } else {
                         throw new ProtocolException("Expected auth message, but got " + msg.getType());
                     }
 
                     // We're connected!
                     this.setState(SignalingState.OPEN);
-                    getLogger().info("Peer handshake done");
+                    this.getLogger().info("Peer handshake done");
 
                     break;
                 default:
-                    throw new InternalException("Unknown initiator handshake state");
+                    throw new InternalException("Unknown or invalid initiator handshake state");
             }
         } else {
             throw new ProtocolException("Message source is neither the server nor the initiator");
@@ -282,61 +370,15 @@ public class ResponderSignaling extends Signaling {
     }
 
     /**
-     * A new responder wants to connect.
+     * A new initiator replaces the old one.
+     *
+     * TODO: Replace?
      */
-    protected void handleNewInitiator(NewInitiator msg) throws ProtocolException, ConnectionException {
+    private void handleNewInitiator(NewInitiator msg) throws ProtocolException, ConnectionException {
         // Initiator changed, send token message if we don't trust the initiator
-        if (this.peerTrustedKey == null) {
+        if (!this.hasTrustedKey()) {
             this.sendToken();
         }
-    }
-
-    /**
-     * The initiator sends his public session key.
-     */
-    protected void handleKey(Key msg) {
-        this.initiator.setSessionKey(msg.getKey());
-    }
-
-    /**
-     * Send our public session key to the initiator.
-     */
-    protected void sendKey() throws ProtocolException, ConnectionException {
-        // Generate our own session key
-        this.sessionKey = new KeyStore();
-        final Key msg = new Key(this.sessionKey.getPublicKey());
-        final byte[] packet = this.buildPacket(msg, SALTYRTC_ADDR_INITIATOR);
-        getLogger().debug("Sending key");
-        this.send(packet, msg);
-        this.initiator.handshakeState = InitiatorHandshakeState.KEY_SENT;
-    }
-
-    /**
-     * The initiator repeats our cookie.
-     */
-    protected void handleAuth(Auth msg, SignalingChannelNonce nonce) throws ProtocolException {
-        // Validate cookie
-        validateRepeatedCookie(msg);
-
-        // OK!
-        getLogger().debug("Initiator authenticated");
-        this.initiator.setCookie(nonce.getCookie());
-    }
-
-    /**
-     * Repeat the initiator's cookie.
-     */
-    protected void sendAuth(SignalingChannelNonce nonce) throws ProtocolException, ConnectionException {
-        // Ensure that cookies are different
-        if (nonce.getCookie().equals(this.cookie)) {
-            throw new ProtocolException("Their cookie and our cookie are the same");
-        }
-
-        // Send auth
-        final Auth msg = new Auth(nonce.getCookieBytes());
-        final byte[] packet = this.buildPacket(msg, SALTYRTC_ADDR_INITIATOR);
-        getLogger().debug("Sending auth");
-        this.send(packet, msg);
     }
 
     @Override

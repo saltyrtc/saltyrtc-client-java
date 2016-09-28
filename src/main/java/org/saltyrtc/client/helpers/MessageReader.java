@@ -14,20 +14,21 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.msgpack.jackson.dataformat.MessagePackFactory;
 import org.saltyrtc.client.exceptions.SerializationError;
 import org.saltyrtc.client.exceptions.ValidationError;
+import org.saltyrtc.client.messages.Message;
 import org.saltyrtc.client.messages.c2c.Close;
-import org.saltyrtc.client.messages.c2c.Auth;
+import org.saltyrtc.client.messages.c2c.InitiatorAuth;
+import org.saltyrtc.client.messages.c2c.Key;
+import org.saltyrtc.client.messages.c2c.ResponderAuth;
+import org.saltyrtc.client.messages.c2c.Token;
 import org.saltyrtc.client.messages.s2c.ClientAuth;
 import org.saltyrtc.client.messages.s2c.ClientHello;
 import org.saltyrtc.client.messages.s2c.DropResponder;
 import org.saltyrtc.client.messages.s2c.InitiatorServerAuth;
-import org.saltyrtc.client.messages.c2c.Key;
-import org.saltyrtc.client.messages.Message;
 import org.saltyrtc.client.messages.s2c.NewInitiator;
 import org.saltyrtc.client.messages.s2c.NewResponder;
 import org.saltyrtc.client.messages.s2c.ResponderServerAuth;
 import org.saltyrtc.client.messages.s2c.SendError;
 import org.saltyrtc.client.messages.s2c.ServerHello;
-import org.saltyrtc.client.messages.c2c.Token;
 
 import java.io.IOException;
 import java.util.Map;
@@ -92,7 +93,12 @@ public class MessageReader {
             case "key":
                 return new Key(map);
             case "auth":
-                return new Auth(map);
+                if (map.containsKey("task")) {
+                    return new InitiatorAuth(map);
+                } else if (map.containsKey("tasks")) {
+                    return new ResponderAuth(map);
+                }
+                throw new ValidationError("Invalid auth message");
             case "close":
                 return new Close(map);
             default:

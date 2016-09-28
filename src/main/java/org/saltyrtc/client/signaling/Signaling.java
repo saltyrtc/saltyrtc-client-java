@@ -35,7 +35,6 @@ import org.saltyrtc.client.keystore.AuthToken;
 import org.saltyrtc.client.keystore.Box;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.messages.c2c.Close;
-import org.saltyrtc.client.messages.c2c.Auth;
 import org.saltyrtc.client.messages.s2c.ClientAuth;
 import org.saltyrtc.client.messages.s2c.InitiatorServerAuth;
 import org.saltyrtc.client.messages.Message;
@@ -55,6 +54,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -109,6 +109,7 @@ public abstract class Signaling implements SignalingInterface {
 
     // Tasks
     final protected Task[] tasks;
+    protected Map<String, Map<Object, Object>> tasksData;
     protected Task task;
 
     // Message history
@@ -123,6 +124,10 @@ public abstract class Signaling implements SignalingInterface {
         this.permanentKey = permanentKey;
         this.sslContext = sslContext;
         this.tasks = tasks;
+        this.tasksData = new HashMap<>();
+        for (Task task : this.tasks) {
+            this.tasksData.put(task.getName(), task.getData());
+        }
     }
 
     public Signaling(SaltyRTC salty, String host, int port,
@@ -149,6 +154,13 @@ public abstract class Signaling implements SignalingInterface {
             return this.authToken.getAuthToken();
         }
         return null;
+    }
+
+	/**
+	 * Return true if the signaling class has been initialized with a trusted peer key.
+     */
+    public boolean hasTrustedKey() {
+        return this.peerTrustedKey != null;
     }
 
     @NonNull
@@ -871,14 +883,14 @@ public abstract class Signaling implements SignalingInterface {
 
     /**
      * Validate a repeated cookie in a p2p Auth message.
-     * @param msg The Auth message.
+     * @param theirCookie The cookie bytes of the peer.
      * @throws ProtocolException Thrown if repeated cookie does not match our own cookie.
      */
-    protected void validateRepeatedCookie(Auth msg) throws ProtocolException {
+    protected void validateRepeatedCookie(byte[] theirCookie) throws ProtocolException {
         // Verify the cookie
-        final Cookie repeatedCookie = new Cookie(msg.getYourCookie());
+        final Cookie repeatedCookie = new Cookie(theirCookie);
         if (!repeatedCookie.equals(this.cookie)) {
-            this.getLogger().debug("Peer repeated cookie: " + Arrays.toString(msg.getYourCookie()));
+            this.getLogger().debug("Peer repeated cookie: " + Arrays.toString(theirCookie));
             this.getLogger().debug("Our cookie: " + Arrays.toString(this.cookie.getBytes()));
             throw new ProtocolException("Peer repeated cookie does not match our cookie");
         }

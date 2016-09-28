@@ -17,4 +17,14 @@ public class DummyTask implements Task {
     public void sendSignalingMessage(byte[] payload) {
     }
 
+    @Override
+    public String getName() {
+        return "dummy.tasks.saltyrtc.org";
+    }
+
+    @Override
+    public Map<Object, Object> getData() {
+        return null;
+    }
+
 }

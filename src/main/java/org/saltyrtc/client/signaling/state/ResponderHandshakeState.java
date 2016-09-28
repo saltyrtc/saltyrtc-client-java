@@ -8,8 +8,36 @@
 
 package org.saltyrtc.client.signaling.state;
 
+/**
+ * Message states, as seen by the initiator:
+ *
+ * NEW
+ *
+ * <---handleToken---
+ *
+ * TOKEN_RECEIVED
+ *
+ * <---handleKey-----
+ *
+ * KEY_RECEIVED
+ *
+ * ----sendKey------>
+ *
+ * KEY_SENT
+ *
+ * <---handleAuth----
+ *
+ * AUTH_RECEIVED
+ *
+ * ----sendAuth----->
+ *
+ * AUTH_SENT
+ */
 public enum ResponderHandshakeState {
     NEW,
     TOKEN_RECEIVED,
     KEY_RECEIVED,
+    KEY_SENT,
+    AUTH_RECEIVED,
+    AUTH_SENT,
 }

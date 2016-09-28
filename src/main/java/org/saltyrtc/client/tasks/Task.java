@@ -26,4 +26,14 @@ public interface Task {
      */
     void sendSignalingMessage(byte[] payload);
 
+    /**
+     * Return the task protocol name.
+     */
+    String getName();
+
+	/**
+	 * Return the task data used for negotiation in the `auth` message.
+     */
+    Map<Object, Object> getData();
+
 }

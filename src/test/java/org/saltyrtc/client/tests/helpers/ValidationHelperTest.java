@@ -254,26 +254,27 @@ public class ValidationHelperTest {
     }
 
     @Test
-    public void testValidateStringObjectMap() throws ValidationError {
+    public void testValidateStringMapMap() throws ValidationError {
         // Create an object that is a map of string -> object
-        final Map<String, Object> map = new HashMap<>();
-        map.put("a", 1); map.put("b", "foo"); map.put("c", 'c');
+        final Map<String, Map<Object, Object>> map = new HashMap<>();
+        final Map<Object, Object> inner = new HashMap<>(); inner.put("foo", 1);
+        map.put("a", inner); map.put("b", null); map.put("c", null);
         final Object value = map;
 
         // Convert
-        final Map<String, Object> validated = ValidationHelper.validateStringObjectMap(value, "Map");
+        final Map<String, Map<Object, Object>> validated = ValidationHelper.validateStringMapMap(value, "Map");
 
         // Verify
-        final Map<String, Object> expected = new HashMap<>();
-        expected.put("a", 1); expected.put("b", "foo"); expected.put("c", 'c');
+        final Map<String, Map<Object, Object>> expected = new HashMap<>();
+        expected.put("a", inner); expected.put("b", null); expected.put("c", null);
         assertArrayEquals(expected.keySet().toArray(), validated.keySet().toArray());
         assertArrayEquals(expected.values().toArray(), validated.values().toArray());
     }
 
     @Test
-    public void testValidateStringObjectMapOuterTypeFails() {
+    public void testValidateStringMapMapOuterTypeFails() {
         try {
-            ValidationHelper.validateStringObjectMap(asList('y', 'o'), "IntArray");
+            ValidationHelper.validateStringMapMap(asList('y', 'o'), "IntArray");
             fail("No ValidationError thrown");
         } catch (ValidationError e) {
             assertEquals("IntArray must be a Map", e.getMessage());
@@ -281,15 +282,28 @@ public class ValidationHelperTest {
     }
 
     @Test
-    public void testValidateStringObjectMapInnerTypeFails() {
+    public void testValidateStringMapMapInnerTypeFails() {
         final Map<Integer, Object> map = new HashMap<>();
         map.put(1, 1); map.put(2, "foo"); map.put(3, 'c');
         final Object value = map;
         try {
-            ValidationHelper.validateStringObjectMap(value, "IntegerObjectMap");
+            ValidationHelper.validateStringMapMap(value, "IntegerObjectMap");
             fail("No ValidationError thrown");
         } catch (ValidationError e) {
             assertEquals("IntegerObjectMap must be a Map with Strings as keys", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testValidateStringMapMapInnerInnerTypeFails() {
+        final Map<String, Object> map = new HashMap<>();
+        map.put("a", 1); map.put("b", "foo"); map.put("c", 'c');
+        final Object value = map;
+        try {
+            ValidationHelper.validateStringMapMap(value, "IntegerObjectMap");
+            fail("No ValidationError thrown");
+        } catch (ValidationError e) {
+            assertEquals("IntegerObjectMap must be a Map with Maps or null as values", e.getMessage());
         }
     }
 
