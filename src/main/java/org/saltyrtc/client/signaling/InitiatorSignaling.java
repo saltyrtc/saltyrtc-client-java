@@ -22,6 +22,7 @@ import org.saltyrtc.client.exceptions.ProtocolException;
 import org.saltyrtc.client.exceptions.SerializationError;
 import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.helpers.MessageReader;
+import org.saltyrtc.client.helpers.TaskHelper;
 import org.saltyrtc.client.keystore.AuthToken;
 import org.saltyrtc.client.keystore.Box;
 import org.saltyrtc.client.keystore.KeyStore;
@@ -43,6 +44,8 @@ import org.slf4j.Logger;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -330,7 +333,16 @@ public class InitiatorSignaling extends Signaling {
                     }
 
                     // We're connected!
+                    this.responder = responder;
+                    this.sessionKey = responder.getKeyStore();
+
+                    // Remove responder from responders list
+                    this.responders.remove(responder.getId());
+
+                    // Drop other responders
                     this.dropResponders();
+
+                    // Peer handshake done
                     this.setState(SignalingState.OPEN);
                     this.getLogger().info("Peer handshake done");
 
@@ -422,28 +434,29 @@ public class InitiatorSignaling extends Signaling {
         // Validate cookie
         this.validateRepeatedCookie(msg.getYourCookie());
 
+        // Validation of task list and data already happens in the `ResponderAuth` constructor
+
         // Select task
-        // TODO: Set this.task
-        // TODO: Remove all other entries from this.tasksData
+        this.task = TaskHelper.chooseCommonTask(this.tasks, msg.getTasks());
+
+        // Remove all other entries from tasks data
+        for(Iterator<Map.Entry<String, Map<Object, Object>>> it = this.tasksData.entrySet().iterator(); it.hasNext(); ) {
+            if (!it.next().getKey().equals(this.task.getName())) {
+                it.remove();
+            }
+        }
 
         // OK!
         this.getLogger().debug("Responder 0x" + NaCl.asHex(new int[] { responder.getId() }) + " authenticated");
-
-        // Store responder details and session key
-        this.responder = responder;
-        this.sessionKey = responder.getKeyStore();
 
         // Store cookie
         if (nonce.getCookie().equals(this.cookie)) {
             throw new ProtocolException("Local and remote cookies are equal");
         }
-        this.responder.setCookie(nonce.getCookie());
-
-        // Remove responder from responders list
-        this.responders.remove(responder.getId());
+        responder.setCookie(nonce.getCookie());
 
         // Update state
-        this.responder.handshakeState = ResponderHandshakeState.AUTH_RECEIVED;
+        responder.handshakeState = ResponderHandshakeState.AUTH_RECEIVED;
     }
 
     /**

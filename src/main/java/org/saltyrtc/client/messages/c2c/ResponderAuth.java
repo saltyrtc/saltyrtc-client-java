@@ -75,6 +75,10 @@ public class ResponderAuth extends Message {
         return this.tasks;
     }
 
+    public Map<String, Map<Object, Object>> getData() {
+        return this.data;
+    }
+
     @Override
     public void write(MessagePacker packer) throws IOException {
         ObjectMapper objectMapper = new ObjectMapper(new MessagePackFactory());

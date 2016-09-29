@@ -23,6 +23,7 @@ import org.saltyrtc.client.exceptions.ProtocolException;
 import org.saltyrtc.client.exceptions.SerializationError;
 import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.helpers.MessageReader;
+import org.saltyrtc.client.helpers.TaskHelper;
 import org.saltyrtc.client.keystore.AuthToken;
 import org.saltyrtc.client.keystore.Box;
 import org.saltyrtc.client.keystore.KeyStore;
@@ -235,13 +236,8 @@ public class ResponderSignaling extends Signaling {
         // Send auth
         final ResponderAuth msg;
         try {
-            // Build list of task names
-            List<String> taskNames = new ArrayList<>();
-            for (Task task : this.tasks) {
-                taskNames.add(task.getName());
-            }
             // Create auth message
-            msg = new ResponderAuth(nonce.getCookieBytes(), taskNames, this.tasksData);
+            msg = new ResponderAuth(nonce.getCookieBytes(), TaskHelper.getTaskNames(this.tasks), this.tasksData);
         } catch (ValidationError e) {
             throw new ProtocolException("Invalid task data", e);
         }
@@ -371,14 +367,11 @@ public class ResponderSignaling extends Signaling {
 
     /**
      * A new initiator replaces the old one.
-     *
-     * TODO: Replace?
      */
     private void handleNewInitiator(NewInitiator msg) throws ProtocolException, ConnectionException {
-        // Initiator changed, send token message if we don't trust the initiator
-        if (!this.hasTrustedKey()) {
-            this.sendToken();
-        }
+        this.initiator.setConnected(true);
+        // TODO: Replace old initiator?
+        this.initPeerHandshake();
     }
 
     @Override
