@@ -37,6 +37,7 @@ import org.saltyrtc.client.keystore.Box;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.messages.Message;
 import org.saltyrtc.client.messages.c2c.Close;
+import org.saltyrtc.client.messages.c2c.TaskMessage;
 import org.saltyrtc.client.messages.s2c.ClientAuth;
 import org.saltyrtc.client.messages.s2c.InitiatorServerAuth;
 import org.saltyrtc.client.messages.s2c.ResponderServerAuth;
@@ -101,6 +102,7 @@ public abstract class Signaling implements SignalingInterface {
     protected byte[] peerTrustedKey = null;
 
     // Signaling
+    @NonNull
     protected SignalingRole role;
     protected short address = SALTYRTC_ADDR_UNKNOWN;
     protected Cookie cookie;
@@ -181,6 +183,11 @@ public abstract class Signaling implements SignalingInterface {
             this.salty.events.signalingChannelChanged.notifyHandlers(
                     new SignalingChannelChangedEvent(newChannel));
         }
+    }
+
+    @NonNull
+    public SignalingRole getRole() {
+        return this.role;
     }
 
     /**
@@ -524,7 +531,7 @@ public abstract class Signaling implements SignalingInterface {
     private Message decryptPeerMessage(Box box)
             throws CryptoFailedException, InvalidKeyException, ValidationError, SerializationError {
         final byte[] decrypted = this.sessionKey.decrypt(box, this.getPeerSessionKey());
-        return MessageReader.read(decrypted);
+        return MessageReader.read(decrypted, this.task.getSupportedMessageTypes());
     }
 
     /**
@@ -655,6 +662,8 @@ public abstract class Signaling implements SignalingInterface {
             if (message instanceof Close) {
                 this.getLogger().debug("Received close");
                 handleClose((Close) message);
+            } else if (message instanceof TaskMessage) {
+                this.task.onTaskMessage((TaskMessage) message);
             } else {
                 this.getLogger().error("Received message with invalid type from peer");
             }
@@ -724,6 +733,14 @@ public abstract class Signaling implements SignalingInterface {
             throw new ProtocolException("Peer sent invalid task data", e);
         }
         this.task = task;
+    }
+
+    /**
+     * Return the negotiated task, or null if no task has been negotiated yet.
+     */
+    @Nullable
+    public Task getTask() {
+        return this.task;
     }
 
     /**
@@ -983,6 +1000,18 @@ public abstract class Signaling implements SignalingInterface {
             default:
                 throw new ProtocolException("Unknown or invalid signaling channel: " + this.channel);
         }
+    }
+
+	/**
+	 * Send a task message through the websocket.
+     */
+    public void sendTaskMessage(TaskMessage msg) throws ProtocolException, SignalingException, ConnectionException {
+        final Short receiver = this.getPeerAddress();
+        if (receiver == null) {
+            throw new SignalingException(CloseCode.INTERNAL_ERROR, "No peer address could be found");
+        }
+        final byte[] packet = this.buildPacket(msg, receiver);
+        this.send(packet, msg);
     }
 
     /**

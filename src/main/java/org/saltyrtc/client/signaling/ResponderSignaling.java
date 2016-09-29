@@ -376,6 +376,7 @@ public class ResponderSignaling extends Signaling {
                     // We're connected!
                     this.setState(SignalingState.TASK);
                     this.getLogger().info("Peer handshake done");
+                    this.task.onPeerHandshakeDone();
 
                     break;
                 default:
@@ -398,28 +399,19 @@ public class ResponderSignaling extends Signaling {
     @Override
     @Nullable
     protected Short getPeerAddress() {
-        if (this.initiator != null) {
-            return this.initiator.getId();
-        }
-        return null;
+        return this.initiator.getId();
     }
 
     @Override
     @Nullable
     public Cookie getPeerCookie() {
-        if (this.initiator != null) {
-            return this.initiator.getCookie();
-        }
-        return null;
+        return this.initiator.getCookie();
     }
 
     @Override
     @Nullable
     protected byte[] getPeerSessionKey() {
-        if (this.initiator != null) {
-            return this.initiator.sessionKey;
-        }
-        return null;
+        return this.initiator.sessionKey;
     }
 
     /**

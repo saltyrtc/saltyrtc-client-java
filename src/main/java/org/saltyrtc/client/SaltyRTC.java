@@ -8,6 +8,7 @@
 
 package org.saltyrtc.client;
 
+import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.events.EventRegistry;
 import org.saltyrtc.client.events.SendErrorEvent;
 import org.saltyrtc.client.events.SignalingChannelChangedEvent;
@@ -94,6 +95,14 @@ public class SaltyRTC {
      */
     public SignalingState getSignalingState() {
         return this.signaling.getState();
+    }
+
+	/**
+     * Return the negotiated task, or null if no task has been negotiated yet.
+     */
+    @Nullable
+    public Task getTask() {
+        return this.signaling.getTask();
     }
 
     /**

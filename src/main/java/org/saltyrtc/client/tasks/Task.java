@@ -3,8 +3,10 @@ package org.saltyrtc.client.tasks;
 import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.exceptions.ValidationError;
+import org.saltyrtc.client.messages.c2c.TaskMessage;
 import org.saltyrtc.client.signaling.SignalingInterface;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -25,13 +27,22 @@ public interface Task {
      */
     void init(SignalingInterface signaling, Map<Object, Object> data) throws ValidationError;
 
+	/**
+     * Used by the signaling class to notify task that the peer handshake is over.
+     *
+     * This is the point where the task can take over.
+     *
+     * TODO: Could this be combined with init?
+     */
+    void onPeerHandshakeDone();
+
     /**
      * This method is called by SaltyRTC when a task related message
      * arrives through the WebSocket.
      *
      * @param message The deserialized MessagePack message.
      */
-    void onTaskMessage(Map<String, Object> message);
+    void onTaskMessage(TaskMessage message);
 
 	/**
      * Send bytes through the task signaling channel.
@@ -45,6 +56,14 @@ public interface Task {
      */
     @NonNull
     String getName();
+
+    /**
+     * Return the list of supported message types.
+     *
+     * Messages with this type will be forwarded to the task.
+     */
+    @NonNull
+    List<String> getSupportedMessageTypes();
 
     /**
 	 * Return the task data used for negotiation in the `auth` message.

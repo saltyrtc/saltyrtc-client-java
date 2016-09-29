@@ -2,11 +2,14 @@ package org.saltyrtc.client.tests;
 
 import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.annotations.Nullable;
+import org.saltyrtc.client.messages.c2c.TaskMessage;
 import org.saltyrtc.client.signaling.Signaling;
 import org.saltyrtc.client.signaling.SignalingInterface;
 import org.saltyrtc.client.tasks.Task;
 import org.slf4j.Logger;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -18,7 +21,16 @@ public class DummyTask implements Task {
 
     public boolean initialized = false;
     public Map<Object, Object> peerData;
-    private SignalingInterface signaling;
+    protected String name;
+    protected SignalingInterface signaling;
+
+    public DummyTask() {
+        this.name = "dummy.tasks.saltyrtc.org";
+    }
+
+    public DummyTask(String name) {
+        this.name = name;
+    }
 
     @Override
     public void init(SignalingInterface signaling, Map<Object, Object> data) {
@@ -28,7 +40,12 @@ public class DummyTask implements Task {
     }
 
     @Override
-    public void onTaskMessage(Map<String, Object> message) {
+    public void onPeerHandshakeDone() {
+        // Do nothing
+    }
+
+    @Override
+    public void onTaskMessage(TaskMessage message) {
         LOG.info("Got new task message");
     }
 
@@ -40,7 +57,13 @@ public class DummyTask implements Task {
     @NonNull
     @Override
     public String getName() {
-        return "dummy.tasks.saltyrtc.org";
+        return this.name;
+    }
+
+    @NonNull
+    @Override
+    public List<String> getSupportedMessageTypes() {
+        return new ArrayList<>();
     }
 
     @Nullable

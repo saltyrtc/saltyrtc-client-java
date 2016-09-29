@@ -4,6 +4,7 @@ import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.helpers.ValidationHelper;
+import org.saltyrtc.client.messages.c2c.TaskMessage;
 import org.saltyrtc.client.signaling.SignalingInterface;
 import org.saltyrtc.client.tasks.Task;
 import org.slf4j.Logger;
@@ -53,6 +54,11 @@ public class WebRTCTask implements Task {
         this.initialized = true;
     }
 
+    @Override
+    public void onPeerHandshakeDone() {
+        // Do nothing
+    }
+
     /**
      * The exclude field MUST contain an Array of WebRTC data channel IDs (non-negative integers)
      * that SHALL not be used for the signalling channel. The client SHALL store this list for usage
@@ -86,7 +92,7 @@ public class WebRTCTask implements Task {
     }
 
     @Override
-    public void onTaskMessage(Map<String, Object> message) {
+    public void onTaskMessage(TaskMessage message) {
         LOG.info("New task message arrived");
     }
 
@@ -99,6 +105,18 @@ public class WebRTCTask implements Task {
     @Override
     public String getName() {
         return WebRTCTask.PROTOCOL_NAME;
+    }
+
+    @NonNull
+    @Override
+    public List<String> getSupportedMessageTypes() {
+        final List<String> types = new ArrayList<>();
+        types.add("offer");
+        types.add("answer");
+        types.add("candidate");
+        types.add("handover");
+        types.add("close"); // TODO: Hmm... This conflicts with the signaling types.
+        return types;
     }
 
     /**

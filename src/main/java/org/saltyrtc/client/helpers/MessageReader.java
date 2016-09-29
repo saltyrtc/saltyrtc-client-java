@@ -19,6 +19,7 @@ import org.saltyrtc.client.messages.c2c.Close;
 import org.saltyrtc.client.messages.c2c.InitiatorAuth;
 import org.saltyrtc.client.messages.c2c.Key;
 import org.saltyrtc.client.messages.c2c.ResponderAuth;
+import org.saltyrtc.client.messages.c2c.TaskMessage;
 import org.saltyrtc.client.messages.c2c.Token;
 import org.saltyrtc.client.messages.s2c.ClientAuth;
 import org.saltyrtc.client.messages.s2c.ClientHello;
@@ -31,6 +32,8 @@ import org.saltyrtc.client.messages.s2c.SendError;
 import org.saltyrtc.client.messages.s2c.ServerHello;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -46,6 +49,18 @@ public class MessageReader {
      * @throws ValidationError Thrown if message can be deserialized but is invalid.
      */
     public static Message read(byte[] bytes) throws SerializationError, ValidationError {
+        return MessageReader.read(bytes, new ArrayList<String>());
+    }
+
+    /**
+     * Read MessagePack bytes, return a Message subclass instance.
+     * @param bytes Messagepack bytes.
+     * @param taskTypes List of message types supported by task.
+     * @return Message subclass instance.
+     * @throws SerializationError Thrown if deserialization fails.
+     * @throws ValidationError Thrown if message can be deserialized but is invalid.
+     */
+    public static Message read(byte[] bytes, List<String> taskTypes) throws SerializationError, ValidationError {
         // Unpack data into map
         ObjectMapper objectMapper = new ObjectMapper(new MessagePackFactory());
         Map<String, Object> map;
@@ -102,6 +117,9 @@ public class MessageReader {
             case "close":
                 return new Close(map);
             default:
+                if (taskTypes.contains(type)) {
+                    return new TaskMessage(type, map);
+                }
                 throw new ValidationError("Unknown message type: " + type);
         }
     }

@@ -20,6 +20,7 @@ import org.saltyrtc.client.signaling.state.SignalingState;
 import org.saltyrtc.client.tasks.Task;
 import org.saltyrtc.client.tests.Config;
 import org.saltyrtc.client.tests.DummyTask;
+import org.saltyrtc.client.tests.PingPongTask;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -416,6 +417,91 @@ public class ConnectionTest {
         // Signaling state should be CLOSED
         assertEquals(SignalingState.CLOSED, trustingInitiator.getSignalingState());
         assertEquals(SignalingState.CLOSED, trustingResponder.getSignalingState());
+    }
+
+    @Test
+    public void testTaskRegistration() throws Exception {
+        // Create tasks
+        final PingPongTask initiatorTask = new PingPongTask();
+        final PingPongTask responderTask = new PingPongTask();
+
+        // Create peers
+        final SSLContext sslContext = SSLContextHelper.getSSLContext();
+        final SaltyRTC initiator = new SaltyRTCBuilder()
+            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
+            .withKeyStore(new KeyStore())
+            .usingTasks(new Task[]{ initiatorTask, new DummyTask() })
+            .asInitiator();
+        final SaltyRTC responder = new SaltyRTCBuilder()
+            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
+            .withKeyStore(new KeyStore())
+            .usingTasks(new Task[]{ new DummyTask(), responderTask })
+            .initiatorInfo(initiator.getPublicPermanentKey(), initiator.getAuthToken())
+            .asResponder();
+
+        // Signaling state should still be NEW
+        assertEquals(SignalingState.NEW, initiator.getSignalingState());
+        assertEquals(SignalingState.NEW, responder.getSignalingState());
+
+        // Latches to test connection state
+        final CountDownLatch connectedPeers = new CountDownLatch(2);
+
+        // Register onConnect handler
+        initiator.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
+            @Override
+            public boolean handle(SignalingStateChangedEvent event) {
+                if (event.getState() == SignalingState.TASK) {
+                    connectedPeers.countDown();
+                }
+                return false;
+            }
+        });
+        responder.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
+            @Override
+            public boolean handle(SignalingStateChangedEvent event) {
+                if (event.getState() == SignalingState.TASK) {
+                    connectedPeers.countDown();
+                }
+                return false;
+            }
+        });
+
+        // Connect server
+        responder.connect();
+        Thread.sleep(1000);
+        initiator.connect();
+
+        // Wait for full handshake
+        final boolean bothConnected = connectedPeers.await(4, TimeUnit.SECONDS);
+        assertTrue(bothConnected);
+
+        // Signaling state should be TASK
+        assertEquals(SignalingState.TASK, initiator.getSignalingState());
+        assertEquals(SignalingState.TASK, responder.getSignalingState());
+
+        // Chosen task should be PingPong task
+        assertTrue(initiator.getTask() instanceof PingPongTask);
+        assertTrue(responder.getTask() instanceof PingPongTask);
+
+        // Wait for ping-pong-messages
+        Thread.sleep(500);
+
+        // Check whether ping-pong happened
+        assertTrue(responderTask.sentPong);
+        assertTrue(initiatorTask.receivedPong);
+        assertFalse(responderTask.receivedPong);
+        assertFalse(initiatorTask.sentPong);
+
+        // Disconnect
+        initiator.disconnect();
+        responder.disconnect();
+
+        // Await close events
+        Thread.sleep(300);
+
+        // Signaling state should be CLOSED
+        assertEquals(SignalingState.CLOSED, initiator.getSignalingState());
+        assertEquals(SignalingState.CLOSED, responder.getSignalingState());
     }
 
     @After

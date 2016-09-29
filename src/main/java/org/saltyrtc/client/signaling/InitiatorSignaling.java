@@ -344,6 +344,7 @@ public class InitiatorSignaling extends Signaling {
                     // Peer handshake done
                     this.setState(SignalingState.TASK);
                     this.getLogger().info("Peer handshake done");
+                    this.task.onPeerHandshakeDone();
 
                     break;
                 default:
