@@ -434,6 +434,8 @@ public class InitiatorSignaling extends Signaling {
         final Task task = TaskHelper.chooseCommonTask(this.tasks, msg.getTasks());
         if (task == null) {
             throw new SignalingException(CloseCode.NO_SHARED_TASK, "No shared task could be found");
+        } else {
+            this.getLogger().info("Task " + task.getName() + " has been selected");
         }
 
         // Initialize task

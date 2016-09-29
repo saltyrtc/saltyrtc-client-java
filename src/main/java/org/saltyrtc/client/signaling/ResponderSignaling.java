@@ -254,12 +254,29 @@ public class ResponderSignaling extends Signaling {
     /**
      * The initiator repeats our cookie.
      */
-    private void handleAuth(InitiatorAuth msg, SignalingChannelNonce nonce) throws ProtocolException {
+    private void handleAuth(InitiatorAuth msg, SignalingChannelNonce nonce) throws ProtocolException, SignalingException {
         // Validate cookie
         this.validateRepeatedCookie(msg.getYourCookie());
 
-        // TODO: Validate task
-        // TODO: Find task instance matching msg.getTask()
+        // Validation of task list and data already happens in the `InitiatorAuth` constructor
+
+        // Initialize task
+        final String taskName = msg.getTask();
+        Task selectedTask = null;
+        for (Task task : this.tasks) {
+            if (task.getName().equals(taskName)) {
+                this.getLogger().info("Task " + task.getName() + " has been selected");
+                selectedTask = task;
+                break;
+            }
+        }
+
+        // Initialize task
+        if (selectedTask == null) {
+            throw new SignalingException(CloseCode.PROTOCOL_ERROR, "Initiator selected unknown task");
+        } else {
+            this.initTask(selectedTask, msg.getData().get(selectedTask.getName()));
+        }
 
         // OK!
         this.getLogger().debug("Initiator authenticated");

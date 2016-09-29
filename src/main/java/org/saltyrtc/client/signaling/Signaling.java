@@ -109,7 +109,7 @@ public abstract class Signaling implements SignalingInterface {
 
     // Tasks
     final protected Task[] tasks;
-    protected Task task;
+    protected Task task = null;
 
     // Message history
     protected final MessageHistory history = new MessageHistory(10);
