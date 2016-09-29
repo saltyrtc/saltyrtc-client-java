@@ -109,7 +109,6 @@ public abstract class Signaling implements SignalingInterface {
 
     // Tasks
     final protected Task[] tasks;
-    protected Map<String, Map<Object, Object>> tasksData;
     protected Task task;
 
     // Message history
@@ -124,10 +123,6 @@ public abstract class Signaling implements SignalingInterface {
         this.permanentKey = permanentKey;
         this.sslContext = sslContext;
         this.tasks = tasks;
-        this.tasksData = new HashMap<>();
-        for (Task task : this.tasks) {
-            this.tasksData.put(task.getName(), task.getData());
-        }
     }
 
     public Signaling(SaltyRTC salty, String host, int port,

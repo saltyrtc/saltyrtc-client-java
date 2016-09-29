@@ -44,6 +44,8 @@ import org.saltyrtc.client.tasks.Task;
 import org.slf4j.Logger;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.net.ssl.SSLContext;
 
@@ -234,8 +236,11 @@ public class ResponderSignaling extends Signaling {
         // Send auth
         final ResponderAuth msg;
         try {
-            // Create auth message
-            msg = new ResponderAuth(nonce.getCookieBytes(), TaskHelper.getTaskNames(this.tasks), this.tasksData);
+            final Map<String, Map<Object, Object>> tasksData = new HashMap<>();
+            for (Task task : this.tasks) {
+                tasksData.put(task.getName(), task.getData());
+            }
+            msg = new ResponderAuth(nonce.getCookieBytes(), TaskHelper.getTaskNames(this.tasks), tasksData);
         } catch (ValidationError e) {
             throw new ProtocolException("Invalid task data", e);
         }

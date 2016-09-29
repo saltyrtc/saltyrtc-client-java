@@ -433,13 +433,6 @@ public class InitiatorSignaling extends Signaling {
         // Select task
         this.task = TaskHelper.chooseCommonTask(this.tasks, msg.getTasks());
 
-        // Remove all other entries from tasks data
-        for(Iterator<Map.Entry<String, Map<Object, Object>>> it = this.tasksData.entrySet().iterator(); it.hasNext(); ) {
-            if (!it.next().getKey().equals(this.task.getName())) {
-                it.remove();
-            }
-        }
-
         // OK!
         this.getLogger().debug("Responder 0x" + NaCl.asHex(new int[] { responder.getId() }) + " authenticated");
 
@@ -465,7 +458,9 @@ public class InitiatorSignaling extends Signaling {
         // Send auth
         final InitiatorAuth msg;
         try {
-            msg = new InitiatorAuth(nonce.getCookieBytes(), this.task.getName(), this.tasksData);
+            final Map<String, Map<Object, Object>> tasksData = new HashMap<>();
+            tasksData.put(this.task.getName(), this.task.getData());
+            msg = new InitiatorAuth(nonce.getCookieBytes(), this.task.getName(), tasksData);
         } catch (ValidationError e) {
             throw new ProtocolException("Invalid task data", e);
         }
