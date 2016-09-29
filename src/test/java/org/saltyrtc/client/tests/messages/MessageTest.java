@@ -83,6 +83,7 @@ public class MessageTest {
         final ClientAuth original = new ClientAuth(RandomHelper.pseudoRandomBytes(16), subprotocols);
         final ClientAuth returned = this.roundTrip(original);
         assertArrayEquals(original.getYourCookie(), returned.getYourCookie());
+        assertArrayEquals(original.getSubprotocols().toArray(), returned.getSubprotocols().toArray());
     }
 
     @Test

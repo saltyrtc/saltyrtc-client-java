@@ -37,7 +37,7 @@ public class ClientAuth extends Message {
     }
 
     public byte[] getYourCookie() {
-        return yourCookie;
+        return this.yourCookie;
     }
 
     public List<String> getSubprotocols() {
