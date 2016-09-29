@@ -30,7 +30,6 @@ import org.saltyrtc.client.messages.s2c.SendError;
 import org.saltyrtc.client.messages.s2c.ServerHello;
 import org.saltyrtc.client.signaling.CloseCode;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -79,7 +78,7 @@ public class MessageTest {
 
     @Test
     public void testClientAuthRoundtrip() throws SerializationError, ValidationError {
-        final List<String> subprotocols = Arrays.asList("v1.saltyrtc.org", "some.other.protocol");
+        final List<String> subprotocols = asList("v1.saltyrtc.org", "some.other.protocol");
         final ClientAuth original = new ClientAuth(RandomHelper.pseudoRandomBytes(16), subprotocols);
         final ClientAuth returned = this.roundTrip(original);
         assertArrayEquals(original.getYourCookie(), returned.getYourCookie());
@@ -184,7 +183,7 @@ public class MessageTest {
 
     @Test
     public void testResponderAuthRoundtrip() throws SerializationError, ValidationError {
-        final List<String> tasks = Arrays.asList("dummytask", "alternative");
+        final List<String> tasks = asList("dummytask", "alternative");
         final Map<String, Map<Object, Object>> data = new HashMap<>();
         final Map<Object, Object> dummytaskData = new HashMap<>();
         dummytaskData.put("do_something", "yes");

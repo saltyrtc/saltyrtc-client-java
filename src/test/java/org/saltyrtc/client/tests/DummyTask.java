@@ -11,10 +11,12 @@ public class DummyTask implements Task {
 
     @Override
     public void onTaskMessage(Map<String, Object> message) {
+        // Do nothing
     }
 
     @Override
     public void sendSignalingMessage(byte[] payload) {
+        // Do nothing
     }
 
     @Override

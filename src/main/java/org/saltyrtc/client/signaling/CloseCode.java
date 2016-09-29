@@ -8,8 +8,6 @@
 
 package org.saltyrtc.client.signaling;
 
-import org.omg.CORBA.INTERNAL;
-
 /**
  * WebSocket close codes
  */

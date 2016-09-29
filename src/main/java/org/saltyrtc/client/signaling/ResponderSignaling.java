@@ -27,14 +27,14 @@ import org.saltyrtc.client.helpers.TaskHelper;
 import org.saltyrtc.client.keystore.AuthToken;
 import org.saltyrtc.client.keystore.Box;
 import org.saltyrtc.client.keystore.KeyStore;
-import org.saltyrtc.client.messages.c2c.InitiatorAuth;
-import org.saltyrtc.client.messages.c2c.ResponderAuth;
-import org.saltyrtc.client.messages.s2c.ClientHello;
-import org.saltyrtc.client.messages.c2c.Key;
 import org.saltyrtc.client.messages.Message;
+import org.saltyrtc.client.messages.c2c.InitiatorAuth;
+import org.saltyrtc.client.messages.c2c.Key;
+import org.saltyrtc.client.messages.c2c.ResponderAuth;
+import org.saltyrtc.client.messages.c2c.Token;
+import org.saltyrtc.client.messages.s2c.ClientHello;
 import org.saltyrtc.client.messages.s2c.NewInitiator;
 import org.saltyrtc.client.messages.s2c.ResponderServerAuth;
-import org.saltyrtc.client.messages.c2c.Token;
 import org.saltyrtc.client.nonce.CombinedSequence;
 import org.saltyrtc.client.nonce.SignalingChannelNonce;
 import org.saltyrtc.client.signaling.state.InitiatorHandshakeState;
@@ -43,23 +43,21 @@ import org.saltyrtc.client.signaling.state.SignalingState;
 import org.saltyrtc.client.tasks.Task;
 import org.slf4j.Logger;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 import javax.net.ssl.SSLContext;
 
 public class ResponderSignaling extends Signaling {
 
-    // Logging
-    protected Logger getLogger() {
-        return org.slf4j.LoggerFactory.getLogger("SaltyRTC.RSignaling");
-    }
-
     @NonNull
     private final Initiator initiator;
     @Nullable
     private AuthToken authToken = null;
+
+    // Logging
+    protected Logger getLogger() {
+        return org.slf4j.LoggerFactory.getLogger("SaltyRTC.RSignaling");
+    }
 
     /**
      * Create an instance without a trusted key.
