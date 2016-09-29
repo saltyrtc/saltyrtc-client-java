@@ -11,6 +11,7 @@ package org.saltyrtc.client.signaling.state;
 /**
  * Message states, as seen by the responder:
  *
+ * <pre>
  * NEW
  *
  * ----sendToken---->
@@ -32,6 +33,7 @@ package org.saltyrtc.client.signaling.state;
  * <---handleAuth----
  *
  * AUTH_RECEIVED
+ * </pre>
  */
 public enum InitiatorHandshakeState {
     NEW,
