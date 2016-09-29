@@ -102,7 +102,7 @@ public class InitiatorSignaling extends Signaling {
             } else if (receiver == SALTYRTC_ADDR_INITIATOR) {
                 throw new ProtocolException("Initiator cannot send messages to initiator");
             } else if (this.isResponderId(receiver)) {
-                if (this.getState() == SignalingState.OPEN) {
+                if (this.getState() == SignalingState.TASK) {
                     assert this.responder != null;
                     return this.responder.getCsnPair().getOurs().next();
                 } else if (this.responders.containsKey(receiver)) {
@@ -129,7 +129,7 @@ public class InitiatorSignaling extends Signaling {
 
         // Find correct responder
         final Responder responder;
-        if (this.getState() == SignalingState.OPEN) {
+        if (this.getState() == SignalingState.TASK) {
             assert this.responder != null;
             responder = this.responder;
         } else if (this.responders.containsKey(receiver)) {
@@ -532,7 +532,7 @@ public class InitiatorSignaling extends Signaling {
      */
     @Nullable
     private Responder getResponder(short id) {
-        if (this.getState() == SignalingState.OPEN && this.responder != null && this.responder.getId() == id) {
+        if (this.getState() == SignalingState.TASK && this.responder != null && this.responder.getId() == id) {
             return this.responder;
         } else if (this.responders.containsKey(id)) {
             return this.responders.get(id);

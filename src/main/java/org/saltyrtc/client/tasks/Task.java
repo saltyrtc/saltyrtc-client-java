@@ -3,6 +3,7 @@ package org.saltyrtc.client.tasks;
 import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.exceptions.ValidationError;
+import org.saltyrtc.client.signaling.SignalingInterface;
 
 import java.util.Map;
 
@@ -22,7 +23,7 @@ public interface Task {
      *
      * @param data The data sent by the peer in the 'auth' message.
      */
-    void init(Map<Object, Object> data) throws ValidationError;
+    void init(SignalingInterface signaling, Map<Object, Object> data) throws ValidationError;
 
     /**
      * This method is called by SaltyRTC when a task related message

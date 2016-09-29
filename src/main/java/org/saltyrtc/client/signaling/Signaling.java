@@ -55,7 +55,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -311,7 +310,7 @@ public abstract class Signaling implements SignalingInterface {
                         case PEER_HANDSHAKE:
                             Signaling.this.onPeerHandshakeMessage(box, nonce);
                             break;
-                        case OPEN:
+                        case TASK:
                             Signaling.this.onPeerMessage(box, nonce);
                             break;
                         default:
@@ -339,8 +338,7 @@ public abstract class Signaling implements SignalingInterface {
                     getLogger().error("Signaling error: " + CloseCode.explain(e.getCloseCode()));
                     e.printStackTrace();
                     // Send close message if client-to-client handshake has been completed
-                    if (Signaling.this.getState() == SignalingState.TASK ||
-                        Signaling.this.getState() == SignalingState.OPEN) {
+                    if (Signaling.this.getState() == SignalingState.TASK) {
                         Signaling.this.sendClose(e.getCloseCode());
                     }
                     // Close connection
@@ -720,7 +718,7 @@ public abstract class Signaling implements SignalingInterface {
      */
     protected void initTask(Task task, Map<Object, Object> data) throws ProtocolException {
         try {
-            task.init(data);
+            task.init(this, data);
         } catch (ValidationError e) {
             e.printStackTrace();
             throw new ProtocolException("Peer sent invalid task data", e);
@@ -808,7 +806,7 @@ public abstract class Signaling implements SignalingInterface {
                     }
                 }
                 break;
-            case OPEN:
+            case TASK:
                 // Messages after the handshake must come from the peer.
                 if (nonce.getSource() != this.getPeerAddress()) {
                     // TODO: Ignore instead of throw?
@@ -967,7 +965,7 @@ public abstract class Signaling implements SignalingInterface {
     private void send(byte[] payload) throws ConnectionException, ProtocolException {
         // Verify connection state
         final SignalingState state = this.getState();
-        if (state != SignalingState.OPEN &&
+        if (state != SignalingState.TASK &&
                 state != SignalingState.SERVER_HANDSHAKE &&
                 state != SignalingState.PEER_HANDSHAKE) {
             this.getLogger().error("Trying to send data message, but connection state is " + this.getState());

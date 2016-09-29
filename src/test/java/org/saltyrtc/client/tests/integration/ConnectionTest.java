@@ -82,7 +82,7 @@ public class ConnectionTest {
             @Override
             public boolean handle(SignalingStateChangedEvent event) {
                 switch (event.getState()) {
-                    case OPEN:
+                    case TASK:
                         eventsCalled.put("initiatorConnected", true);
                         break;
                     case ERROR:
@@ -99,7 +99,7 @@ public class ConnectionTest {
             @Override
             public boolean handle(SignalingStateChangedEvent event) {
                 switch (event.getState()) {
-                    case OPEN:
+                    case TASK:
                         eventsCalled.put("responderConnected", true);
                         break;
                     case ERROR:
@@ -127,7 +127,7 @@ public class ConnectionTest {
         initiator.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
             @Override
             public boolean handle(SignalingStateChangedEvent event) {
-                if (event.getState() == SignalingState.OPEN) {
+                if (event.getState() == SignalingState.TASK) {
                     connectedPeers.countDown();
                 }
                 return false;
@@ -136,7 +136,7 @@ public class ConnectionTest {
         responder.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
             @Override
             public boolean handle(SignalingStateChangedEvent event) {
-                if (event.getState() == SignalingState.OPEN) {
+                if (event.getState() == SignalingState.TASK) {
                     connectedPeers.countDown();
                 }
                 return false;
@@ -154,9 +154,9 @@ public class ConnectionTest {
         assertFalse(eventsCalled.get("initiatorError"));
         assertFalse(eventsCalled.get("responderError"));
 
-        // Signaling state should be OPEN
-        assertEquals(SignalingState.OPEN, initiator.getSignalingState());
-        assertEquals(SignalingState.OPEN, responder.getSignalingState());
+        // Signaling state should be TASK
+        assertEquals(SignalingState.TASK, initiator.getSignalingState());
+        assertEquals(SignalingState.TASK, responder.getSignalingState());
 
         // Disconnect
         initiator.disconnect();
@@ -187,7 +187,7 @@ public class ConnectionTest {
         responder.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
             @Override
             public boolean handle(SignalingStateChangedEvent event) {
-                if (event.getState() == SignalingState.OPEN) {
+                if (event.getState() == SignalingState.TASK) {
                     connectedPeers.countDown();
                 }
                 return false;
@@ -196,7 +196,7 @@ public class ConnectionTest {
         initiator.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
             @Override
             public boolean handle(SignalingStateChangedEvent event) {
-                if (event.getState() == SignalingState.OPEN) {
+                if (event.getState() == SignalingState.TASK) {
                     connectedPeers.countDown();
                 }
                 return false;
@@ -214,9 +214,9 @@ public class ConnectionTest {
         assertFalse(eventsCalled.get("responderError"));
         assertFalse(eventsCalled.get("initiatorError"));
 
-        // Signaling state should be OPEN
-        assertEquals(SignalingState.OPEN, responder.getSignalingState());
-        assertEquals(SignalingState.OPEN, initiator.getSignalingState());
+        // Signaling state should be TASK
+        assertEquals(SignalingState.TASK, responder.getSignalingState());
+        assertEquals(SignalingState.TASK, initiator.getSignalingState());
 
         // Disconnect
         responder.disconnect();
@@ -244,7 +244,7 @@ public class ConnectionTest {
         initiator.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
             @Override
             public boolean handle(SignalingStateChangedEvent event) {
-                if (event.getState() == SignalingState.OPEN) {
+                if (event.getState() == SignalingState.TASK) {
                     connectedPeers.countDown();
                 }
                 return false;
@@ -253,7 +253,7 @@ public class ConnectionTest {
         responder.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
             @Override
             public boolean handle(SignalingStateChangedEvent event) {
-                if (event.getState() == SignalingState.OPEN) {
+                if (event.getState() == SignalingState.TASK) {
                     connectedPeers.countDown();
                 }
                 return false;
@@ -308,7 +308,7 @@ public class ConnectionTest {
         trustingInitiator.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
             @Override
             public boolean handle(SignalingStateChangedEvent event) {
-                if (event.getState() == SignalingState.OPEN) {
+                if (event.getState() == SignalingState.TASK) {
                     connectedPeers.countDown();
                 }
                 return false;
@@ -317,7 +317,7 @@ public class ConnectionTest {
         trustingResponder.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
             @Override
             public boolean handle(SignalingStateChangedEvent event) {
-                if (event.getState() == SignalingState.OPEN) {
+                if (event.getState() == SignalingState.TASK) {
                     connectedPeers.countDown();
                 }
                 return false;
@@ -333,9 +333,9 @@ public class ConnectionTest {
         final boolean bothConnected = connectedPeers.await(4, TimeUnit.SECONDS);
         assertTrue(bothConnected);
 
-        // Signaling state should be OPEN
-        assertEquals(SignalingState.OPEN, trustingInitiator.getSignalingState());
-        assertEquals(SignalingState.OPEN, trustingResponder.getSignalingState());
+        // Signaling state should be TASK
+        assertEquals(SignalingState.TASK, trustingInitiator.getSignalingState());
+        assertEquals(SignalingState.TASK, trustingResponder.getSignalingState());
 
         // Disconnect
         trustingInitiator.disconnect();
@@ -377,7 +377,7 @@ public class ConnectionTest {
         trustingInitiator.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
             @Override
             public boolean handle(SignalingStateChangedEvent event) {
-                if (event.getState() == SignalingState.OPEN) {
+                if (event.getState() == SignalingState.TASK) {
                     connectedPeers.countDown();
                 }
                 return false;
@@ -386,7 +386,7 @@ public class ConnectionTest {
         trustingResponder.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
             @Override
             public boolean handle(SignalingStateChangedEvent event) {
-                if (event.getState() == SignalingState.OPEN) {
+                if (event.getState() == SignalingState.TASK) {
                     connectedPeers.countDown();
                 }
                 return false;
@@ -402,9 +402,9 @@ public class ConnectionTest {
         final boolean bothConnected = connectedPeers.await(4, TimeUnit.SECONDS);
         assertTrue(bothConnected);
 
-        // Signaling state should be OPEN
-        assertEquals(SignalingState.OPEN, trustingInitiator.getSignalingState());
-        assertEquals(SignalingState.OPEN, trustingResponder.getSignalingState());
+        // Signaling state should be TASK
+        assertEquals(SignalingState.TASK, trustingInitiator.getSignalingState());
+        assertEquals(SignalingState.TASK, trustingResponder.getSignalingState());
 
         // Disconnect
         trustingInitiator.disconnect();

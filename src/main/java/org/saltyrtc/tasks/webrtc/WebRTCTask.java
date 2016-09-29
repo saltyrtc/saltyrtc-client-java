@@ -4,6 +4,7 @@ import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.helpers.ValidationHelper;
+import org.saltyrtc.client.signaling.SignalingInterface;
 import org.saltyrtc.client.tasks.Task;
 import org.slf4j.Logger;
 
@@ -46,7 +47,7 @@ public class WebRTCTask implements Task {
     private Integer maxPacketSize;
 
     @Override
-    public void init(Map<Object, Object> data) throws ValidationError {
+    public void init(SignalingInterface signaling, Map<Object, Object> data) throws ValidationError {
         this.processExcludeList(data.get(FIELD_EXCLUDE));
         this.processMaxPacketSize(data.get(FIELD_MAX_PACKET_SIZE));
         this.initialized = true;

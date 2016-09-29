@@ -357,7 +357,7 @@ public class ResponderSignaling extends Signaling {
                     }
 
                     // We're connected!
-                    this.setState(SignalingState.OPEN);
+                    this.setState(SignalingState.TASK);
                     this.getLogger().info("Peer handshake done");
 
                     break;
