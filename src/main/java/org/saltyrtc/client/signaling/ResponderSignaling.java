@@ -21,6 +21,7 @@ import org.saltyrtc.client.exceptions.InvalidKeyException;
 import org.saltyrtc.client.exceptions.OverflowException;
 import org.saltyrtc.client.exceptions.ProtocolException;
 import org.saltyrtc.client.exceptions.SerializationError;
+import org.saltyrtc.client.exceptions.SignalingException;
 import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.helpers.MessageReader;
 import org.saltyrtc.client.helpers.TaskHelper;
@@ -306,7 +307,7 @@ public class ResponderSignaling extends Signaling {
     @Override
     protected void onPeerHandshakeMessage(Box box, SignalingChannelNonce nonce)
             throws ProtocolException, ValidationError, SerializationError,
-            InternalException, ConnectionException {
+            InternalException, ConnectionException, SignalingException {
 
         // Validate nonce destination
         if (nonce.getDestination() != this.address) {

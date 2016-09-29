@@ -1,5 +1,9 @@
 package org.saltyrtc.client.tasks;
 
+import org.saltyrtc.client.annotations.NonNull;
+import org.saltyrtc.client.annotations.Nullable;
+import org.saltyrtc.client.exceptions.ValidationError;
+
 import java.util.Map;
 
 /**
@@ -10,6 +14,15 @@ import java.util.Map;
  * All tasks need to implement this interface.
  */
 public interface Task {
+
+	/**
+     * Initialize the task with the task data from the peer.
+     *
+     * The task should keep track internally whether it has been initialized or not.
+     *
+     * @param data The data sent by the peer in the 'auth' message.
+     */
+    void init(Map<Object, Object> data) throws ValidationError;
 
     /**
      * This method is called by SaltyRTC when a task related message
@@ -29,11 +42,13 @@ public interface Task {
     /**
      * Return the task protocol name.
      */
+    @NonNull
     String getName();
 
-	/**
+    /**
 	 * Return the task data used for negotiation in the `auth` message.
      */
+    @Nullable
     Map<Object, Object> getData();
 
 }

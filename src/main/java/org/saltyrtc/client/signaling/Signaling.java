@@ -27,6 +27,7 @@ import org.saltyrtc.client.exceptions.InternalException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
 import org.saltyrtc.client.exceptions.ProtocolException;
 import org.saltyrtc.client.exceptions.SerializationError;
+import org.saltyrtc.client.exceptions.SignalingException;
 import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.helpers.ArrayHelper;
 import org.saltyrtc.client.helpers.MessageHistory;
@@ -232,7 +233,7 @@ public abstract class Signaling implements SignalingInterface {
     /**
      * Reset the connection.
      */
-    private void resetConnection(int reason) {
+    protected void resetConnection(int reason) {
         // Unregister listeners
         if (this.ws != null) {
             this.ws.clearListeners();
@@ -267,6 +268,7 @@ public abstract class Signaling implements SignalingInterface {
 
         WebSocketAdapter listener = new WebSocketAdapter() {
             @Override
+            @SuppressWarnings("UnqualifiedMethodAccess")
             public void onConnected(WebSocket websocket, Map<String, List<String>> headers) throws Exception {
                 synchronized (this) {
                     getLogger().info("WebSocket connection open");
@@ -275,12 +277,14 @@ public abstract class Signaling implements SignalingInterface {
             }
 
             @Override
+            @SuppressWarnings("UnqualifiedMethodAccess")
             public void onConnectError(WebSocket websocket, WebSocketException ex) throws Exception {
                 getLogger().error("Could not connect to websocket: " + ex.getMessage());
                 setState(SignalingState.ERROR);
             }
 
             @Override
+            @SuppressWarnings("UnqualifiedMethodAccess")
             public void onTextMessage(WebSocket websocket, String text) throws Exception {
                 getLogger().debug("New string message: " + text);
                 getLogger().error("Protocol error: Received string message, but only binary messages are valid.");
@@ -288,6 +292,7 @@ public abstract class Signaling implements SignalingInterface {
             }
 
             @Override
+            @SuppressWarnings("UnqualifiedMethodAccess")
             public synchronized void onBinaryMessage(WebSocket websocket, byte[] binary) {
                 getLogger().debug("New binary message (" + binary.length + " bytes)");
                 try {
@@ -330,10 +335,21 @@ public abstract class Signaling implements SignalingInterface {
                     getLogger().error("Connection error: " + e.getMessage());
                     e.printStackTrace();
                     Signaling.this.resetConnection(CloseCode.INTERNAL_ERROR);
+                } catch (SignalingException e) {
+                    getLogger().error("Signaling error: " + CloseCode.explain(e.getCloseCode()));
+                    e.printStackTrace();
+                    // Send close message if client-to-client handshake has been completed
+                    if (Signaling.this.getState() == SignalingState.TASK ||
+                        Signaling.this.getState() == SignalingState.OPEN) {
+                        Signaling.this.sendClose(e.getCloseCode());
+                    }
+                    // Close connection
+                    Signaling.this.resetConnection(e.getCloseCode());
                 }
             }
 
             @Override
+            @SuppressWarnings("UnqualifiedMethodAccess")
             public void onDisconnected(WebSocket websocket, WebSocketFrame serverCloseFrame,
                                        WebSocketFrame clientCloseFrame, boolean closedByServer) throws Exception {
                 // Log details to debug log
@@ -384,12 +400,14 @@ public abstract class Signaling implements SignalingInterface {
             }
 
             @Override
+            @SuppressWarnings("UnqualifiedMethodAccess")
             public void onError(WebSocket websocket, WebSocketException cause) throws Exception {
                 getLogger().error("A WebSocket connect error occured: " + cause.getMessage(), cause);
                 // TODO: Do we need to handle these?
             }
 
             @Override
+            @SuppressWarnings("UnqualifiedMethodAccess")
             public void handleCallbackError(WebSocket websocket, Throwable cause) throws Exception {
                 getLogger().error("WebSocket callback error: " + cause);
                 cause.printStackTrace();
@@ -586,8 +604,8 @@ public abstract class Signaling implements SignalingInterface {
      * Message received during peer handshake.
      */
     protected abstract void onPeerHandshakeMessage(Box box, SignalingChannelNonce nonce)
-            throws ProtocolException, ValidationError, SerializationError,
-            InternalException, ConnectionException;
+        throws ProtocolException, ValidationError, SerializationError,
+        InternalException, ConnectionException, SignalingException;
 
     /**
      * Message received from peer *after* the handshake is done.
@@ -695,6 +713,43 @@ public abstract class Signaling implements SignalingInterface {
      * Initialize the peer handshake.
      */
     protected abstract void initPeerHandshake() throws ProtocolException, ConnectionException;
+
+	/**
+     * Initialize the task with the task data sent by the peer.
+     * @param task The task instance.
+     */
+    protected void initTask(Task task, Map<Object, Object> data) throws ProtocolException {
+        try {
+            task.init(data);
+        } catch (ValidationError e) {
+            e.printStackTrace();
+            throw new ProtocolException("Peer sent invalid task data", e);
+        }
+        this.task = task;
+    }
+
+    /**
+     * Send a client-auth message to the server.
+     */
+    private void sendClose(int reason) {
+        final Close msg = new Close(reason);
+        final byte[] packet;
+        try {
+            //noinspection ConstantConditions
+            packet = this.buildPacket(msg, this.getPeerAddress());
+        } catch (ProtocolException | NullPointerException e) {
+            e.printStackTrace();
+            this.getLogger().error("Could not build close message");
+            return;
+        }
+        this.getLogger().debug("Sending close");
+        try {
+            this.send(packet, msg);
+        } catch (ProtocolException | ConnectionException e) {
+            e.printStackTrace();
+            this.getLogger().error("Could not send close message");
+        }
+    }
 
     /**
      * Choose proper combined sequence number

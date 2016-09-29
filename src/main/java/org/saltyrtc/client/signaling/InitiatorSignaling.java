@@ -20,6 +20,7 @@ import org.saltyrtc.client.exceptions.InvalidKeyException;
 import org.saltyrtc.client.exceptions.OverflowException;
 import org.saltyrtc.client.exceptions.ProtocolException;
 import org.saltyrtc.client.exceptions.SerializationError;
+import org.saltyrtc.client.exceptions.SignalingException;
 import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.helpers.MessageReader;
 import org.saltyrtc.client.helpers.TaskHelper;
@@ -44,7 +45,6 @@ import org.slf4j.Logger;
 
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -221,8 +221,8 @@ public class InitiatorSignaling extends Signaling {
 
     @Override
     protected void onPeerHandshakeMessage(Box box, SignalingChannelNonce nonce)
-            throws ProtocolException, ValidationError, SerializationError,
-            InternalException, ConnectionException {
+        throws ProtocolException, ValidationError, SerializationError,
+        InternalException, ConnectionException, SignalingException {
 
         // Validate nonce destination
         if (nonce.getDestination() != this.address) {
@@ -342,7 +342,7 @@ public class InitiatorSignaling extends Signaling {
                     this.dropResponders();
 
                     // Peer handshake done
-                    this.setState(SignalingState.OPEN);
+                    this.setState(SignalingState.TASK);
                     this.getLogger().info("Peer handshake done");
 
                     break;
@@ -424,14 +424,20 @@ public class InitiatorSignaling extends Signaling {
     /**
      * A responder repeats our cookie.
      */
-    private void handleAuth(ResponderAuth msg, Responder responder, SignalingChannelNonce nonce) throws ProtocolException {
+    private void handleAuth(ResponderAuth msg, Responder responder, SignalingChannelNonce nonce) throws ProtocolException, SignalingException {
         // Validate cookie
         this.validateRepeatedCookie(msg.getYourCookie());
 
         // Validation of task list and data already happens in the `ResponderAuth` constructor
 
         // Select task
-        this.task = TaskHelper.chooseCommonTask(this.tasks, msg.getTasks());
+        final Task task = TaskHelper.chooseCommonTask(this.tasks, msg.getTasks());
+        if (task == null) {
+            throw new SignalingException(CloseCode.NO_SHARED_TASK, "No shared task could be found");
+        }
+
+        // Initialize task
+        this.initTask(task, msg.getData().get(task.getName()));
 
         // OK!
         this.getLogger().debug("Responder 0x" + NaCl.asHex(new int[] { responder.getId() }) + " authenticated");
