@@ -393,11 +393,6 @@ public class InitiatorSignaling extends Signaling {
 
         // Store responder
         this.responders.put(responderId, responder);
-
-        // If we trust the responder, send our session key directly.
-        if (this.hasTrustedKey()) {
-            this.sendKey(responder);
-        }
     }
 
     /**
