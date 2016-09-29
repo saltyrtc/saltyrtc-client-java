@@ -679,7 +679,8 @@ public abstract class Signaling implements SignalingInterface {
      * Send a client-auth message to the server.
      */
     private void sendClientAuth() throws ProtocolException, ConnectionException {
-        final ClientAuth msg = new ClientAuth(this.serverCookie.getBytes());
+        final List<String> subprotocols = Arrays.asList(Signaling.SALTYRTC_SUBPROTOCOL);
+        final ClientAuth msg = new ClientAuth(this.serverCookie.getBytes(), subprotocols);
         final byte[] packet = this.buildPacket(msg, Signaling.SALTYRTC_ADDR_SERVER);
         this.getLogger().debug("Sending client-auth");
         this.send(packet, msg);
