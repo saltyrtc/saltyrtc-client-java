@@ -48,4 +48,13 @@ public interface SignalingInterface {
      */
     Box encryptForPeer(byte[] data, byte[] nonce) throws CryptoFailedException;
 
+    /**
+     * Decrypt data from the peer.
+     *
+     * @param box The encrypted box.
+     * @return The decrypted bytes.
+     * @throws CryptoFailedException if decryption fails for some reason.
+     */
+    byte[] decryptFromPeer(Box box) throws CryptoFailedException;
+
 }

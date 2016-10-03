@@ -1026,16 +1026,6 @@ public abstract class Signaling implements SignalingInterface {
         this.history.store(message, payload);
     }
 
-    /**
-     * Decrypt data from the peer using the session keys.
-     * @param box Encrypted box.
-     * @return Decrypted bytes.
-     */
-    public @NonNull byte[] decryptData(@NonNull Box box) throws CryptoFailedException, InvalidKeyException {
-        // TODO: Do we need to verify the nonce?
-        return this.sessionKey.decrypt(box, this.getPeerSessionKey());
-    }
-
     private void handleClose(Close msg) {
         throw new UnsupportedOperationException("Close not yet implemented"); // TODO
     }
@@ -1057,9 +1047,6 @@ public abstract class Signaling implements SignalingInterface {
      * Encrypt data for the peer using the specified nonce.
      *
      * This method should primarily be used by tasks.
-     *
-     * @param data Data bytes
-     * @param nonce Nonce bytes
      */
     public Box encryptForPeer(@NonNull byte[] data, @NonNull byte[] nonce) throws
         CryptoFailedException {
@@ -1067,7 +1054,27 @@ public abstract class Signaling implements SignalingInterface {
             return this.sessionKey.encrypt(data, nonce, this.getPeerSessionKey());
         } catch (InvalidKeyException e) {
             // This could only happen if the session keys are somehow broken.
-            // If that happens, something is massively wrong.
+            // If that happens, something went massively wrong.
+            e.printStackTrace();
+            if (Signaling.this.getState() == SignalingState.TASK) {
+                Signaling.this.sendClose(CloseCode.INTERNAL_ERROR);
+            }
+            // Close connection
+            Signaling.this.resetConnection(CloseCode.INTERNAL_ERROR);
+            return null;
+        }
+    }
+
+    /**
+     * Decrypt data from the peer.
+     */
+    public byte[] decryptFromPeer(Box box) throws CryptoFailedException {
+        try {
+            return this.sessionKey.decrypt(box, this.getPeerSessionKey());
+        } catch (InvalidKeyException e) {
+            // This could only happen if the session keys are somehow broken.
+            // If that happens, something went massively wrong.
+            e.printStackTrace();
             if (Signaling.this.getState() == SignalingState.TASK) {
                 Signaling.this.sendClose(CloseCode.INTERNAL_ERROR);
             }
