@@ -73,7 +73,6 @@ public class PingPongTask extends DummyTask {
     public void onTaskMessage(TaskMessage message) {
         if (message.getType().equals("ping")) {
             LOG.info("Received ping");
-            LOG.info("Sending pong");
             this.sendPong();
         } else if (message.getType().equals("pong")) {
             LOG.info("Received pong");
