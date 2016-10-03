@@ -44,7 +44,6 @@ import org.saltyrtc.client.messages.s2c.SendError;
 import org.saltyrtc.client.messages.s2c.ServerHello;
 import org.saltyrtc.client.nonce.CombinedSequence;
 import org.saltyrtc.client.nonce.CombinedSequencePair;
-import org.saltyrtc.client.nonce.DataChannelNonce;
 import org.saltyrtc.client.nonce.SignalingChannelNonce;
 import org.saltyrtc.client.signaling.state.ServerHandshakeState;
 import org.saltyrtc.client.signaling.state.SignalingState;
@@ -1025,28 +1024,6 @@ public abstract class Signaling implements SignalingInterface {
 
         // Store sent message in history
         this.history.store(message, payload);
-    }
-
-    /**
-     * Encrypt arbitrary data for the peer using the session keys.
-     *
-     * TODO: Rewrite this after tasks have been implemented
-     *
-     * @param data Plain data bytes.
-     * @param csn The `CombinedSequenceNumber` instance to use.
-     * @return Encrypted box.
-     */
-    public @Nullable Box encryptData(@NonNull byte[] data,
-                                     @NonNull CombinedSequence csn)
-            throws CryptoFailedException, InvalidKeyException {
-        // Create nonce
-        final DataChannelNonce nonce = new DataChannelNonce(
-                this.cookie.getBytes(),
-                123, // TODO: Get actual dc id (https://bugs.chromium.org/p/webrtc/issues/detail?id=6106)
-                csn.getOverflow(), csn.getSequenceNumber());
-
-        // Encrypt
-        return this.sessionKey.encrypt(data, nonce.toBytes(), this.getPeerSessionKey());
     }
 
     /**

@@ -11,7 +11,7 @@ package org.saltyrtc.client.nonce;
 import org.saltyrtc.client.cookie.Cookie;
 import org.saltyrtc.vendor.com.neilalexander.jnacl.NaCl;
 
-abstract class Nonce {
+public abstract class Nonce {
 
     protected byte[] cookie;
     protected int overflow;
