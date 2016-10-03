@@ -1052,4 +1052,28 @@ public abstract class Signaling implements SignalingInterface {
             this.getLogger().warn("SendError: " + NaCl.asHex(hash));
         }
     }
+
+    /**
+     * Encrypt data for the peer using the specified nonce.
+     *
+     * This method should primarily be used by tasks.
+     *
+     * @param data Data bytes
+     * @param nonce Nonce bytes
+     */
+    public Box encryptForPeer(@NonNull byte[] data, @NonNull byte[] nonce) throws
+        CryptoFailedException {
+        try {
+            return this.sessionKey.encrypt(data, nonce, this.getPeerSessionKey());
+        } catch (InvalidKeyException e) {
+            // This could only happen if the session keys are somehow broken.
+            // If that happens, something is massively wrong.
+            if (Signaling.this.getState() == SignalingState.TASK) {
+                Signaling.this.sendClose(CloseCode.INTERNAL_ERROR);
+            }
+            // Close connection
+            Signaling.this.resetConnection(CloseCode.INTERNAL_ERROR);
+            return null;
+        }
+    }
 }

@@ -2,8 +2,11 @@ package org.saltyrtc.client.signaling;
 
 import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.exceptions.ConnectionException;
+import org.saltyrtc.client.exceptions.CryptoFailedException;
+import org.saltyrtc.client.exceptions.InvalidKeyException;
 import org.saltyrtc.client.exceptions.ProtocolException;
 import org.saltyrtc.client.exceptions.SignalingException;
+import org.saltyrtc.client.keystore.Box;
 import org.saltyrtc.client.messages.c2c.TaskMessage;
 import org.saltyrtc.client.signaling.state.SignalingState;
 
@@ -34,5 +37,15 @@ public interface SignalingInterface {
      * TODO: Get rid of all exceptions but SignalingException and ConnectionException.
      */
     void sendTaskMessage(TaskMessage msg) throws ProtocolException, SignalingException, ConnectionException;
+
+    /**
+     * Encrypt data for the peer.
+     *
+     * @param data The bytes to be encrypted.
+     * @param nonce The bytes to be used as NaCl nonce.
+     * @return The encrypted box.
+     * @throws CryptoFailedException if encryption fails for some reason.
+     */
+    Box encryptForPeer(byte[] data, byte[] nonce) throws CryptoFailedException;
 
 }
