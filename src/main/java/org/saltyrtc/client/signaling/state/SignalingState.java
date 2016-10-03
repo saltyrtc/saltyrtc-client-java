@@ -14,6 +14,7 @@ public enum SignalingState {
     SERVER_HANDSHAKE,
     PEER_HANDSHAKE,
     TASK,
+    OPEN,
     CLOSING,
     CLOSED,
     ERROR,

@@ -20,7 +20,12 @@ public interface SignalingInterface {
      */
     SignalingState getState();
 
-	/**
+    /**
+     * Set the signaling state.
+     */
+    void setState(SignalingState state);
+
+    /**
 	 * Return the current signaling channel.
      */
     SignalingChannel getChannel();
