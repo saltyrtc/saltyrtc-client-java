@@ -8,25 +8,21 @@
 
 package org.saltyrtc.client;
 
-import org.saltyrtc.client.datachannel.SecureDataChannel;
-import org.saltyrtc.client.events.DataEvent;
+import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.events.EventRegistry;
 import org.saltyrtc.client.events.SendErrorEvent;
 import org.saltyrtc.client.events.SignalingChannelChangedEvent;
 import org.saltyrtc.client.events.SignalingStateChangedEvent;
 import org.saltyrtc.client.exceptions.ConnectionException;
-import org.saltyrtc.client.exceptions.ProtocolException;
 import org.saltyrtc.client.keystore.KeyStore;
-import org.saltyrtc.client.messages.Data;
 import org.saltyrtc.client.signaling.InitiatorSignaling;
 import org.saltyrtc.client.signaling.ResponderSignaling;
 import org.saltyrtc.client.signaling.Signaling;
 import org.saltyrtc.client.signaling.SignalingChannel;
 import org.saltyrtc.client.signaling.SignalingRole;
 import org.saltyrtc.client.signaling.state.SignalingState;
+import org.saltyrtc.client.tasks.Task;
 import org.slf4j.Logger;
-import org.webrtc.DataChannel;
-import org.webrtc.PeerConnection;
 
 import java.security.InvalidKeyException;
 
@@ -51,31 +47,31 @@ public class SaltyRTC {
 
     // Internal constructor used by SaltyRTCBuilder.
     // Initialize as initiator without trusted key.
-    SaltyRTC(KeyStore permanentKey, String host, int port, SSLContext sslContext) {
+    SaltyRTC(KeyStore permanentKey, String host, int port, SSLContext sslContext, Task[] tasks) {
         this.signaling = new InitiatorSignaling(
-                this, host, port, permanentKey, sslContext);
+                this, host, port, permanentKey, sslContext, tasks);
     }
 
     // Internal constructor used by SaltyRTCBuilder.
     // Initialize as responder without trusted key.
     SaltyRTC(KeyStore permanentKey, String host, int port, SSLContext sslContext,
-                       byte[] initiatorPublicKey, byte[] authToken) throws InvalidKeyException {
+             byte[] initiatorPublicKey, byte[] authToken, Task[] tasks) throws InvalidKeyException {
         this.signaling = new ResponderSignaling(
-                this, host, port, permanentKey, sslContext, initiatorPublicKey, authToken);
+                this, host, port, permanentKey, sslContext, initiatorPublicKey, authToken, tasks);
     }
 
     // Internal constructor used by SaltyRTCBuilder.
     // Initialize as initiator or responder with trusted key.
     SaltyRTC(KeyStore permanentKey, String host, int port, SSLContext sslContext,
-             byte[] peerTrustedKey, SignalingRole role) throws InvalidKeyException {
+             byte[] peerTrustedKey, Task[] tasks, SignalingRole role) throws InvalidKeyException {
         switch (role) {
             case Initiator:
                 this.signaling = new InitiatorSignaling(
-                        this, host, port, permanentKey, sslContext, peerTrustedKey);
+                        this, host, port, permanentKey, sslContext, peerTrustedKey, tasks);
                 break;
             case Responder:
                 this.signaling = new ResponderSignaling(
-                        this, host, port, permanentKey, sslContext, peerTrustedKey);
+                        this, host, port, permanentKey, sslContext, peerTrustedKey, tasks);
                 break;
             default:
                 throw new IllegalArgumentException("Invalid role: " + role);
@@ -101,6 +97,14 @@ public class SaltyRTC {
         return this.signaling.getState();
     }
 
+	/**
+     * Return the negotiated task, or null if no task has been negotiated yet.
+     */
+    @Nullable
+    public Task getTask() {
+        return this.signaling.getTask();
+    }
+
     /**
      * Connect asynchronously to the SaltyRTC server.
      *
@@ -114,21 +118,6 @@ public class SaltyRTC {
     }
 
     /**
-     * Do the handover from WebSocket to WebRTC data channel.
-     *
-     * The caller must ensure that the `PeerConnection` being passed in has already finished the
-     * ICE setup (iceConnectionState==COMPLETED). Otherwise, an exception will be thrown.
-     *
-     * This operation is asynchronous. To get notified when the handover is finished, subscribe to
-     * the `SignalingChannelChangedEvent`.
-     *
-     * @throws ConnectionException if PeerConnection IceConnectionState is not "COMPLETED".
-     */
-    public void handover(PeerConnection pc) throws ConnectionException {
-        this.signaling.handover(pc);
-    }
-
-    /**
      * Disconnect from the SaltyRTC server.
      *
      * This operation is asynchronous, once the connection is closed, the
@@ -139,33 +128,10 @@ public class SaltyRTC {
     }
 
     /**
-     * Send signaling data to the peer.
-     *
-     * This method should only be used for signaling, not for sending arbitrary data!
-     * For arbitrary data, use `wrapDataChannel` after doing the handover.
-     *
-     * @throws ConnectionException if signaling channel is not open.
-     */
-    public void sendSignalingData(Data data) throws ConnectionException {
-        this.signaling.sendSignalingData(data);
-    }
-
-    /**
      * Return the currently used signaling channel.
      */
     public SignalingChannel getSignalingChannel() {
         return this.signaling.getChannel();
-    }
-
-    /**
-     * Wrap a data channel. Return a secure data channel.
-     * @throws ConnectionException if handover hasn't taken place yet.
-     */
-    public SecureDataChannel wrapDataChannel(DataChannel dc) throws ConnectionException {
-        if (this.getSignalingChannel() != SignalingChannel.DATA_CHANNEL) {
-            throw new ConnectionException("Handover must be finished before wrapping a data channel.");
-        }
-        return new SecureDataChannel(dc, this.signaling);
     }
 
     /**
@@ -174,7 +140,6 @@ public class SaltyRTC {
     public static class Events {
         public EventRegistry<SignalingStateChangedEvent> signalingStateChanged = new EventRegistry<>();
         public EventRegistry<SignalingChannelChangedEvent> signalingChannelChanged = new EventRegistry<>();
-        public EventRegistry<DataEvent> data = new EventRegistry<>();
         public EventRegistry<SendErrorEvent> sendError = new EventRegistry<>();
     }
 

@@ -13,7 +13,9 @@ import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.helpers.ValidationHelper;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertArrayEquals;
@@ -101,14 +103,14 @@ public class ValidationHelperTest {
     }
 
     @Test
-    public void testValidateArray() throws ValidationError {
+    public void testValidateIntegerList() throws ValidationError {
         // Create an object that is a list of integers
         final List<Object> values = new ArrayList<>();
         values.add(1); values.add(2); values.add(3);
         final Object value = values;
 
         // Convert
-        final List<Integer> validated = ValidationHelper.validateIntegerList(value, Integer.class, "IntArray");
+        final List<Integer> validated = ValidationHelper.validateTypedList(value, Integer.class, "IntArray");
 
         // Verify
         final List<Integer> expected = new ArrayList<>();
@@ -117,10 +119,26 @@ public class ValidationHelperTest {
     }
 
     @Test
+    public void testValidateStringList() throws ValidationError {
+        // Create an object that is a list of integers
+        final List<Object> values = new ArrayList<>();
+        values.add("a"); values.add("b"); values.add("c");
+        final Object value = values;
+
+        // Convert
+        final List<String> validated = ValidationHelper.validateTypedList(value, String.class, "StringArray");
+
+        // Verify
+        final List<String> expected = new ArrayList<>();
+        expected.add("a"); expected.add("b"); expected.add("c");
+        assertArrayEquals(expected.toArray(), validated.toArray());
+    }
+
+    @Test
     public void testValidateIntegerListOuterTypeFails() throws ValidationError {
         final Object value = "hello";
         try {
-            ValidationHelper.validateIntegerList(value, Integer.class, "IntArray");
+            ValidationHelper.validateTypedList(value, Integer.class, "IntArray");
             fail("No ValidationError thrown");
         } catch (ValidationError e) {
             assertEquals("IntArray must be a list", e.getMessage());
@@ -130,10 +148,20 @@ public class ValidationHelperTest {
     @Test
     public void testValidateIntegerListInnerTypeFails() {
         try {
-            ValidationHelper.validateIntegerList(asList('y', 'o'), Integer.class, "IntArray");
+            ValidationHelper.validateTypedList(asList('y', 'o'), Integer.class, "IntArray");
             fail("No ValidationError thrown");
         } catch (ValidationError e) {
             assertEquals("IntArray must be a Integer list", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testValidateStringListInnerTypeFails() {
+        try {
+            ValidationHelper.validateTypedList(asList('y', 'o'), String.class, "StringArray");
+            fail("No ValidationError thrown");
+        } catch (ValidationError e) {
+            assertEquals("StringArray must be a String list", e.getMessage());
         }
     }
 
@@ -188,6 +216,94 @@ public class ValidationHelperTest {
             fail("No ValidationError thrown");
         } catch (ValidationError e) {
             assertEquals("Text must be a String, not java.lang.Integer", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testValidateCloseCode() throws ValidationError {
+        Object closeCode = 1002;
+        final Integer validated = ValidationHelper.validateCloseCode(closeCode, false, "Number");
+        assertEquals(Integer.valueOf(1002), validated);
+    }
+
+    @Test
+    public void testValidateCloseCodeDroppedResponder() throws ValidationError {
+        Object closeCode = 3004;
+        final Integer validated = ValidationHelper.validateCloseCode(closeCode, true, "Number");
+        assertEquals(Integer.valueOf(3004), validated);
+    }
+
+    @Test
+    public void testValidateCloseCodeFails() throws ValidationError {
+        try {
+            ValidationHelper.validateCloseCode(2000, false, "Number");
+            fail("No ValidationError thrown");
+        } catch (ValidationError e) {
+            assertEquals("Number must be a valid close code", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testValidateCloseCodeDroppedResponderFails() throws ValidationError {
+        try {
+            ValidationHelper.validateCloseCode(1002, true, "Number");
+            fail("No ValidationError thrown");
+        } catch (ValidationError e) {
+            assertEquals("Number must be a valid close code", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testValidateStringMapMap() throws ValidationError {
+        // Create an object that is a map of string -> object
+        final Map<String, Map<Object, Object>> map = new HashMap<>();
+        final Map<Object, Object> inner = new HashMap<>(); inner.put("foo", 1);
+        map.put("a", inner); map.put("b", null); map.put("c", null);
+        final Object value = map;
+
+        // Convert
+        final Map<String, Map<Object, Object>> validated = ValidationHelper.validateStringMapMap(value, "Map");
+
+        // Verify
+        final Map<String, Map<Object, Object>> expected = new HashMap<>();
+        expected.put("a", inner); expected.put("b", null); expected.put("c", null);
+        assertArrayEquals(expected.keySet().toArray(), validated.keySet().toArray());
+        assertArrayEquals(expected.values().toArray(), validated.values().toArray());
+    }
+
+    @Test
+    public void testValidateStringMapMapOuterTypeFails() {
+        try {
+            ValidationHelper.validateStringMapMap(asList('y', 'o'), "IntArray");
+            fail("No ValidationError thrown");
+        } catch (ValidationError e) {
+            assertEquals("IntArray must be a Map", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testValidateStringMapMapInnerTypeFails() {
+        final Map<Integer, Object> map = new HashMap<>();
+        map.put(1, 1); map.put(2, "foo"); map.put(3, 'c');
+        final Object value = map;
+        try {
+            ValidationHelper.validateStringMapMap(value, "IntegerObjectMap");
+            fail("No ValidationError thrown");
+        } catch (ValidationError e) {
+            assertEquals("IntegerObjectMap must be a Map with Strings as keys", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testValidateStringMapMapInnerInnerTypeFails() {
+        final Map<String, Object> map = new HashMap<>();
+        map.put("a", 1); map.put("b", "foo"); map.put("c", 'c');
+        final Object value = map;
+        try {
+            ValidationHelper.validateStringMapMap(value, "IntegerObjectMap");
+            fail("No ValidationError thrown");
+        } catch (ValidationError e) {
+            assertEquals("IntegerObjectMap must be a Map with Maps or null as values", e.getMessage());
         }
     }
 

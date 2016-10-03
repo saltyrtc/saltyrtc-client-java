@@ -17,7 +17,10 @@ import org.saltyrtc.client.events.EventHandler;
 import org.saltyrtc.client.events.SignalingStateChangedEvent;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.signaling.state.SignalingState;
+import org.saltyrtc.client.tasks.Task;
 import org.saltyrtc.client.tests.Config;
+import org.saltyrtc.client.tests.DummyTask;
+import org.saltyrtc.client.tests.PingPongTask;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -52,10 +55,12 @@ public class ConnectionTest {
         initiator = new SaltyRTCBuilder()
                 .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
                 .withKeyStore(new KeyStore())
+                .usingTasks(new Task[]{ new DummyTask() })
                 .asInitiator();
         responder = new SaltyRTCBuilder()
                 .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
                 .withKeyStore(new KeyStore())
+                .usingTasks(new Task[]{ new DummyTask() })
                 .initiatorInfo(initiator.getPublicPermanentKey(), initiator.getAuthToken())
                 .asResponder();
 
@@ -78,7 +83,7 @@ public class ConnectionTest {
             @Override
             public boolean handle(SignalingStateChangedEvent event) {
                 switch (event.getState()) {
-                    case OPEN:
+                    case TASK:
                         eventsCalled.put("initiatorConnected", true);
                         break;
                     case ERROR:
@@ -95,7 +100,7 @@ public class ConnectionTest {
             @Override
             public boolean handle(SignalingStateChangedEvent event) {
                 switch (event.getState()) {
-                    case OPEN:
+                    case TASK:
                         eventsCalled.put("responderConnected", true);
                         break;
                     case ERROR:
@@ -123,7 +128,7 @@ public class ConnectionTest {
         initiator.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
             @Override
             public boolean handle(SignalingStateChangedEvent event) {
-                if (event.getState() == SignalingState.OPEN) {
+                if (event.getState() == SignalingState.TASK) {
                     connectedPeers.countDown();
                 }
                 return false;
@@ -132,7 +137,7 @@ public class ConnectionTest {
         responder.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
             @Override
             public boolean handle(SignalingStateChangedEvent event) {
-                if (event.getState() == SignalingState.OPEN) {
+                if (event.getState() == SignalingState.TASK) {
                     connectedPeers.countDown();
                 }
                 return false;
@@ -150,9 +155,9 @@ public class ConnectionTest {
         assertFalse(eventsCalled.get("initiatorError"));
         assertFalse(eventsCalled.get("responderError"));
 
-        // Signaling state should be OPEN
-        assertEquals(SignalingState.OPEN, initiator.getSignalingState());
-        assertEquals(SignalingState.OPEN, responder.getSignalingState());
+        // Signaling state should be TASK
+        assertEquals(SignalingState.TASK, initiator.getSignalingState());
+        assertEquals(SignalingState.TASK, responder.getSignalingState());
 
         // Disconnect
         initiator.disconnect();
@@ -183,7 +188,7 @@ public class ConnectionTest {
         responder.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
             @Override
             public boolean handle(SignalingStateChangedEvent event) {
-                if (event.getState() == SignalingState.OPEN) {
+                if (event.getState() == SignalingState.TASK) {
                     connectedPeers.countDown();
                 }
                 return false;
@@ -192,7 +197,7 @@ public class ConnectionTest {
         initiator.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
             @Override
             public boolean handle(SignalingStateChangedEvent event) {
-                if (event.getState() == SignalingState.OPEN) {
+                if (event.getState() == SignalingState.TASK) {
                     connectedPeers.countDown();
                 }
                 return false;
@@ -210,9 +215,9 @@ public class ConnectionTest {
         assertFalse(eventsCalled.get("responderError"));
         assertFalse(eventsCalled.get("initiatorError"));
 
-        // Signaling state should be OPEN
-        assertEquals(SignalingState.OPEN, responder.getSignalingState());
-        assertEquals(SignalingState.OPEN, initiator.getSignalingState());
+        // Signaling state should be TASK
+        assertEquals(SignalingState.TASK, responder.getSignalingState());
+        assertEquals(SignalingState.TASK, initiator.getSignalingState());
 
         // Disconnect
         responder.disconnect();
@@ -240,7 +245,7 @@ public class ConnectionTest {
         initiator.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
             @Override
             public boolean handle(SignalingStateChangedEvent event) {
-                if (event.getState() == SignalingState.OPEN) {
+                if (event.getState() == SignalingState.TASK) {
                     connectedPeers.countDown();
                 }
                 return false;
@@ -249,7 +254,7 @@ public class ConnectionTest {
         responder.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
             @Override
             public boolean handle(SignalingStateChangedEvent event) {
-                if (event.getState() == SignalingState.OPEN) {
+                if (event.getState() == SignalingState.TASK) {
                     connectedPeers.countDown();
                 }
                 return false;
@@ -286,11 +291,13 @@ public class ConnectionTest {
                 .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
                 .withKeyStore(this.initiator.getKeyStore())
                 .withTrustedPeerKey(this.responder.getPublicPermanentKey())
+                .usingTasks(new Task[]{ new DummyTask() })
                 .asInitiator();
         final SaltyRTC trustingResponder = new SaltyRTCBuilder()
                 .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
                 .withKeyStore(this.responder.getKeyStore())
                 .withTrustedPeerKey(this.initiator.getPublicPermanentKey())
+                .usingTasks(new Task[]{ new DummyTask() })
                 .asResponder();
 
         // Signaling state should still be NEW
@@ -302,7 +309,7 @@ public class ConnectionTest {
         trustingInitiator.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
             @Override
             public boolean handle(SignalingStateChangedEvent event) {
-                if (event.getState() == SignalingState.OPEN) {
+                if (event.getState() == SignalingState.TASK) {
                     connectedPeers.countDown();
                 }
                 return false;
@@ -311,7 +318,7 @@ public class ConnectionTest {
         trustingResponder.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
             @Override
             public boolean handle(SignalingStateChangedEvent event) {
-                if (event.getState() == SignalingState.OPEN) {
+                if (event.getState() == SignalingState.TASK) {
                     connectedPeers.countDown();
                 }
                 return false;
@@ -327,9 +334,9 @@ public class ConnectionTest {
         final boolean bothConnected = connectedPeers.await(4, TimeUnit.SECONDS);
         assertTrue(bothConnected);
 
-        // Signaling state should be OPEN
-        assertEquals(SignalingState.OPEN, trustingInitiator.getSignalingState());
-        assertEquals(SignalingState.OPEN, trustingResponder.getSignalingState());
+        // Signaling state should be TASK
+        assertEquals(SignalingState.TASK, trustingInitiator.getSignalingState());
+        assertEquals(SignalingState.TASK, trustingResponder.getSignalingState());
 
         // Disconnect
         trustingInitiator.disconnect();
@@ -351,11 +358,13 @@ public class ConnectionTest {
                 .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
                 .withKeyStore(this.initiator.getKeyStore())
                 .withTrustedPeerKey(this.responder.getPublicPermanentKey())
+                .usingTasks(new Task[]{ new DummyTask() })
                 .asInitiator();
         final SaltyRTC trustingResponder = new SaltyRTCBuilder()
                 .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
                 .withKeyStore(this.responder.getKeyStore())
                 .withTrustedPeerKey(this.initiator.getPublicPermanentKey())
+                .usingTasks(new Task[]{ new DummyTask() })
                 .asResponder();
 
         // Signaling state should still be NEW
@@ -369,7 +378,7 @@ public class ConnectionTest {
         trustingInitiator.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
             @Override
             public boolean handle(SignalingStateChangedEvent event) {
-                if (event.getState() == SignalingState.OPEN) {
+                if (event.getState() == SignalingState.TASK) {
                     connectedPeers.countDown();
                 }
                 return false;
@@ -378,7 +387,7 @@ public class ConnectionTest {
         trustingResponder.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
             @Override
             public boolean handle(SignalingStateChangedEvent event) {
-                if (event.getState() == SignalingState.OPEN) {
+                if (event.getState() == SignalingState.TASK) {
                     connectedPeers.countDown();
                 }
                 return false;
@@ -394,9 +403,9 @@ public class ConnectionTest {
         final boolean bothConnected = connectedPeers.await(4, TimeUnit.SECONDS);
         assertTrue(bothConnected);
 
-        // Signaling state should be OPEN
-        assertEquals(SignalingState.OPEN, trustingInitiator.getSignalingState());
-        assertEquals(SignalingState.OPEN, trustingResponder.getSignalingState());
+        // Signaling state should be TASK
+        assertEquals(SignalingState.TASK, trustingInitiator.getSignalingState());
+        assertEquals(SignalingState.TASK, trustingResponder.getSignalingState());
 
         // Disconnect
         trustingInitiator.disconnect();
@@ -410,8 +419,90 @@ public class ConnectionTest {
         assertEquals(SignalingState.CLOSED, trustingResponder.getSignalingState());
     }
 
-    // Note: Unfortunately right now we cannot test the handover outside of Android,
-    // as the libjingle peerconnection only works on the Android platform.
+    @Test
+    public void testTaskRegistration() throws Exception {
+        // Create tasks
+        final PingPongTask initiatorTask = new PingPongTask();
+        final PingPongTask responderTask = new PingPongTask();
+
+        // Create peers
+        final SSLContext sslContext = SSLContextHelper.getSSLContext();
+        final SaltyRTC initiator = new SaltyRTCBuilder()
+            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
+            .withKeyStore(new KeyStore())
+            .usingTasks(new Task[]{ initiatorTask, new DummyTask() })
+            .asInitiator();
+        final SaltyRTC responder = new SaltyRTCBuilder()
+            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
+            .withKeyStore(new KeyStore())
+            .usingTasks(new Task[]{ new DummyTask(), responderTask })
+            .initiatorInfo(initiator.getPublicPermanentKey(), initiator.getAuthToken())
+            .asResponder();
+
+        // Signaling state should still be NEW
+        assertEquals(SignalingState.NEW, initiator.getSignalingState());
+        assertEquals(SignalingState.NEW, responder.getSignalingState());
+
+        // Latches to test connection state
+        final CountDownLatch connectedPeers = new CountDownLatch(2);
+
+        // Register onConnect handler
+        initiator.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
+            @Override
+            public boolean handle(SignalingStateChangedEvent event) {
+                if (event.getState() == SignalingState.TASK) {
+                    connectedPeers.countDown();
+                }
+                return false;
+            }
+        });
+        responder.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
+            @Override
+            public boolean handle(SignalingStateChangedEvent event) {
+                if (event.getState() == SignalingState.TASK) {
+                    connectedPeers.countDown();
+                }
+                return false;
+            }
+        });
+
+        // Connect server
+        responder.connect();
+        Thread.sleep(1000);
+        initiator.connect();
+
+        // Wait for full handshake
+        final boolean bothConnected = connectedPeers.await(4, TimeUnit.SECONDS);
+        assertTrue(bothConnected);
+
+        // Signaling state should be TASK
+        assertEquals(SignalingState.TASK, initiator.getSignalingState());
+        assertEquals(SignalingState.TASK, responder.getSignalingState());
+
+        // Chosen task should be PingPong task
+        assertTrue(initiator.getTask() instanceof PingPongTask);
+        assertTrue(responder.getTask() instanceof PingPongTask);
+
+        // Wait for ping-pong-messages
+        Thread.sleep(500);
+
+        // Check whether ping-pong happened
+        assertTrue(responderTask.sentPong);
+        assertTrue(initiatorTask.receivedPong);
+        assertFalse(responderTask.receivedPong);
+        assertFalse(initiatorTask.sentPong);
+
+        // Disconnect
+        initiator.disconnect();
+        responder.disconnect();
+
+        // Await close events
+        Thread.sleep(300);
+
+        // Signaling state should be CLOSED
+        assertEquals(SignalingState.CLOSED, initiator.getSignalingState());
+        assertEquals(SignalingState.CLOSED, responder.getSignalingState());
+    }
 
     @After
     public void tearDown() {

@@ -13,7 +13,7 @@ public enum SignalingState {
     WS_CONNECTING,
     SERVER_HANDSHAKE,
     PEER_HANDSHAKE,
-    OPEN,
+    TASK,
     CLOSING,
     CLOSED,
     ERROR,

@@ -25,7 +25,7 @@ public class CloseCode {
     /**
      * No shared sub-protocol could be found.
      */
-    public static final int SUBPROTOCOL_ERROR = 1002;
+    public static final int NO_SHARED_SUBPROTOCOL = 1002;
 
     /**
      * No free responder byte.
@@ -43,7 +43,7 @@ public class CloseCode {
     public static final int INTERNAL_ERROR = 3002;
 
     /**
-     * Handover to data channel.
+     * Handover of the signaling channel.
      */
     public static final int HANDOVER = 3003;
 
@@ -54,7 +54,33 @@ public class CloseCode {
      *
      * For a responder, it means that an initiator requested to drop the responder.
      */
-    public static final int DROPPED = 3004;
+    public static final int DROPPED_BY_INITIATOR = 3004;
+
+    /**
+     * Initiator could not decrypt a message.
+     */
+    public static final int INITIATOR_COULD_NOT_DECRYPT = 3005;
+
+    /**
+     * No shared task was found.
+     */
+    public static final int NO_SHARED_TASK = 3006;
+
+	/**
+	 * Valid close codes for drop-responder messages.
+     */
+    public static final int[] CLOSE_CODES_DROP_RESPONDER = new int[] {
+        PROTOCOL_ERROR, INTERNAL_ERROR, DROPPED_BY_INITIATOR,
+        INITIATOR_COULD_NOT_DECRYPT, NO_SHARED_TASK
+    };
+
+    /**
+     * aLL Valid close codes.
+     */
+    public static final int[] CLOSE_CODES_ALL = new int[] {
+        GOING_AWAY, NO_SHARED_SUBPROTOCOL, PATH_FULL, PROTOCOL_ERROR, INTERNAL_ERROR,
+        HANDOVER, DROPPED_BY_INITIATOR, INITIATOR_COULD_NOT_DECRYPT, NO_SHARED_TASK
+    };
 
     /**
      * Explain the close code.
@@ -65,7 +91,7 @@ public class CloseCode {
                 return "Normal closing";
             case GOING_AWAY:
                 return "The endpoint is going away";
-            case SUBPROTOCOL_ERROR:
+            case NO_SHARED_SUBPROTOCOL:
                 return "No shared subprotocol could be found";
             case PATH_FULL:
                 return "NO free responder byte";
@@ -75,6 +101,12 @@ public class CloseCode {
                 return "Internal server error";
             case HANDOVER:
                 return "Handover finished";
+            case DROPPED_BY_INITIATOR:
+                return "Dropped by initiator";
+            case INITIATOR_COULD_NOT_DECRYPT:
+                return "Initiator could not decrypt a message";
+            case NO_SHARED_TASK:
+                return "No shared task was found";
         }
         return "Unknown";
     }

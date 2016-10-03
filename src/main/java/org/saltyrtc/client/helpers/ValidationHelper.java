@@ -9,8 +9,10 @@
 package org.saltyrtc.client.helpers;
 
 import org.saltyrtc.client.exceptions.ValidationError;
+import org.saltyrtc.client.signaling.CloseCode;
 
 import java.util.List;
+import java.util.Map;
 
 public class ValidationHelper {
 
@@ -49,13 +51,11 @@ public class ValidationHelper {
     /**
      * This is suitable for validating MessagePack array format family.
      *
-     * Currently the function only supports integer arrays, but could be made generic in the future.
-     *
      * Note that array types in MessagePack don't have a fixed type,
      * so an array is always deserialized as Object[].
      */
     @SuppressWarnings("unchecked")
-    public static List<Integer> validateIntegerList(Object values, Class type, String name) throws ValidationError {
+    public static <T> List<T> validateTypedList(Object values, Class type, String name) throws ValidationError {
         if (!(values instanceof List)) {
             throw new ValidationError(name + " must be a list");
         }
@@ -64,7 +64,7 @@ public class ValidationHelper {
                 throw new ValidationError(name + " must be a " + type.getSimpleName() + " list");
             }
         }
-        return (List<Integer>) values;
+        return (List<T>) values;
     }
 
     public static Boolean validateBoolean(Object value, String name) throws ValidationError {
@@ -93,5 +93,41 @@ public class ValidationHelper {
             throw new ValidationError(name + " must be a String, not " + value.getClass().getName());
         }
         return (String) value;
+    }
+
+    public static Integer validateCloseCode(Object value, boolean dropResponder, String name) throws ValidationError {
+        if (!(value instanceof Integer)) {
+            throw new ValidationError(name + " must be an Integer");
+        }
+        final Integer number = (Integer) value;
+        final int[] codes = dropResponder ? CloseCode.CLOSE_CODES_DROP_RESPONDER : CloseCode.CLOSE_CODES_ALL;
+        for (int code : codes) {
+            if (code == number) {
+                return number;
+            }
+        }
+        throw new ValidationError(name + " must be a valid close code");
+    }
+
+    @SuppressWarnings("unchecked")
+    public static Map<String, Map<Object, Object>> validateStringMapMap(Object value, String name) throws ValidationError {
+        // Check main type
+        if (!(value instanceof Map)) {
+            throw new ValidationError(name + " must be a Map");
+        }
+        // Check key types
+        for (Object element : ((Map<Object, Object>) value).keySet()) {
+            if (!(element instanceof String)) {
+                throw new ValidationError(name + " must be a Map with Strings as keys");
+            }
+        }
+        // Check value types
+        for (Object element : ((Map<Object, Object>) value).values()) {
+            if (element != null && !(element instanceof Map)) {
+                throw new ValidationError(name + " must be a Map with Maps or null as values");
+            }
+        }
+        // Cast
+        return (Map<String, Map<Object, Object>>) value;
     }
 }

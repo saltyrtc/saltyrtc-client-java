@@ -14,23 +14,26 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.msgpack.jackson.dataformat.MessagePackFactory;
 import org.saltyrtc.client.exceptions.SerializationError;
 import org.saltyrtc.client.exceptions.ValidationError;
-import org.saltyrtc.client.messages.Auth;
-import org.saltyrtc.client.messages.ClientAuth;
-import org.saltyrtc.client.messages.ClientHello;
-import org.saltyrtc.client.messages.Data;
-import org.saltyrtc.client.messages.DropResponder;
-import org.saltyrtc.client.messages.InitiatorServerAuth;
-import org.saltyrtc.client.messages.Key;
 import org.saltyrtc.client.messages.Message;
-import org.saltyrtc.client.messages.NewInitiator;
-import org.saltyrtc.client.messages.NewResponder;
-import org.saltyrtc.client.messages.ResponderServerAuth;
-import org.saltyrtc.client.messages.Restart;
-import org.saltyrtc.client.messages.SendError;
-import org.saltyrtc.client.messages.ServerHello;
-import org.saltyrtc.client.messages.Token;
+import org.saltyrtc.client.messages.c2c.Close;
+import org.saltyrtc.client.messages.c2c.InitiatorAuth;
+import org.saltyrtc.client.messages.c2c.Key;
+import org.saltyrtc.client.messages.c2c.ResponderAuth;
+import org.saltyrtc.client.messages.c2c.TaskMessage;
+import org.saltyrtc.client.messages.c2c.Token;
+import org.saltyrtc.client.messages.s2c.ClientAuth;
+import org.saltyrtc.client.messages.s2c.ClientHello;
+import org.saltyrtc.client.messages.s2c.DropResponder;
+import org.saltyrtc.client.messages.s2c.InitiatorServerAuth;
+import org.saltyrtc.client.messages.s2c.NewInitiator;
+import org.saltyrtc.client.messages.s2c.NewResponder;
+import org.saltyrtc.client.messages.s2c.ResponderServerAuth;
+import org.saltyrtc.client.messages.s2c.SendError;
+import org.saltyrtc.client.messages.s2c.ServerHello;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -46,6 +49,18 @@ public class MessageReader {
      * @throws ValidationError Thrown if message can be deserialized but is invalid.
      */
     public static Message read(byte[] bytes) throws SerializationError, ValidationError {
+        return MessageReader.read(bytes, new ArrayList<String>());
+    }
+
+    /**
+     * Read MessagePack bytes, return a Message subclass instance.
+     * @param bytes Messagepack bytes.
+     * @param taskTypes List of message types supported by task.
+     * @return Message subclass instance.
+     * @throws SerializationError Thrown if deserialization fails.
+     * @throws ValidationError Thrown if message can be deserialized but is invalid.
+     */
+    public static Message read(byte[] bytes, List<String> taskTypes) throws SerializationError, ValidationError {
         // Unpack data into map
         ObjectMapper objectMapper = new ObjectMapper(new MessagePackFactory());
         Map<String, Object> map;
@@ -77,6 +92,7 @@ public class MessageReader {
                 } else if (map.containsKey("responders")) {
                     return new InitiatorServerAuth(map);
                 }
+                throw new ValidationError("Invalid server-auth message");
             case "client-auth":
                 return new ClientAuth(map);
             case "new-initiator":
@@ -92,12 +108,18 @@ public class MessageReader {
             case "key":
                 return new Key(map);
             case "auth":
-                return new Auth(map);
-            case "restart":
-                return new Restart(map);
-            case "data":
-                return new Data(map);
+                if (map.containsKey("task")) {
+                    return new InitiatorAuth(map);
+                } else if (map.containsKey("tasks")) {
+                    return new ResponderAuth(map);
+                }
+                throw new ValidationError("Invalid auth message");
+            case "close":
+                return new Close(map);
             default:
+                if (taskTypes.contains(type)) {
+                    return new TaskMessage(type, map);
+                }
                 throw new ValidationError("Unknown message type: " + type);
         }
     }

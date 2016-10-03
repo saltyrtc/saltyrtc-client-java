@@ -9,8 +9,7 @@
 package org.saltyrtc.client.events;
 
 import org.saltyrtc.client.annotations.NonNull;
-import org.saltyrtc.client.messages.Data;
-import org.saltyrtc.client.messages.SendError;
+import org.saltyrtc.client.messages.s2c.SendError;
 
 /**
  * This event is thrown when a send-error message arrives.
@@ -18,9 +17,9 @@ import org.saltyrtc.client.messages.SendError;
 public class SendErrorEvent implements Event {
 
     private @NonNull SendError error;
-    private @NonNull Data originalMessage;
+    private @NonNull Object originalMessage; // TODO: Use generics
 
-    public SendErrorEvent(@NonNull SendError error, @NonNull Data originalMessage) {
+    public SendErrorEvent(@NonNull SendError error, @NonNull Object originalMessage) {
         this.error = error;
         this.originalMessage = originalMessage;
     }
@@ -37,7 +36,7 @@ public class SendErrorEvent implements Event {
      * If it was found in the message history, the data message instance that could not be sent.
      */
     @NonNull
-    public Data getOriginalMessage() {
+    public Object getOriginalMessage() {
         return originalMessage;
     }
 }

@@ -12,10 +12,10 @@ import com.neilalexander.jnacl.NaCl;
 
 import org.junit.Test;
 import org.saltyrtc.client.helpers.MessageHistory;
-import org.saltyrtc.client.messages.ClientHello;
-import org.saltyrtc.client.messages.DropResponder;
+import org.saltyrtc.client.messages.s2c.ClientHello;
+import org.saltyrtc.client.messages.s2c.DropResponder;
 import org.saltyrtc.client.messages.Message;
-import org.saltyrtc.client.messages.ServerHello;
+import org.saltyrtc.client.messages.s2c.ServerHello;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
