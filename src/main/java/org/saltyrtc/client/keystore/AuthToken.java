@@ -8,9 +8,8 @@
 
 package org.saltyrtc.client.keystore;
 
-import com.neilalexander.jnacl.NaCl;
-
 import org.saltyrtc.client.exceptions.CryptoFailedException;
+import org.saltyrtc.vendor.com.neilalexander.jnacl.NaCl;
 import org.slf4j.Logger;
 
 import java.security.InvalidKeyException;

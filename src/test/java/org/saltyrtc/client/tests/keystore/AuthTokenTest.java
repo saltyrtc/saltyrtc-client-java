@@ -8,13 +8,12 @@
 
 package org.saltyrtc.client.tests.keystore;
 
-import com.neilalexander.jnacl.NaCl;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
 import org.saltyrtc.client.keystore.AuthToken;
 import org.saltyrtc.client.keystore.Box;
+import org.saltyrtc.vendor.com.neilalexander.jnacl.NaCl;
 
 import java.security.InvalidKeyException;
 import java.security.SecureRandom;

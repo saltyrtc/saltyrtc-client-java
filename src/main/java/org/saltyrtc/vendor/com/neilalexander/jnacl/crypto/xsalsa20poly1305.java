@@ -1,17 +1,17 @@
 //
 //  Copyright (c) 2011, Neil Alexander T.
 //  All rights reserved.
-// 
+//
 //  Redistribution and use in source and binary forms, with
 //  or without modification, are permitted provided that the following
 //  conditions are met:
-// 
+//
 //  - Redistributions of source code must retain the above copyright notice,
 //    this list of conditions and the following disclaimer.
 //  - Redistributions in binary form must reproduce the above copyright notice,
 //    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
-// 
+//
 //  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 //  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 //  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -25,7 +25,7 @@
 //  POSSIBILITY OF SUCH DAMAGE.
 //
 
-package com.neilalexander.jnacl.crypto;
+package org.saltyrtc.vendor.com.neilalexander.jnacl.crypto;
 
 public class xsalsa20poly1305
 {
@@ -41,10 +41,10 @@ public class xsalsa20poly1305
 
 		xsalsa20.crypto_stream_xor(c, m, mlen, n, k);
 		poly1305.crypto_onetimeauth(c, 16, c, 32, mlen - 32, c);
-		
+
 		for (int i = 0; i < 16; ++i)
 			c[i] = 0;
-		
+
 		return 0;
 	}
 
@@ -64,19 +64,19 @@ public class xsalsa20poly1305
 	{
 		if (clen < 32)
 			return -1;
-	
+
 		byte[] subkeyp = new byte[32];
-		
+
 		xsalsa20.crypto_stream(subkeyp, 32, n, k);
-		
+
 		if (poly1305.crypto_onetimeauth_verify(c, 16, c, 32, clen - 32, subkeyp) != 0)
 			return -1;
-		
+
 		xsalsa20.crypto_stream_xor(m, c, clen, n, k);
-		
+
 		for (int i = 0; i < 32; ++i)
 			m[i] = 0;
-		
+
 		return 0;
 	}
 

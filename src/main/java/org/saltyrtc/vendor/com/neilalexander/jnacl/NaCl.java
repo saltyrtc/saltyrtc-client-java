@@ -1,17 +1,17 @@
 //
 //  Copyright (c) 2011, Neil Alexander T.
 //  All rights reserved.
-// 
+//
 //  Redistribution and use in source and binary forms, with
 //  or without modification, are permitted provided that the following
 //  conditions are met:
-// 
+//
 //  - Redistributions of source code must retain the above copyright notice,
 //    this list of conditions and the following disclaimer.
 //  - Redistributions in binary form must reproduce the above copyright notice,
 //    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
-// 
+//
 //  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 //  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 //  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -25,13 +25,13 @@
 //  POSSIBILITY OF SUCH DAMAGE.
 //
 
-package com.neilalexander.jnacl;
+package org.saltyrtc.vendor.com.neilalexander.jnacl;
 
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Formatter;
 
-import com.neilalexander.jnacl.crypto.*;
+import org.saltyrtc.vendor.com.neilalexander.jnacl.crypto.*;
 
 public class NaCl
 {
@@ -51,28 +51,28 @@ public class NaCl
     static {
         selfTest();
     }
-	
+
 	public NaCl(byte[] privatekey, byte[] publickey)
 	{
 		if (privatekey.length != SECRETKEYBYTES)
 			throw new Error("Invalid private key length");
-		
+
 		if (publickey.length != PUBLICKEYBYTES)
 			throw new Error("Invalid public key length");
 
 		curve25519xsalsa20poly1305.crypto_box_beforenm(this.precomputed, publickey, privatekey);
 	}
-	
+
 	public NaCl(String privatekey, String publickey)
-	{			
+	{
 		this(getBinary(privatekey), getBinary(publickey));
 	}
-	
+
 	public byte[] encrypt(byte[] input, byte[] nonce)
 	{
 		return encrypt(input, input.length, nonce);
 	}
-	
+
 	public byte[] encrypt(byte[] input, int inputlength, byte[] nonce)
 	{
         if (nonce.length != NONCEBYTES)
@@ -80,15 +80,15 @@ public class NaCl
 
         byte[] output = new byte[inputlength + BOXOVERHEAD];
 		curve25519xsalsa20poly1305.crypto_box_afternm_nopad(output, 0, input, 0, input.length, nonce, this.precomputed);
-		
+
 		return output;
 	}
-	
+
 	public byte[] decrypt(byte[] input, byte[] nonce)
 	{
 		return decrypt(input, input.length, nonce);
 	}
-	
+
 	public byte[] decrypt(byte[] input, int inputlength, byte[] nonce)
 	{
         if (nonce.length != NONCEBYTES)
@@ -100,17 +100,17 @@ public class NaCl
         byte[] output = new byte[inputlength - BOXOVERHEAD];
 		if (curve25519xsalsa20poly1305.crypto_box_open_afternm_nopad(output, 0, input, 0, input.length, nonce, this.precomputed) != 0)
 			return null;
-		
+
 		return output;
 	}
 
     public static void genkeypair(byte[] publickey, byte[] privatekey) {
         genkeypair(publickey, privatekey, null);
     }
-	
+
 	public static void genkeypair(byte[] publickey, byte[] privatekey, byte[] seed) {
 		SecureRandom random = new SecureRandom();
-		
+
 		random.nextBytes(privatekey);
 
         if (seed != null) {
@@ -228,13 +228,13 @@ public class NaCl
 	{
 	    int len = s.length();
 	    byte[] data = new byte[len / 2];
-	    
+
 	    for (int i = 0; i < len; i += 2)
 	        data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4) + Character.digit(s.charAt(i+1), 16));
-	    
+
 	    return data;
 	}
-	
+
 	public static String asHex(byte[] buf)
 	{
 		Formatter formatter = new Formatter();
@@ -242,7 +242,7 @@ public class NaCl
 			formatter.format("%02x", b);
 		return formatter.toString();
 	}
-	
+
 	public static String asHex(int[] buf)
 	{
 		Formatter formatter = new Formatter();

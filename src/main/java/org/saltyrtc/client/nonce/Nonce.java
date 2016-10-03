@@ -8,9 +8,8 @@
 
 package org.saltyrtc.client.nonce;
 
-import com.neilalexander.jnacl.NaCl;
-
 import org.saltyrtc.client.cookie.Cookie;
+import org.saltyrtc.vendor.com.neilalexander.jnacl.NaCl;
 
 abstract class Nonce {
 

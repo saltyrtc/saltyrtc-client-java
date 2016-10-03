@@ -8,9 +8,8 @@
 
 package org.saltyrtc.client.helpers;
 
-import com.neilalexander.jnacl.NaCl;
-
 import org.saltyrtc.client.messages.Message;
+import org.saltyrtc.vendor.com.neilalexander.jnacl.NaCl;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;

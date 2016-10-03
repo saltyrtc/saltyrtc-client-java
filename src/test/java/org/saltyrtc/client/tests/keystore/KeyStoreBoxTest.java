@@ -8,17 +8,15 @@
 
 package org.saltyrtc.client.tests.keystore;
 
-import static org.junit.Assert.*;
-
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import com.neilalexander.jnacl.NaCl;
-
 import org.saltyrtc.client.keystore.Box;
-import org.saltyrtc.client.keystore.KeyStore;
+import org.saltyrtc.vendor.com.neilalexander.jnacl.NaCl;
 
 import java.nio.ByteBuffer;
+
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 
 public class KeyStoreBoxTest {
 

@@ -8,18 +8,20 @@
 
 package org.saltyrtc.client.tests.keystore;
 
-import com.neilalexander.jnacl.NaCl;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
+import org.saltyrtc.client.exceptions.InvalidKeyException;
 import org.saltyrtc.client.keystore.Box;
 import org.saltyrtc.client.keystore.KeyStore;
-import org.saltyrtc.client.exceptions.InvalidKeyException;
+import org.saltyrtc.vendor.com.neilalexander.jnacl.NaCl;
 
 import java.security.SecureRandom;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.fail;
 
 public class KeyStoreTest {
 

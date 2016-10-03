@@ -8,14 +8,13 @@
 
 package org.saltyrtc.client.tests.helpers;
 
-import com.neilalexander.jnacl.NaCl;
-
 import org.junit.Test;
 import org.saltyrtc.client.helpers.MessageHistory;
+import org.saltyrtc.client.messages.Message;
 import org.saltyrtc.client.messages.s2c.ClientHello;
 import org.saltyrtc.client.messages.s2c.DropResponder;
-import org.saltyrtc.client.messages.Message;
 import org.saltyrtc.client.messages.s2c.ServerHello;
+import org.saltyrtc.vendor.com.neilalexander.jnacl.NaCl;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;

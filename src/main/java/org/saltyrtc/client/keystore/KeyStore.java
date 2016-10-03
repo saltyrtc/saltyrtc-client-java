@@ -10,9 +10,8 @@ package org.saltyrtc.client.keystore;
 
 import org.saltyrtc.client.exceptions.CryptoFailedException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
+import org.saltyrtc.vendor.com.neilalexander.jnacl.NaCl;
 import org.slf4j.Logger;
-
-import com.neilalexander.jnacl.NaCl;
 
 /**
  * Handle encrypting and decrypting messages for the peers.

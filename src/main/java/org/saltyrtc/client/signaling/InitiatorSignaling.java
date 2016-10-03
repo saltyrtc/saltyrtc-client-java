@@ -8,8 +8,6 @@
 
 package org.saltyrtc.client.signaling;
 
-import com.neilalexander.jnacl.NaCl;
-
 import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.cookie.Cookie;
@@ -41,6 +39,7 @@ import org.saltyrtc.client.signaling.state.ResponderHandshakeState;
 import org.saltyrtc.client.signaling.state.ServerHandshakeState;
 import org.saltyrtc.client.signaling.state.SignalingState;
 import org.saltyrtc.client.tasks.Task;
+import org.saltyrtc.vendor.com.neilalexander.jnacl.NaCl;
 import org.slf4j.Logger;
 
 import java.util.Arrays;

@@ -1,17 +1,17 @@
 //
 //  Copyright (c) 2011, Neil Alexander T.
 //  All rights reserved.
-// 
+//
 //  Redistribution and use in source and binary forms, with
 //  or without modification, are permitted provided that the following
 //  conditions are met:
-// 
+//
 //  - Redistributions of source code must retain the above copyright notice,
 //    this list of conditions and the following disclaimer.
 //  - Redistributions in binary form must reproduce the above copyright notice,
 //    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
-// 
+//
 //  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 //  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 //  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -25,7 +25,7 @@
 //  POSSIBILITY OF SUCH DAMAGE.
 //
 
-package com.neilalexander.jnacl.crypto;
+package org.saltyrtc.vendor.com.neilalexander.jnacl.crypto;
 
 public class salsa20
 {
@@ -170,7 +170,7 @@ public class salsa20
 
 		return 0;
 	}
-	
+
 	public static int crypto_stream(byte[] c, int clen, byte[] n, int noffset, byte[] k)
 	{
         if (haveNative) {
@@ -183,24 +183,24 @@ public class salsa20
 
 		byte[] inv = new byte[16];
 		byte[] block = new byte[64];
-		
+
 		int coffset = 0;
-		
+
 		if (clen == 0)
 			return 0;
 
 		for (int i = 0; i < 8; ++i)
 			inv[i] = n[noffset + i];
-		
+
 		for (int i = 8; i < 16; ++i)
 			inv[i] = 0;
 
 		while (clen >= 64)
-		{		
+		{
 			salsa20.crypto_core(c, inv, k, xsalsa20.sigma);
 
 			int u = 1;
-			
+
 			for (int i = 8; i < 16; ++i)
 			{
 				u += inv[i]&0xff;
@@ -213,13 +213,13 @@ public class salsa20
 		}
 
 		if (clen != 0)
-		{			
+		{
 			salsa20.crypto_core(block, inv, k, xsalsa20.sigma);
-			
+
 			for (int i = 0; i < clen; ++i)
 				c[coffset + i] = block[i];
 		}
-		
+
 		return 0;
 	}
 
@@ -235,28 +235,28 @@ public class salsa20
 
 		byte[] inv = new byte[16];
 		byte[] block = new byte[64];
-		
+
 		int coffset = 0;
 		int moffset = 0;
-		
+
 		if (mlen == 0)
 			return 0;
 
 		for (int i = 0; i < 8; ++i)
 			inv[i] = n[noffset + i];
-		
+
 		for (int i = 8; i < 16; ++i)
 			inv[i] = 0;
 
 		while (mlen >= 64)
-		{			
+		{
 			salsa20.crypto_core(block, inv, k, xsalsa20.sigma);
-			
+
 			for (int i = 0; i < 64; ++i)
 				c[coffset + i] = (byte)(m[moffset + i] ^ block[i]);
 
 			int u = 1;
-			
+
 			for (int i = 8; i < 16; ++i)
 			{
 				u += inv[i]&0xff;
@@ -272,11 +272,11 @@ public class salsa20
 		if (mlen != 0)
 		{
 			salsa20.crypto_core(block, inv, k, xsalsa20.sigma);
-			
+
 			for (int i = 0; i < mlen; ++i)
 				c[coffset + i] = (byte)(m[moffset + i] ^ block[i]);
 		}
-		
+
 		return 0;
 	}
 
