@@ -110,7 +110,7 @@ public class ValidationHelper {
     }
 
     @SuppressWarnings("unchecked")
-    public static Map<String, Map<Object, Object>> validateStringMapMap(Object value, String name) throws ValidationError {
+    public static Map<String, Object> validateStringObjectMap(Object value, String name) throws ValidationError {
         // Check main type
         if (!(value instanceof Map)) {
             throw new ValidationError(name + " must be a Map");
@@ -121,8 +121,15 @@ public class ValidationHelper {
                 throw new ValidationError(name + " must be a Map with Strings as keys");
             }
         }
+        // Cast
+        return (Map<String, Object>) value;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static Map<String, Map<Object, Object>> validateStringMapMap(Object value, String name) throws ValidationError {
+        Map<String, Object> map = validateStringObjectMap(value, name);
         // Check value types
-        for (Object element : ((Map<Object, Object>) value).values()) {
+        for (Object element : map.values()) {
             if (element != null && !(element instanceof Map)) {
                 throw new ValidationError(name + " must be a Map with Maps or null as values");
             }
