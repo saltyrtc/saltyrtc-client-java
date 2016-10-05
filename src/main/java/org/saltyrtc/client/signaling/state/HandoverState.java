@@ -24,6 +24,20 @@ public class HandoverState {
         this.peer = peer;
     }
 
+	/**
+	 * Return true only if both we and the peer have finished handover.
+     */
+    public boolean getAll() {
+        return this.local && this.peer;
+    }
+
+    /**
+     * Return true if either we or the peer have finished handover.
+     */
+    public boolean getAny() {
+        return this.local || this.peer;
+    }
+
     public void reset() {
         this.local = false;
         this.peer = false;
