@@ -63,4 +63,10 @@ public interface SignalingInterface {
      */
     byte[] decryptFromPeer(Box box) throws CryptoFailedException;
 
+    /**
+     * Close and reset the connection with the specified close code.
+     * @param reason The close code to use.
+     */
+    void resetConnection(int reason);
+
 }

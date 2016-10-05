@@ -211,6 +211,8 @@ public abstract class Signaling implements SignalingInterface {
             this.ws.disconnect(reason);
             this.ws = null;
         }
+
+        // TODO: Do we need to close the task dc?
     }
 
     /**
