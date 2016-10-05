@@ -55,6 +55,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -64,56 +65,55 @@ import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 public abstract class Signaling implements SignalingInterface {
 
-    protected final static String SALTYRTC_SUBPROTOCOL = "v0.saltyrtc.org";
-    protected final static short SALTYRTC_WS_CONNECT_TIMEOUT = 2000;
-    protected final static long SALTYRTC_WS_PING_INTERVAL = 20000;
-    protected final static int SALTYRTC_WS_CLOSE_LINGER = 1000;
-    protected final static short SALTYRTC_ADDR_UNKNOWN = 0x00;
-    protected final static short SALTYRTC_ADDR_SERVER = 0x00;
-    protected final static short SALTYRTC_ADDR_INITIATOR = 0x01;
+    final static String SALTYRTC_SUBPROTOCOL = "v0.saltyrtc.org";
+    final static short SALTYRTC_WS_CONNECT_TIMEOUT = 2000;
+    final static long SALTYRTC_WS_PING_INTERVAL = 20000;
+    final static short SALTYRTC_ADDR_UNKNOWN = 0x00;
+    final static short SALTYRTC_ADDR_SERVER = 0x00;
+    final static short SALTYRTC_ADDR_INITIATOR = 0x01;
 
     // Logger
-    protected abstract Logger getLogger();
+    abstract Logger getLogger();
 
     // WebSocket
-    protected final String host;
-    protected final int port;
-    protected final String protocol = "wss";
-    protected final SSLContext sslContext;
-    protected WebSocket ws;
+    private final String host;
+    private final int port;
+    private final String protocol = "wss";
+    private final SSLContext sslContext;
+    private WebSocket ws;
 
     // Connection state
-    protected SignalingState state = SignalingState.NEW;
-    protected SignalingChannel channel = SignalingChannel.WEBSOCKET;
-    protected ServerHandshakeState serverHandshakeState = ServerHandshakeState.NEW;
+    private SignalingState state = SignalingState.NEW;
+    private SignalingChannel channel = SignalingChannel.WEBSOCKET;
 
     // Reference to main class
-    protected final SaltyRTC salty;
+    private final SaltyRTC salty;
 
     // Keys
-    protected byte[] serverKey;
-    protected KeyStore sessionKey;
+    byte[] serverKey;
+    KeyStore sessionKey;
     @NonNull
-    protected final KeyStore permanentKey;
+    final KeyStore permanentKey;
     @Nullable
-    protected AuthToken authToken;
+    AuthToken authToken;
     @Nullable
-    protected byte[] peerTrustedKey = null;
+    byte[] peerTrustedKey = null;
 
     // Signaling
     @NonNull
-    protected SignalingRole role;
-    protected short address = SALTYRTC_ADDR_UNKNOWN;
-    protected Cookie cookie;
-    protected Cookie serverCookie;
-    protected CombinedSequencePair serverCsn = new CombinedSequencePair();
+    SignalingRole role;
+    short address = SALTYRTC_ADDR_UNKNOWN;
+    Cookie cookie;
+    Cookie serverCookie;
+    CombinedSequencePair serverCsn = new CombinedSequencePair();
+    ServerHandshakeState serverHandshakeState = ServerHandshakeState.NEW;
 
     // Tasks
-    final protected Task[] tasks;
-    protected Task task = null;
+    final Task[] tasks;
+    Task task = null;
 
     // Message history
-    protected final MessageHistory history = new MessageHistory(10);
+    private final MessageHistory history = new MessageHistory(10);
 
     public Signaling(SaltyRTC salty, String host, int port,
                      KeyStore permanentKey, SSLContext sslContext,
@@ -155,7 +155,7 @@ public abstract class Signaling implements SignalingInterface {
 	/**
 	 * Return true if the signaling class has been initialized with a trusted peer key.
      */
-    public boolean hasTrustedKey() {
+    boolean hasTrustedKey() {
         return this.peerTrustedKey != null;
     }
 
@@ -212,7 +212,7 @@ public abstract class Signaling implements SignalingInterface {
      * This operation is asynchronous, once the connection is closed, the
      * `SignalingStateChangedEvent` will be emitted.
      */
-    protected void disconnect(int reason) {
+    void disconnect(int reason) {
         this.setState(SignalingState.CLOSING);
 
         // Close websocket instance
@@ -238,7 +238,7 @@ public abstract class Signaling implements SignalingInterface {
     /**
      * Reset the connection.
      */
-    protected void resetConnection(int reason) {
+    void resetConnection(int reason) {
         // Unregister listeners
         if (this.ws != null) {
             this.ws.clearListeners();
@@ -258,7 +258,7 @@ public abstract class Signaling implements SignalingInterface {
     /**
      * Return the WebSocket path.
      */
-    protected abstract String getWebsocketPath();
+    abstract String getWebsocketPath();
 
     /**
      * Initialize the WebSocket including TLS configuration.
@@ -448,7 +448,7 @@ public abstract class Signaling implements SignalingInterface {
      * @param encrypt Whether to encrypt the message.
      * @return Encrypted msgpacked bytes, ready to send.
      */
-    protected byte[] buildPacket(Message msg, short receiver, boolean encrypt) throws ProtocolException {
+    byte[] buildPacket(Message msg, short receiver, boolean encrypt) throws ProtocolException {
         // Choose proper combined sequence number
         final CombinedSequence csn = this.getNextCsn(receiver);
 
@@ -490,7 +490,7 @@ public abstract class Signaling implements SignalingInterface {
      * @param receiver The receiver byte.
      * @return Encrypted msgpacked bytes, ready to send.
      */
-    protected byte[] buildPacket(Message msg, short receiver) throws ProtocolException {
+    byte[] buildPacket(Message msg, short receiver) throws ProtocolException {
         return this.buildPacket(msg, receiver, true);
     }
 
@@ -500,7 +500,7 @@ public abstract class Signaling implements SignalingInterface {
      * May return null if peer is not yet set.
      */
     @Nullable
-    protected abstract Short getPeerAddress();
+    abstract Short getPeerAddress();
 
     /**
      * Return the cookie of the peer.
@@ -508,7 +508,7 @@ public abstract class Signaling implements SignalingInterface {
      * May return null if peer is not yet set or if cookie is not yet stored.
      */
     @Nullable
-    public abstract Cookie getPeerCookie();
+    abstract Cookie getPeerCookie();
 
     /**
      * Return the session key of the peer.
@@ -516,13 +516,13 @@ public abstract class Signaling implements SignalingInterface {
      * May return null if peer is not yet set.
      */
     @Nullable
-    protected abstract byte[] getPeerSessionKey();
+    abstract byte[] getPeerSessionKey();
 
     /**
      * Return the own cookie.
      */
     @Nullable
-    public Cookie getCookie() {
+    Cookie getCookie() {
         return this.cookie;
     }
 
@@ -609,7 +609,7 @@ public abstract class Signaling implements SignalingInterface {
     /**
      * Message received during peer handshake.
      */
-    protected abstract void onPeerHandshakeMessage(Box box, SignalingChannelNonce nonce)
+    abstract void onPeerHandshakeMessage(Box box, SignalingChannelNonce nonce)
         throws ProtocolException, ValidationError, SerializationError,
         InternalException, ConnectionException, SignalingException;
 
@@ -662,7 +662,7 @@ public abstract class Signaling implements SignalingInterface {
 
             if (message instanceof Close) {
                 this.getLogger().debug("Received close");
-                handleClose((Close) message);
+                this.handleClose((Close) message);
             } else if (message instanceof TaskMessage) {
                 this.task.onTaskMessage((TaskMessage) message);
             } else {
@@ -693,13 +693,13 @@ public abstract class Signaling implements SignalingInterface {
     /**
      * Send a client-hello message to the server.
      */
-    protected abstract void sendClientHello() throws ProtocolException, ConnectionException;
+    abstract void sendClientHello() throws ProtocolException, ConnectionException;
 
     /**
      * Send a client-auth message to the server.
      */
     private void sendClientAuth() throws ProtocolException, ConnectionException {
-        final List<String> subprotocols = Arrays.asList(Signaling.SALTYRTC_SUBPROTOCOL);
+        final List<String> subprotocols = Collections.singletonList(Signaling.SALTYRTC_SUBPROTOCOL);
         final ClientAuth msg = new ClientAuth(this.serverCookie.getBytes(), subprotocols);
         final byte[] packet = this.buildPacket(msg, Signaling.SALTYRTC_ADDR_SERVER);
         this.getLogger().debug("Sending client-auth");
@@ -714,19 +714,19 @@ public abstract class Signaling implements SignalingInterface {
      * That needs to be done (differently) in the initiator and
      * responder signaling subclasses.
      */
-    protected abstract void handleServerAuth(Message baseMsg, SignalingChannelNonce nonce) throws
+    abstract void handleServerAuth(Message baseMsg, SignalingChannelNonce nonce) throws
             ProtocolException, ConnectionException;
 
     /**
      * Initialize the peer handshake.
      */
-    protected abstract void initPeerHandshake() throws ProtocolException, ConnectionException;
+    abstract void initPeerHandshake() throws ProtocolException, ConnectionException;
 
 	/**
      * Initialize the task with the task data sent by the peer.
      * @param task The task instance.
      */
-    protected void initTask(Task task, Map<Object, Object> data) throws ProtocolException {
+    void initTask(Task task, Map<Object, Object> data) throws ProtocolException {
         try {
             task.init(this, data);
         } catch (ValidationError e) {
@@ -770,12 +770,12 @@ public abstract class Signaling implements SignalingInterface {
     /**
      * Choose proper combined sequence number
      */
-    protected abstract CombinedSequence getNextCsn(short receiver) throws ProtocolException;
+    abstract CombinedSequence getNextCsn(short receiver) throws ProtocolException;
 
     /**
      * Return `true` if receiver byte is a valid responder id (in the range 0x02-0xff).
      */
-    protected boolean isResponderId(short receiver) {
+    boolean isResponderId(short receiver) {
         return receiver >= 0x02 && receiver <= 0xff;
     }
 
@@ -900,7 +900,7 @@ public abstract class Signaling implements SignalingInterface {
      * @param csnPair The CSN pair for the message sender.
      * @param peerName Name of the peer (e.g. "server" or "initiator") used in error messages.
      */
-    protected void validateSignalingNonceCsn(SignalingChannelNonce nonce, CombinedSequencePair csnPair, String peerName)
+    void validateSignalingNonceCsn(SignalingChannelNonce nonce, CombinedSequencePair csnPair, String peerName)
             throws ValidationError {
         // If this is the first message from the initiator, validate the overflow number
         // and store it for future reference.
@@ -954,7 +954,7 @@ public abstract class Signaling implements SignalingInterface {
      * @param theirCookie The cookie bytes of the peer.
      * @throws ProtocolException Thrown if repeated cookie does not match our own cookie.
      */
-    protected void validateRepeatedCookie(byte[] theirCookie) throws ProtocolException {
+    void validateRepeatedCookie(byte[] theirCookie) throws ProtocolException {
         // Verify the cookie
         final Cookie repeatedCookie = new Cookie(theirCookie);
         if (!repeatedCookie.equals(this.cookie)) {
@@ -975,7 +975,7 @@ public abstract class Signaling implements SignalingInterface {
     /**
      * Encrypt data for the specified peer.
      */
-    protected abstract Box encryptForPeer(short receiver, String messageType, byte[] payload, byte[] nonce)
+    abstract Box encryptForPeer(short receiver, String messageType, byte[] payload, byte[] nonce)
         throws CryptoFailedException, InvalidKeyException, ProtocolException;
 
     /**
@@ -1022,7 +1022,7 @@ public abstract class Signaling implements SignalingInterface {
      *
      * This allows the message to be recognized in the case of a send error.
      */
-    protected void send(byte[] payload, Message message) throws ConnectionException, ProtocolException {
+    void send(byte[] payload, Message message) throws ConnectionException, ProtocolException {
         // Send data
         this.send(payload);
 
@@ -1030,6 +1030,7 @@ public abstract class Signaling implements SignalingInterface {
         this.history.store(message, payload);
     }
 
+    @SuppressWarnings("UnusedParameters")
     private void handleClose(Close msg) {
         throw new UnsupportedOperationException("Close not yet implemented"); // TODO
     }
@@ -1060,12 +1061,12 @@ public abstract class Signaling implements SignalingInterface {
             // This could only happen if the session keys are somehow broken.
             // If that happens, something went massively wrong.
             e.printStackTrace();
-            if (Signaling.this.getState() == SignalingState.TASK ||
-                Signaling.this.getState() == SignalingState.OPEN) {
-                Signaling.this.sendClose(CloseCode.INTERNAL_ERROR);
+            if (this.getState() == SignalingState.TASK ||
+                this.getState() == SignalingState.OPEN) {
+                this.sendClose(CloseCode.INTERNAL_ERROR);
             }
             // Close connection
-            Signaling.this.resetConnection(CloseCode.INTERNAL_ERROR);
+            this.resetConnection(CloseCode.INTERNAL_ERROR);
             return null;
         }
     }
@@ -1080,12 +1081,12 @@ public abstract class Signaling implements SignalingInterface {
             // This could only happen if the session keys are somehow broken.
             // If that happens, something went massively wrong.
             e.printStackTrace();
-            if (Signaling.this.getState() == SignalingState.TASK ||
-                Signaling.this.getState() == SignalingState.OPEN) {
-                Signaling.this.sendClose(CloseCode.INTERNAL_ERROR);
+            if (this.getState() == SignalingState.TASK ||
+                this.getState() == SignalingState.OPEN) {
+                this.sendClose(CloseCode.INTERNAL_ERROR);
             }
             // Close connection
-            Signaling.this.resetConnection(CloseCode.INTERNAL_ERROR);
+            this.resetConnection(CloseCode.INTERNAL_ERROR);
             return null;
         }
     }
