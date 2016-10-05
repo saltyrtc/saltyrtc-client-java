@@ -6,9 +6,11 @@
  * copied, modified, or distributed except according to those terms.
  */
 
-package org.saltyrtc.client.signaling;
+package org.saltyrtc.client.events;
 
-public enum SignalingChannel {
-    WEBSOCKET,
-    TASK,
+/**
+ * The signaling channel has been handed over to the task.
+ */
+public class HandoverEvent implements Event {
+
 }

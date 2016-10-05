@@ -8,6 +8,7 @@ import org.saltyrtc.client.exceptions.ProtocolException;
 import org.saltyrtc.client.exceptions.SignalingException;
 import org.saltyrtc.client.keystore.Box;
 import org.saltyrtc.client.messages.c2c.TaskMessage;
+import org.saltyrtc.client.signaling.state.HandoverState;
 import org.saltyrtc.client.signaling.state.SignalingState;
 
 /**
@@ -25,15 +26,10 @@ public interface SignalingInterface {
      */
     void setState(SignalingState state);
 
-    /**
-	 * Return the current signaling channel.
+	/**
+     * Get the handover state.
      */
-    SignalingChannel getChannel();
-
-    /**
-     * Set the signaling channel.
-     */
-    void setChannel(SignalingChannel channel);
+    HandoverState getHandoverState();
 
 	/**
 	 * Return the signaling role.

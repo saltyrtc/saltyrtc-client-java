@@ -18,7 +18,6 @@ import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.cookie.Cookie;
-import org.saltyrtc.client.events.SignalingChannelChangedEvent;
 import org.saltyrtc.client.events.SignalingStateChangedEvent;
 import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
@@ -45,6 +44,7 @@ import org.saltyrtc.client.messages.s2c.ServerHello;
 import org.saltyrtc.client.nonce.CombinedSequence;
 import org.saltyrtc.client.nonce.CombinedSequencePair;
 import org.saltyrtc.client.nonce.SignalingChannelNonce;
+import org.saltyrtc.client.signaling.state.HandoverState;
 import org.saltyrtc.client.signaling.state.ServerHandshakeState;
 import org.saltyrtc.client.signaling.state.SignalingState;
 import org.saltyrtc.client.tasks.Task;
@@ -60,8 +60,6 @@ import java.util.List;
 import java.util.Map;
 
 import javax.net.ssl.SSLContext;
-
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 public abstract class Signaling implements SignalingInterface {
 
@@ -84,7 +82,7 @@ public abstract class Signaling implements SignalingInterface {
 
     // Connection state
     private SignalingState state = SignalingState.NEW;
-    private SignalingChannel channel = SignalingChannel.WEBSOCKET;
+    private HandoverState handoverState = new HandoverState();
 
     // Reference to main class
     private final SaltyRTC salty;
@@ -172,16 +170,8 @@ public abstract class Signaling implements SignalingInterface {
         }
     }
 
-    public SignalingChannel getChannel() {
-        return this.channel;
-    }
-
-    public void setChannel(SignalingChannel newChannel) {
-        if (this.channel != newChannel) {
-            this.channel = newChannel;
-            this.salty.events.signalingChannelChanged.notifyHandlers(
-                    new SignalingChannelChangedEvent(newChannel));
-        }
+    public HandoverState getHandoverState() {
+        return this.handoverState;
     }
 
     @NonNull
@@ -196,7 +186,7 @@ public abstract class Signaling implements SignalingInterface {
      */
     public void connect() throws ConnectionException {
         this.getLogger().info("Connecting to SaltyRTC server at "
-                + Signaling.this.host + ":" + Signaling.this.port + "...");
+                + this.host + ":" + this.port + "...");
         this.resetConnection(CloseCode.CLOSING_NORMAL);
         try {
             this.initWebsocket();
@@ -248,7 +238,7 @@ public abstract class Signaling implements SignalingInterface {
         this.disconnect(reason);
 
         // Reset
-        this.setChannel(SignalingChannel.WEBSOCKET);
+        this.handoverState.reset();
         this.serverHandshakeState = ServerHandshakeState.NEW;
         this.serverCsn = new CombinedSequencePair();
         this.setState(SignalingState.NEW);
@@ -300,6 +290,15 @@ public abstract class Signaling implements SignalingInterface {
             @SuppressWarnings("UnqualifiedMethodAccess")
             public synchronized void onBinaryMessage(WebSocket websocket, byte[] binary) {
                 getLogger().debug("New binary message (" + binary.length + " bytes)");
+
+                // Check peer handover state
+                if (Signaling.this.handoverState.getPeer()) {
+                    getLogger().error("Protocol error: Received WebSocket message from peer " +
+                        "even though it has already handed over to task.");
+                    Signaling.this.resetConnection(CloseCode.PROTOCOL_ERROR);
+                    return;
+                }
+
                 try {
                     // Parse buffer
                     final Box box = new Box(ByteBuffer.wrap(binary), SignalingChannelNonce.TOTAL_LENGTH);
@@ -617,7 +616,7 @@ public abstract class Signaling implements SignalingInterface {
      * Message received from peer *after* the handshake is done.
      *
      * Note that although this method is called `onPeerMessage`, it's still
-     * possible that server messages arrive, e.g. a `send-error` message.
+     * possible that some server messages arrive, e.g. a `send-error` message.
      */
     private void onPeerMessage(Box box, SignalingChannelNonce nonce) {
         this.getLogger().debug("Message received");
@@ -992,16 +991,13 @@ public abstract class Signaling implements SignalingInterface {
             throw new ConnectionException("SaltyRTC instance is not connected");
         }
 
-        // Send data
-        switch (this.getChannel()) {
-            case WEBSOCKET:
-                this.ws.sendBinary(payload);
-                break;
-            case TASK:
-                // TODO: Implement via task
-                throw new NotImplementedException();
-            default:
-                throw new ProtocolException("Unknown or invalid signaling channel: " + this.channel);
+        // Send data...
+        if (!this.handoverState.getLocal()) {
+            // ...through websocket
+            this.ws.sendBinary(payload);
+        } else {
+            // ...via task
+            this.task.sendSignalingMessage(payload);
         }
     }
 

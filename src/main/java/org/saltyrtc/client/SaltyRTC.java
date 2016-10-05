@@ -10,15 +10,14 @@ package org.saltyrtc.client;
 
 import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.events.EventRegistry;
+import org.saltyrtc.client.events.HandoverEvent;
 import org.saltyrtc.client.events.SendErrorEvent;
-import org.saltyrtc.client.events.SignalingChannelChangedEvent;
 import org.saltyrtc.client.events.SignalingStateChangedEvent;
 import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.signaling.InitiatorSignaling;
 import org.saltyrtc.client.signaling.ResponderSignaling;
 import org.saltyrtc.client.signaling.Signaling;
-import org.saltyrtc.client.signaling.SignalingChannel;
 import org.saltyrtc.client.signaling.SignalingRole;
 import org.saltyrtc.client.signaling.state.SignalingState;
 import org.saltyrtc.client.tasks.Task;
@@ -128,18 +127,11 @@ public class SaltyRTC {
     }
 
     /**
-     * Return the currently used signaling channel.
-     */
-    public SignalingChannel getSignalingChannel() {
-        return this.signaling.getChannel();
-    }
-
-    /**
      * Collection of all possible events.
      */
     public static class Events {
         public EventRegistry<SignalingStateChangedEvent> signalingStateChanged = new EventRegistry<>();
-        public EventRegistry<SignalingChannelChangedEvent> signalingChannelChanged = new EventRegistry<>();
+        public EventRegistry<HandoverEvent> handover = new EventRegistry<>();
         public EventRegistry<SendErrorEvent> sendError = new EventRegistry<>();
     }
 
