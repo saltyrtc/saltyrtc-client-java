@@ -230,7 +230,7 @@ public abstract class Signaling implements SignalingInterface {
     /**
      * Reset the connection.
      */
-    void resetConnection(int reason) {
+    public void resetConnection(int reason) {
         // Unregister listeners
         if (this.ws != null) {
             this.ws.clearListeners();
