@@ -150,8 +150,8 @@ public abstract class Signaling implements SignalingInterface {
         return null;
     }
 
-	/**
-	 * Return true if the signaling class has been initialized with a trusted peer key.
+    /**
+     * Return true if the signaling class has been initialized with a trusted peer key.
      */
     boolean hasTrustedKey() {
         return this.peerTrustedKey != null;
@@ -319,7 +319,7 @@ public abstract class Signaling implements SignalingInterface {
                             break;
                         case TASK:
                         case OPEN:
-                            Signaling.this.onPeerMessage(box, nonce);
+                            Signaling.this.onSignalingMessage(box, nonce);
                             break;
                         default:
                             getLogger().warn("Received message in " + Signaling.this.getState().name() +
@@ -528,24 +528,6 @@ public abstract class Signaling implements SignalingInterface {
     }
 
     /**
-     * Decrypt the peer message using the session key.
-     */
-    private Message decryptPeerMessage(Box box)
-            throws CryptoFailedException, InvalidKeyException, ValidationError, SerializationError {
-        final byte[] decrypted = this.sessionKey.decrypt(box, this.getPeerSessionKey());
-        return MessageReader.read(decrypted, this.task.getSupportedMessageTypes());
-    }
-
-    /**
-     * Decrypt the server message using the permanent key.
-     */
-    private Message decryptServerMessage(Box box)
-            throws CryptoFailedException, InvalidKeyException, ValidationError, SerializationError {
-        final byte[] decrypted = this.permanentKey.decrypt(box, this.serverKey);
-        return MessageReader.read(decrypted);
-    }
-
-    /**
      * Message received during server handshake.
      *
      * @param box The box containing raw nonce and payload bytes.
@@ -615,60 +597,72 @@ public abstract class Signaling implements SignalingInterface {
         InternalException, ConnectionException, SignalingException;
 
     /**
-     * Message received from peer *after* the handshake is done.
-     *
-     * Note that although this method is called `onPeerMessage`, it's still
-     * possible that some server messages arrive, e.g. a `send-error` message.
+     * Message received from peer or server *after* the handshake is done.
      */
-    private void onPeerMessage(Box box, SignalingChannelNonce nonce) {
+    private void onSignalingMessage(Box box, SignalingChannelNonce nonce) {
         this.getLogger().debug("Message received");
-
-        final Message message;
-
-        // Process server messages
         if (nonce.getSource() == SALTYRTC_ADDR_SERVER) {
-            try {
-                message = this.decryptServerMessage(box);
-            } catch (CryptoFailedException e) {
-                this.getLogger().error("Could not decrypt incoming message from server", e);
-                return;
-            } catch (InvalidKeyException e) {
-                this.getLogger().error("InvalidKeyException while processing incoming message from server", e);
-                return;
-            } catch (ValidationError | SerializationError e) {
-                this.getLogger().error("Received invalid message from server", e);
-                return;
-            }
-
-            if (message instanceof SendError) {
-                this.handleSendError((SendError) message);
-            } else {
-                this.getLogger().error("Invalid server message type: " + message.getType());
-            }
-
-        // Process peer messages
+            this.onSignalingServerMessage(box);
         } else {
+            // TODO: Do we need to validate the sender id or does that happen deeper down?
+            final byte[] decrypted;
             try {
-                message = this.decryptPeerMessage(box);
+                decrypted = this.decryptFromPeer(box);
             } catch (CryptoFailedException e) {
                 this.getLogger().error("Could not decrypt incoming message from peer " + nonce.getSource(), e);
                 return;
-            } catch (InvalidKeyException e) {
-                this.getLogger().error("InvalidKeyException while processing incoming message from peer", e);
-                return;
-            } catch (ValidationError | SerializationError e) {
-                this.getLogger().error("Received invalid message from peer", e);
-                return;
             }
+            this.onSignalingPeerMessage(decrypted);
+        }
+    }
 
-            if (message instanceof Close) {
-                this.getLogger().debug("Received close");
-                this.handleClose((Close) message);
-            } else if (message instanceof TaskMessage) {
-                this.task.onTaskMessage((TaskMessage) message);
-            } else {
-                this.getLogger().error("Received message with invalid type from peer");
-            }
+    /**
+     * Signaling message received from server *after* the handshake is done.
+     */
+    private void onSignalingServerMessage(Box box) {
+        final Message message;
+
+        try {
+            final byte[] decrypted = this.permanentKey.decrypt(box, this.serverKey);
+            message = MessageReader.read(decrypted);
+        } catch (CryptoFailedException e) {
+            this.getLogger().error("Could not decrypt incoming message from server", e);
+            return;
+        } catch (InvalidKeyException e) {
+            this.getLogger().error("InvalidKeyException while processing incoming message from server", e);
+            return;
+        } catch (ValidationError | SerializationError e) {
+            this.getLogger().error("Received invalid message from server", e);
+            return;
+        }
+
+        if (message instanceof SendError) {
+            this.handleSendError((SendError) message);
+        } else {
+            this.getLogger().error("Invalid server message type: " + message.getType());
+        }
+    }
+
+    /**
+     * Signaling message received from peer *after* the handshake is done.
+     */
+    public void onSignalingPeerMessage(byte[] decryptedBytes) {
+        final Message message;
+
+        try {
+            message = MessageReader.read(decryptedBytes, this.task.getSupportedMessageTypes());
+        } catch (ValidationError | SerializationError e) {
+            this.getLogger().error("Received invalid message from peer", e);
+            return;
+        }
+
+        if (message instanceof Close) {
+            this.getLogger().debug("Received close");
+            this.handleClose((Close) message);
+        } else if (message instanceof TaskMessage) {
+            this.task.onTaskMessage((TaskMessage) message);
+        } else {
+            this.getLogger().error("Received message with invalid type from peer");
         }
     }
 
@@ -723,7 +717,7 @@ public abstract class Signaling implements SignalingInterface {
      */
     abstract void initPeerHandshake() throws ProtocolException, ConnectionException;
 
-	/**
+    /**
      * Initialize the task with the task data sent by the peer.
      * @param task The task instance.
      */
@@ -1003,8 +997,8 @@ public abstract class Signaling implements SignalingInterface {
         }
     }
 
-	/**
-	 * Send a task message through the websocket.
+    /**
+     * Send a task message through the websocket.
      */
     public void sendTaskMessage(TaskMessage msg) throws ProtocolException, SignalingException, ConnectionException {
         final Short receiver = this.getPeerAddress();

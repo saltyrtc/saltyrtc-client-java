@@ -16,7 +16,7 @@ import org.saltyrtc.client.signaling.state.SignalingState;
  */
 public interface SignalingInterface {
 
-	/**
+    /**
      * Return the current signaling state.
      */
     SignalingState getState();
@@ -26,19 +26,19 @@ public interface SignalingInterface {
      */
     void setState(SignalingState state);
 
-	/**
+    /**
      * Get the handover state.
      */
     HandoverState getHandoverState();
 
-	/**
-	 * Return the signaling role.
+    /**
+     * Return the signaling role.
      */
     @NonNull
     SignalingRole getRole();
 
-	/**
-	 * Send a task message through the websocket.
+    /**
+     * Send a task message through the websocket.
      *
      * TODO: Get rid of all exceptions but SignalingException and ConnectionException.
      */
@@ -62,6 +62,15 @@ public interface SignalingInterface {
      * @throws CryptoFailedException if decryption fails for some reason.
      */
     byte[] decryptFromPeer(Box box) throws CryptoFailedException;
+
+    /**
+     * Handle incoming signaling messages from the peer.
+     *
+     * This method can be used by tasks to pass in messages that arrived through their signaling channel.
+     *
+     * @param decryptedBytes The decrypted message bytes.
+     */
+    void onSignalingPeerMessage(byte[] decryptedBytes);
 
     /**
      * Close and reset the connection with the specified close code.

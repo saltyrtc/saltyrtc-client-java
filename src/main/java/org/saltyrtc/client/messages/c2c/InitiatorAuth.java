@@ -43,7 +43,7 @@ public class InitiatorAuth extends Message {
         this.validateTaskData(this.task, this.data);
     }
 
-	/**
+    /**
      * Validate that task name and task data are both set, and that they match.
      * @param task Task name
      * @param data Task data

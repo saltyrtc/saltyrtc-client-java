@@ -66,8 +66,8 @@ public class CloseCode {
      */
     public static final int NO_SHARED_TASK = 3006;
 
-	/**
-	 * Valid close codes for drop-responder messages.
+    /**
+     * Valid close codes for drop-responder messages.
      */
     public static final int[] CLOSE_CODES_DROP_RESPONDER = new int[] {
         PROTOCOL_ERROR, INTERNAL_ERROR, DROPPED_BY_INITIATOR,

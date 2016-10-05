@@ -19,7 +19,7 @@ import java.util.Map;
  */
 public interface Task {
 
-	/**
+    /**
      * Initialize the task with the task data from the peer.
      *
      * The task should keep track internally whether it has been initialized or not.
@@ -28,7 +28,7 @@ public interface Task {
      */
     void init(SignalingInterface signaling, Map<Object, Object> data) throws ValidationError;
 
-	/**
+    /**
      * Used by the signaling class to notify task that the peer handshake is over.
      *
      * This is the point where the task can take over.
@@ -70,7 +70,7 @@ public interface Task {
     List<String> getSupportedMessageTypes();
 
     /**
-	 * Return the task data used for negotiation in the `auth` message.
+     * Return the task data used for negotiation in the `auth` message.
      */
     @Nullable
     Map<Object, Object> getData();

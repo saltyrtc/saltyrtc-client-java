@@ -192,7 +192,7 @@ public class ResponderSignaling extends Signaling {
         }
     }
 
-	/**
+    /**
      * Send our token to the initiator.
      */
     private void sendToken() throws ProtocolException, ConnectionException {
@@ -283,7 +283,7 @@ public class ResponderSignaling extends Signaling {
         this.initiator.handshakeState = InitiatorHandshakeState.AUTH_RECEIVED;
     }
 
-	/**
+    /**
      * Decrypt messages from the initiator.
      *
      * @param box encrypted box containing message.

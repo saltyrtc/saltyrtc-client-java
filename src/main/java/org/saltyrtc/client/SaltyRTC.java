@@ -96,7 +96,7 @@ public class SaltyRTC {
         return this.signaling.getState();
     }
 
-	/**
+    /**
      * Return the negotiated task, or null if no task has been negotiated yet.
      */
     @Nullable
