@@ -29,12 +29,32 @@ public class CombinedSequence {
         this.overflow = 0;
     }
 
+    public CombinedSequence(long sequenceNumber, int overflow) {
+        this.sequenceNumber = sequenceNumber;
+        this.overflow = overflow;
+    }
+
+    /**
+     * Return the sequence number.
+     */
     public long getSequenceNumber() {
         return sequenceNumber;
     }
 
+    /**
+     * Return the overflow number.
+     */
     public int getOverflow() {
         return overflow;
+    }
+
+    /**
+     * Return the combined sequence number.
+     */
+    public long getCombinedSequence() {
+        long combined = (long)this.overflow << 32 | this.sequenceNumber;
+        assert combined >= 0 && combined < (1L << 48); // Sanity check
+        return combined;
     }
 
     /**
