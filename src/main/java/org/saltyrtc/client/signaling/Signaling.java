@@ -176,7 +176,7 @@ public abstract class Signaling implements SignalingInterface {
         return this.channel;
     }
 
-    protected void setChannel(SignalingChannel newChannel) {
+    public void setChannel(SignalingChannel newChannel) {
         if (this.channel != newChannel) {
             this.channel = newChannel;
             this.salty.events.signalingChannelChanged.notifyHandlers(

@@ -30,6 +30,11 @@ public interface SignalingInterface {
      */
     SignalingChannel getChannel();
 
+    /**
+     * Set the signaling channel.
+     */
+    void setChannel(SignalingChannel channel);
+
 	/**
 	 * Return the signaling role.
      */
