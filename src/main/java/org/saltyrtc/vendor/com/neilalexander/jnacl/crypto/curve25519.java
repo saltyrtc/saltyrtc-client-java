@@ -35,18 +35,6 @@ public class curve25519
 	static byte[] basev = { 9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	static int[] minusp = { 19, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128 };
 
-    static boolean haveNative;
-
-    static {
-        try {
-            System.loadLibrary("nacl-jni");
-            haveNative = true;
-        } catch (UnsatisfiedLinkError e) {
-            haveNative = false;
-            System.out.println("Warning: using Java curve25519 implementation; expect bad performance");
-        }
-    }
-
 	public static int crypto_scalarmult_base(byte[] q, byte[] n)
 	{
 		byte[] basevp = basev;
@@ -451,14 +439,6 @@ public class curve25519
 
 	public static int crypto_scalarmult(byte[] q, byte[] n, byte[] p)
 	{
-        if (haveNative) {
-            try {
-                return crypto_scalarmult_native(q, n, p);
-            } catch (UnsatisfiedLinkError e) {
-                /* fall through to Java implementation */
-            }
-        }
-
 		int[] work = new int[96];
 		byte[] e = new byte[32];
 
@@ -484,5 +464,4 @@ public class curve25519
 		return 0;
 	}
 
-    public native static int crypto_scalarmult_native(byte[] q, byte[] n, byte[] p);
 }

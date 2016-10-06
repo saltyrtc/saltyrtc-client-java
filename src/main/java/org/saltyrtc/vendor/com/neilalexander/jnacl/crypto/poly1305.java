@@ -34,28 +34,8 @@ public class poly1305
 
 	static final int[] minusp = {5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 252};
 
-    static boolean haveNative;
-
-    static {
-        try {
-            System.loadLibrary("nacl-jni");
-            haveNative = true;
-        } catch (UnsatisfiedLinkError e) {
-            haveNative = false;
-            System.out.println("Warning: using Java poly1305 implementation; expect bad performance");
-        }
-    }
-
 	public static int crypto_onetimeauth_verify(byte[] h, int hoffset, byte[] inv, int invoffset, long inlen, byte[] k)
 	{
-        if (haveNative) {
-            try {
-                return crypto_onetimeauth_verify_native(h, hoffset, inv, invoffset, inlen, k);
-            } catch (UnsatisfiedLinkError e) {
-                /* fall through to Java implementation */
-            }
-        }
-
 		byte[] correct = new byte[16];
 
 		crypto_onetimeauth(correct, 0, inv, invoffset, inlen, k);
@@ -141,14 +121,6 @@ public class poly1305
 
 	public static int crypto_onetimeauth(byte[] outv, int outvoffset, byte[] inv, int invoffset, long inlen, byte[] k)
 	{
-        if (haveNative) {
-            try {
-                return crypto_onetimeauth_native(outv, outvoffset, inv, invoffset, inlen, k);
-            } catch (UnsatisfiedLinkError e) {
-                /* fall through to Java implementation */
-            }
-        }
-
 		int j;
 		int[] r = new int[17];
 		int[] h = new int[17];
@@ -203,7 +175,4 @@ public class poly1305
 
 		return 0;
 	}
-
-    public native static int crypto_onetimeauth_native(byte[] outv, int outvoffset, byte[] inv, int invoffset, long inlen, byte[] k);
-    public native static int crypto_onetimeauth_verify_native(byte[] h, int hoffset, byte[] inv, int invoffset, long inlen, byte[] k);
 }

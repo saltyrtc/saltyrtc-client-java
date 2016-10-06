@@ -251,10 +251,6 @@ public class NaCl
 		return formatter.toString();
 	}
 
-    public boolean haveNativeCrypto() {
-        return salsa20.haveNativeCrypto();
-    }
-
     public static void selfTest() {
         /* test vectors from tests/box.* in nacl distribution */
         byte alicepk[] = new byte[] {

@@ -38,22 +38,6 @@ public class salsa20
 
 	final static int ROUNDS = 20;
 
-    static boolean haveNative;
-
-    static {
-        try {
-            System.loadLibrary("nacl-jni");
-            haveNative = true;
-        } catch (UnsatisfiedLinkError e) {
-            haveNative = false;
-            System.out.println("Warning: using Java salsa20 implementation; expect bad performance");
-        }
-    }
-
-    public static boolean haveNativeCrypto() {
-        return haveNative;
-    }
-
 	static long rotate(int u, int c)
 	{
 		return (u << c) | (u >>> (32 - c));
@@ -173,14 +157,6 @@ public class salsa20
 
 	public static int crypto_stream(byte[] c, int clen, byte[] n, int noffset, byte[] k)
 	{
-        if (haveNative) {
-            try {
-                return crypto_stream_native(c, clen, n, noffset, k);
-            } catch (UnsatisfiedLinkError e) {
-                /* fall through to Java implementation */
-            }
-        }
-
 		byte[] inv = new byte[16];
 		byte[] block = new byte[64];
 
@@ -225,14 +201,6 @@ public class salsa20
 
 	public static int crypto_stream_xor(byte[] c, byte[] m, int mlen, byte[] n, int noffset, byte[] k)
 	{
-        if (haveNative) {
-            try {
-                return crypto_stream_xor_native(c, m, mlen, n, noffset, k);
-            } catch (UnsatisfiedLinkError e) {
-                /* fall through to Java implementation */
-            }
-        }
-
 		byte[] inv = new byte[16];
 		byte[] block = new byte[64];
 
@@ -283,14 +251,6 @@ public class salsa20
     public static int crypto_stream_xor_skip32(byte[] c0, byte[] c, int coffset, byte[] m, int moffset, int mlen, byte[] n, int noffset, byte[] k)
     {
         /* Variant of crypto_stream_xor that outputs the first 32 bytes of the cipherstream to c0 */
-
-        if (haveNative) {
-            try {
-                return crypto_stream_xor_skip32_native(c0, c, coffset, m, moffset, mlen, n, noffset, k);
-            } catch (UnsatisfiedLinkError e) {
-                /* fall through to Java implementation */
-            }
-        }
 
         int u;
         byte[] inv = new byte[16];
@@ -361,8 +321,4 @@ public class salsa20
 
         return 0;
     }
-
-    public native static int crypto_stream_native(byte[] c, int clen, byte[] n, int noffset, byte[] k);
-    public native static int crypto_stream_xor_native(byte[] c, byte[] m, int mlen, byte[] n, int noffset, byte[] k);
-    public native static int crypto_stream_xor_skip32_native(byte[] c0, byte[] c, int coffset, byte[] m, int moffset, int mlen, byte[] n, int noffset, byte[] k);
 }
