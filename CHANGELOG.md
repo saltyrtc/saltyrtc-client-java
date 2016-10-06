@@ -12,10 +12,18 @@ Possible log types:
 - `[security]` to invite users to upgrade in case of vulnerabilities.
 
 
-### v0.3.0 (UNRELEASED)
+### v0.3.0 (2016-10-06)
 
-- [changed] `keyStore.getPrivateKey()` is now `keyStore.getSecretKey()`
+- [added] Implement support for tasks
+- [added] Implement close messages
+- [added] Add support for permanent server keys
 - [added] Add `KeyStore(publicKey, secretKey)` constructor
+- [changed] `keyStore.getPrivateKey()` is now `keyStore.getSecretKey()`
+- [changed] Rename `OPEN` SignalingState to `TASK`
+- [changed] Vendorize jnacl library
+- [changed] `ProtocolException` is now a subclass of `SignalingException`
+- [removed] Remove all WebRTC related functionality
+- [removed] Remove restart message
 
 ### v0.2.0 (2016-09-19)
 
