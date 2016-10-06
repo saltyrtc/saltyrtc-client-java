@@ -72,4 +72,9 @@ public class DummyTask implements Task {
         return null;
     }
 
+    @Override
+    public void close(int reason) {
+        // Do nothing
+    }
+
 }
