@@ -75,4 +75,9 @@ public interface Task {
     @Nullable
     Map<Object, Object> getData();
 
+	/**
+	 * This method is called by the signaling class when sending and receiving 'close' messages.
+     */
+    void close(int reason);
+
 }

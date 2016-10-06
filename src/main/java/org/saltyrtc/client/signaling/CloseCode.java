@@ -75,7 +75,7 @@ public class CloseCode {
     };
 
     /**
-     * aLL Valid close codes.
+     * All valid close codes.
      */
     public static final int[] CLOSE_CODES_ALL = new int[] {
         GOING_AWAY, NO_SHARED_SUBPROTOCOL, PATH_FULL, PROTOCOL_ERROR, INTERNAL_ERROR,

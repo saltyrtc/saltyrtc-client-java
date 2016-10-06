@@ -734,9 +734,9 @@ public abstract class Signaling implements SignalingInterface {
     }
 
     /**
-     * Send a client-auth message to the server.
+     * Send a close message to the peer.
      */
-    private void sendClose(int reason) {
+    public void sendClose(int reason) {
         final Close msg = new Close(reason);
         final byte[] packet;
         try {
@@ -1014,9 +1014,15 @@ public abstract class Signaling implements SignalingInterface {
         this.history.store(message, payload);
     }
 
-    @SuppressWarnings("UnusedParameters")
     private void handleClose(Close msg) {
-        throw new UnsupportedOperationException("Close not yet implemented"); // TODO
+        final Integer closeCode = msg.getReason();
+        this.getLogger().warn("Received close message. Reason: " + CloseCode.explain(closeCode));
+
+        // Notify the task
+        this.task.close(closeCode);
+
+        // Reset signaling
+        this.resetConnection(CloseCode.GOING_AWAY);
     }
 
     private void handleSendError(SendError msg) {

@@ -71,6 +71,18 @@ public interface SignalingInterface {
     void onSignalingPeerMessage(byte[] decryptedBytes);
 
     /**
+     * Send a close message to the peer.
+     *
+     * This method may only be called once the client-to-client handshakes has been completed.
+     *
+     * Note that sending a close message does not reset the connection. To do that,
+     * `resetConnection` needs to be called explicitly.
+     *
+     * @param reason The close code. See `CloseCode` class for possible values.
+     */
+    void sendClose(int reason);
+
+    /**
      * Close and reset the connection with the specified close code.
      * @param reason The close code to use.
      */
