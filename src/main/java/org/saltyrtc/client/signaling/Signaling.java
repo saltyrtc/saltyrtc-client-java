@@ -318,7 +318,6 @@ public abstract class Signaling implements SignalingInterface {
                             Signaling.this.onPeerHandshakeMessage(box, nonce);
                             break;
                         case TASK:
-                        case OPEN:
                             Signaling.this.onSignalingMessage(box, nonce);
                             break;
                         default:
@@ -342,8 +341,7 @@ public abstract class Signaling implements SignalingInterface {
                     getLogger().error("Signaling error: " + CloseCode.explain(e.getCloseCode()));
                     e.printStackTrace();
                     // Send close message if client-to-client handshake has been completed
-                    if (Signaling.this.getState() == SignalingState.TASK ||
-                        Signaling.this.getState() == SignalingState.OPEN) {
+                    if (Signaling.this.getState() == SignalingState.TASK) {
                         Signaling.this.sendClose(e.getCloseCode());
                     }
                     // Close connection
@@ -816,7 +814,6 @@ public abstract class Signaling implements SignalingInterface {
                 }
                 break;
             case TASK:
-            case OPEN:
                 // Messages after the handshake must come from the peer.
                 if (nonce.getSource() != this.getPeerAddress()) {
                     // TODO: Ignore instead of throw?
@@ -976,7 +973,6 @@ public abstract class Signaling implements SignalingInterface {
         // Verify connection state
         final SignalingState state = this.getState();
         if (state != SignalingState.TASK &&
-                state != SignalingState.OPEN &&
                 state != SignalingState.SERVER_HANDSHAKE &&
                 state != SignalingState.PEER_HANDSHAKE) {
             this.getLogger().error("Trying to send data message, but connection state is " + this.getState());
@@ -1049,8 +1045,7 @@ public abstract class Signaling implements SignalingInterface {
             // This could only happen if the session keys are somehow broken.
             // If that happens, something went massively wrong.
             e.printStackTrace();
-            if (this.getState() == SignalingState.TASK ||
-                this.getState() == SignalingState.OPEN) {
+            if (this.getState() == SignalingState.TASK) {
                 this.sendClose(CloseCode.INTERNAL_ERROR);
             }
             // Close connection
@@ -1069,8 +1064,7 @@ public abstract class Signaling implements SignalingInterface {
             // This could only happen if the session keys are somehow broken.
             // If that happens, something went massively wrong.
             e.printStackTrace();
-            if (this.getState() == SignalingState.TASK ||
-                this.getState() == SignalingState.OPEN) {
+            if (this.getState() == SignalingState.TASK) {
                 this.sendClose(CloseCode.INTERNAL_ERROR);
             }
             // Close connection
