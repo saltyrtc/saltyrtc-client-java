@@ -330,10 +330,6 @@ public abstract class Signaling implements SignalingInterface {
                     getLogger().error("Protocol error: Invalid incoming message: " + e.getMessage());
                     e.printStackTrace();
                     Signaling.this.resetConnection(CloseCode.PROTOCOL_ERROR);
-                } catch (ProtocolException e) {
-                    getLogger().error("Protocol error: " + e.getMessage());
-                    e.printStackTrace();
-                    Signaling.this.resetConnection(CloseCode.PROTOCOL_ERROR);
                 } catch (InternalException e) {
                     getLogger().error("Internal server error: " + e.getMessage());
                     e.printStackTrace();

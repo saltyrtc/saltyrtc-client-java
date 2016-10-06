@@ -39,10 +39,8 @@ public interface SignalingInterface {
 
     /**
      * Send a task message through the websocket.
-     *
-     * TODO: Get rid of all exceptions but SignalingException and ConnectionException.
      */
-    void sendTaskMessage(TaskMessage msg) throws ProtocolException, SignalingException, ConnectionException;
+    void sendTaskMessage(TaskMessage msg) throws SignalingException, ConnectionException;
 
     /**
      * Encrypt data for the peer.

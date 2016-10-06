@@ -8,22 +8,24 @@
 
 package org.saltyrtc.client.exceptions;
 
+import org.saltyrtc.client.signaling.CloseCode;
+
 /**
  * A SaltyRTC protocol error.
  *
  * This should always result in a connection reset.
  */
-public class ProtocolException extends Exception {
+public class ProtocolException extends SignalingException {
 
     public ProtocolException(String message) {
-        super(message);
+        super(CloseCode.PROTOCOL_ERROR, message);
     }
 
     public ProtocolException(String message, Throwable cause) {
-        super(message, cause);
+        super(CloseCode.PROTOCOL_ERROR, message, cause);
     }
 
     public ProtocolException(Throwable cause) {
-        super(cause);
+        super(CloseCode.PROTOCOL_ERROR, cause);
     }
 }

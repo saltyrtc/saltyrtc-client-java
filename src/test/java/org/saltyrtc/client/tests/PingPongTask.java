@@ -2,7 +2,6 @@ package org.saltyrtc.client.tests;
 
 import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.exceptions.ConnectionException;
-import org.saltyrtc.client.exceptions.ProtocolException;
 import org.saltyrtc.client.exceptions.SignalingException;
 import org.saltyrtc.client.messages.c2c.TaskMessage;
 import org.saltyrtc.client.signaling.SignalingInterface;
@@ -48,10 +47,10 @@ public class PingPongTask extends DummyTask {
 
     private void sendPing() {
         LOG.info("Sending ping");
-        TaskMessage msg = new TaskMessage("ping", new HashMap<String, Object>());
+        TaskMessage msg = new TaskMessage("ping", new HashMap<>());
         try {
             this.signaling.sendTaskMessage(msg);
-        } catch (ProtocolException | SignalingException | ConnectionException e) {
+        } catch (SignalingException | ConnectionException e) {
             e.printStackTrace();
             // TODO: Handling for task send errors
         }
@@ -59,10 +58,10 @@ public class PingPongTask extends DummyTask {
 
     private void sendPong() {
         LOG.info("Sending pong");
-        TaskMessage msg = new TaskMessage("pong", new HashMap<String, Object>());
+        TaskMessage msg = new TaskMessage("pong", new HashMap<>());
         try {
             this.signaling.sendTaskMessage(msg);
-        } catch (ProtocolException | SignalingException | ConnectionException e) {
+        } catch (SignalingException | ConnectionException e) {
             e.printStackTrace();
             // TODO: Handling for task send errors
         }
