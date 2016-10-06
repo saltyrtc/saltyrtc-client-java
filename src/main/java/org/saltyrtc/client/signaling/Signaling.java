@@ -18,6 +18,7 @@ import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.cookie.Cookie;
+import org.saltyrtc.client.events.CloseEvent;
 import org.saltyrtc.client.events.SignalingStateChangedEvent;
 import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
@@ -1017,6 +1018,9 @@ public abstract class Signaling implements SignalingInterface {
     private void handleClose(Close msg) {
         final Integer closeCode = msg.getReason();
         this.getLogger().warn("Received close message. Reason: " + CloseCode.explain(closeCode));
+
+        // Notify the listeners
+        this.salty.events.close.notifyHandlers(new CloseEvent(closeCode));
 
         // Notify the task
         this.task.close(closeCode);

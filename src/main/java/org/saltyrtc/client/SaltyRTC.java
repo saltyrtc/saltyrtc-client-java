@@ -9,6 +9,7 @@
 package org.saltyrtc.client;
 
 import org.saltyrtc.client.annotations.Nullable;
+import org.saltyrtc.client.events.CloseEvent;
 import org.saltyrtc.client.events.EventRegistry;
 import org.saltyrtc.client.events.HandoverEvent;
 import org.saltyrtc.client.events.SendErrorEvent;
@@ -132,6 +133,7 @@ public class SaltyRTC {
     public static class Events {
         public EventRegistry<SignalingStateChangedEvent> signalingStateChanged = new EventRegistry<>();
         public EventRegistry<HandoverEvent> handover = new EventRegistry<>();
+        public EventRegistry<CloseEvent> close = new EventRegistry<>();
         public EventRegistry<SendErrorEvent> sendError = new EventRegistry<>();
     }
 
