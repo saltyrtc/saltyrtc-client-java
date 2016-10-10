@@ -118,7 +118,8 @@ public class InitiatorSignaling extends Signaling {
     }
 
     @Override
-    protected Box encryptForPeer(short receiver, String messageType, byte[] payload, byte[] nonce)
+    protected Box encryptHandshakeDataForPeer(short receiver, String messageType,
+                                              byte[] payload, byte[] nonce)
             throws CryptoFailedException, InvalidKeyException, ProtocolException {
         if (receiver == SALTYRTC_ADDR_INITIATOR) {
             throw new ProtocolException("Initiator cannot encrypt messages for initiator");

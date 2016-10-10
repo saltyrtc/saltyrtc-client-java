@@ -466,10 +466,10 @@ public abstract class Signaling implements SignalingInterface {
         final Box box;
         try {
             if (receiver == SALTYRTC_ADDR_SERVER) {
-                box = this.encryptForServer(payload, nonceBytes);
+                box = this.encryptHandshakeDataForServer(payload, nonceBytes);
             } else if (receiver == SALTYRTC_ADDR_INITIATOR || this.isResponderId(receiver)) {
                 // TODO: Do we re-use the same cookie everywhere?
-                box = this.encryptForPeer(receiver, msg.getType(), payload, nonceBytes);
+                box = this.encryptHandshakeDataForPeer(receiver, msg.getType(), payload, nonceBytes);
             } else {
                 throw new ProtocolException("Bad receiver byte: " + receiver);
             }
@@ -954,17 +954,18 @@ public abstract class Signaling implements SignalingInterface {
     }
 
     /**
-     * Encrypt data for the server.
+     * Encrypt data for the server during the handshake.
      */
-    private Box encryptForServer(byte[] payload, byte[] nonce)
+    private Box encryptHandshakeDataForServer(byte[] payload, byte[] nonce)
             throws CryptoFailedException, InvalidKeyException {
         return this.permanentKey.encrypt(payload, nonce, this.serverKey);
     }
 
     /**
-     * Encrypt data for the specified peer.
+     * Encrypt data for the specified peer during the handshake.
      */
-    abstract Box encryptForPeer(short receiver, String messageType, byte[] payload, byte[] nonce)
+    abstract Box encryptHandshakeDataForPeer(short receiver, String messageType,
+                                             byte[] payload, byte[] nonce)
         throws CryptoFailedException, InvalidKeyException, ProtocolException;
 
     /**
