@@ -976,7 +976,7 @@ public abstract class Signaling implements SignalingInterface {
         if (state != SignalingState.TASK &&
                 state != SignalingState.SERVER_HANDSHAKE &&
                 state != SignalingState.PEER_HANDSHAKE) {
-            this.getLogger().error("Trying to send data message, but connection state is " + this.getState());
+            this.getLogger().error("Trying to send message, but connection state is " + this.getState());
             throw new ConnectionException("SaltyRTC instance is not connected");
         }
 
@@ -991,18 +991,6 @@ public abstract class Signaling implements SignalingInterface {
     }
 
     /**
-     * Send a task message through the websocket.
-     */
-    public void sendTaskMessage(TaskMessage msg) throws ProtocolException, SignalingException, ConnectionException {
-        final Short receiver = this.getPeerAddress();
-        if (receiver == null) {
-            throw new SignalingException(CloseCode.INTERNAL_ERROR, "No peer address could be found");
-        }
-        final byte[] packet = this.buildPacket(msg, receiver);
-        this.send(packet, msg);
-    }
-
-    /**
      * Like `send(byte[] payload)`, but additionally store the sent message in the message history.
      *
      * This allows the message to be recognized in the case of a send error.
@@ -1013,6 +1001,18 @@ public abstract class Signaling implements SignalingInterface {
 
         // Store sent message in history
         this.history.store(message, payload);
+    }
+
+    /**
+     * Send a task message through the signaling channel.
+     */
+    public void sendTaskMessage(TaskMessage msg) throws SignalingException, ConnectionException {
+        final Short receiver = this.getPeerAddress();
+        if (receiver == null) {
+            throw new SignalingException(CloseCode.INTERNAL_ERROR, "No peer address could be found");
+        }
+        final byte[] packet = this.buildPacket(msg, receiver);
+        this.send(packet, msg);
     }
 
     private void handleClose(Close msg) {
@@ -1043,7 +1043,7 @@ public abstract class Signaling implements SignalingInterface {
     }
 
     /**
-     * Encrypt data for the peer using the specified nonce.
+     * Encrypt data for the peer using the session key and the specified nonce.
      *
      * This method should primarily be used by tasks.
      */

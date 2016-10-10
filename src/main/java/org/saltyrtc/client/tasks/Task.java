@@ -64,7 +64,7 @@ public interface Task {
     /**
      * Return the list of supported message types.
      *
-     * Messages with this type will be forwarded to the task.
+     * Incoming messages with this type will be passed to the task.
      */
     @NonNull
     List<String> getSupportedMessageTypes();
