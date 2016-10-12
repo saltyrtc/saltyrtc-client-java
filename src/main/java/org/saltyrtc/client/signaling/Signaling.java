@@ -715,6 +715,7 @@ public abstract class Signaling implements SignalingInterface {
     /**
      * Initialize the task with the task data sent by the peer.
      * @param task The task instance.
+     * @param data The task data provided by the peer.
      */
     void initTask(Task task, Map<Object, Object> data) throws ProtocolException {
         try {

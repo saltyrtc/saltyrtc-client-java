@@ -252,7 +252,7 @@ public class ResponderSignaling extends Signaling {
     }
 
     /**
-     * The initiator repeats our cookie.
+     * The initiator repeats our cookie and sends the chosen task.
      */
     private void handleAuth(InitiatorAuth msg, SignalingChannelNonce nonce) throws ProtocolException, SignalingException {
         // Validate cookie
@@ -260,7 +260,7 @@ public class ResponderSignaling extends Signaling {
 
         // Validation of task list and data already happens in the `InitiatorAuth` constructor
 
-        // Initialize task
+        // Find selected task
         final String taskName = msg.getTask();
         Task selectedTask = null;
         for (Task task : this.tasks) {

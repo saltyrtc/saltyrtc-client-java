@@ -423,7 +423,7 @@ public class InitiatorSignaling extends Signaling {
     }
 
     /**
-     * A responder repeats our cookie.
+     * A responder repeats our cookie and sends a list of acceptable tasks.
      */
     private void handleAuth(ResponderAuth msg, Responder responder, SignalingChannelNonce nonce) throws ProtocolException, SignalingException {
         // Validate cookie
