@@ -222,7 +222,7 @@ public class InitiatorSignaling extends Signaling {
 
     @Override
     protected void onPeerHandshakeMessage(Box box, SignalingChannelNonce nonce)
-        throws ProtocolException, ValidationError, SerializationError,
+        throws ValidationError, SerializationError,
         InternalException, ConnectionException, SignalingException {
 
         // Validate nonce destination
@@ -270,10 +270,9 @@ public class InitiatorSignaling extends Signaling {
                         payload = this.authToken.decrypt(box);
                     } catch (CryptoFailedException e) {
                         this.getLogger().warn("Could not decrypt token message");
-                        this.dropResponder(responder.getId());
+                        this.dropResponder(responder.getId()); // TODO: Reason
                         return;
                     }
-
                     msg = MessageReader.read(payload);
                     if (msg instanceof Token) {
                         this.getLogger().debug("Received token");
@@ -419,7 +418,7 @@ public class InitiatorSignaling extends Signaling {
     /**
      * Send our public session key to the responder.
      */
-    private void sendKey(Responder responder) throws ProtocolException, ConnectionException {
+    private void sendKey(Responder responder) throws SignalingException, ConnectionException {
         final Key msg = new Key(responder.getKeyStore().getPublicKey());
         final byte[] packet = this.buildPacket(msg, responder.getId());
         this.getLogger().debug("Sending key");
@@ -430,7 +429,7 @@ public class InitiatorSignaling extends Signaling {
     /**
      * A responder repeats our cookie and sends a list of acceptable tasks.
      */
-    private void handleAuth(ResponderAuth msg, Responder responder, SignalingChannelNonce nonce) throws ProtocolException, SignalingException {
+    private void handleAuth(ResponderAuth msg, Responder responder, SignalingChannelNonce nonce) throws SignalingException {
         // Validate cookie
         this.validateRepeatedCookie(msg.getYourCookie());
 
@@ -463,7 +462,7 @@ public class InitiatorSignaling extends Signaling {
     /**
      * Repeat the responder's cookie and choose a task.
      */
-    private void sendAuth(Responder responder, SignalingChannelNonce nonce) throws ProtocolException, ConnectionException {
+    private void sendAuth(Responder responder, SignalingChannelNonce nonce) throws SignalingException, ConnectionException {
         // Ensure that cookies are different
         if (nonce.getCookie().equals(this.cookie)) {
             throw new ProtocolException("Their cookie and our cookie are the same");
@@ -489,7 +488,7 @@ public class InitiatorSignaling extends Signaling {
     /**
      * Drop specific responder.
      */
-    private void dropResponder(short responderId) throws ProtocolException, ConnectionException {
+    private void dropResponder(short responderId) throws SignalingException, ConnectionException {
         final DropResponder msg = new DropResponder(responderId);
         final byte[] packet = this.buildPacket(msg, responderId);
         this.getLogger().debug("Sending drop-responder " + responderId);
@@ -500,7 +499,7 @@ public class InitiatorSignaling extends Signaling {
     /**
      * Drop all responders.
      */
-    private void dropResponders() throws ProtocolException, ConnectionException {
+    private void dropResponders() throws SignalingException, ConnectionException {
         this.getLogger().debug("Dropping " + this.responders.size() + " other responders");
         final Set<Short> ids = this.responders.keySet();
         for (short id : ids) {

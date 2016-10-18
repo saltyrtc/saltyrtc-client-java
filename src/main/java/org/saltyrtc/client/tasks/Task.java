@@ -2,7 +2,7 @@ package org.saltyrtc.client.tasks;
 
 import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.annotations.Nullable;
-import org.saltyrtc.client.exceptions.ConnectionException;
+import org.saltyrtc.client.exceptions.SignalingException;
 import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.messages.c2c.TaskMessage;
 import org.saltyrtc.client.signaling.SignalingInterface;
@@ -50,10 +50,10 @@ public interface Task {
      *
      * This method should only be called after the handover.
      *
-     * @throws ConnectionException if the signaling state is not OPEN or if the handover hasn't
-     *                             taken place yet.
+     * @throws SignalingException if the signaling state is not OPEN or if the handover hasn't
+     *                            taken place yet.
      */
-    void sendSignalingMessage(byte[] payload) throws ConnectionException;
+    void sendSignalingMessage(byte[] payload) throws SignalingException;
 
     /**
      * Return the task protocol name.

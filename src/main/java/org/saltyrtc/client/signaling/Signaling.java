@@ -528,8 +528,7 @@ public abstract class Signaling implements SignalingInterface {
      * @param box The box containing raw nonce and payload bytes.
      */
     private void onServerHandshakeMessage(Box box, SignalingChannelNonce nonce)
-            throws ValidationError, SerializationError, ProtocolException,
-            InternalException, ConnectionException {
+            throws ValidationError, SerializationError, SignalingException, ConnectionException {
         // Decrypt if necessary
         final byte[] payload;
         if (this.serverHandshakeState == ServerHandshakeState.NEW) {
@@ -570,10 +569,10 @@ public abstract class Signaling implements SignalingInterface {
                 }
                 break;
             case DONE:
-                throw new InternalException("Received server handshake message even though " +
-                                                  "server handshake state is set to DONE");
+                throw new SignalingException(CloseCode.INTERNAL_ERROR,
+                    "Received server handshake message even though server handshake state is set to DONE");
             default:
-                throw new InternalException("Unknown server handshake state");
+                throw new SignalingException(CloseCode.INTERNAL_ERROR, "Unknown server handshake state");
         }
 
         // Check if we're done yet
@@ -683,12 +682,12 @@ public abstract class Signaling implements SignalingInterface {
     /**
      * Send a client-hello message to the server.
      */
-    abstract void sendClientHello() throws ProtocolException, ConnectionException;
+    abstract void sendClientHello() throws SignalingException, ConnectionException;
 
     /**
      * Send a client-auth message to the server.
      */
-    private void sendClientAuth() throws ProtocolException, ConnectionException {
+    private void sendClientAuth() throws SignalingException, ConnectionException {
         final List<String> subprotocols = Collections.singletonList(Signaling.SALTYRTC_SUBPROTOCOL);
         final ClientAuth msg = new ClientAuth(this.serverCookie.getBytes(), subprotocols);
         final byte[] packet = this.buildPacket(msg, Signaling.SALTYRTC_ADDR_SERVER);
@@ -710,7 +709,7 @@ public abstract class Signaling implements SignalingInterface {
     /**
      * Initialize the peer handshake.
      */
-    abstract void initPeerHandshake() throws ProtocolException, ConnectionException;
+    abstract void initPeerHandshake() throws SignalingException, ConnectionException;
 
     /**
      * Initialize the task with the task data sent by the peer.
@@ -752,7 +751,7 @@ public abstract class Signaling implements SignalingInterface {
         this.getLogger().debug("Sending close");
         try {
             this.send(packet, msg);
-        } catch (ProtocolException | ConnectionException e) {
+        } catch (SignalingException | ConnectionException e) {
             e.printStackTrace();
             this.getLogger().error("Could not send close message");
         }
@@ -972,7 +971,7 @@ public abstract class Signaling implements SignalingInterface {
     /**
      * Send binary data through the signaling channel.
      */
-    private void send(byte[] payload) throws ConnectionException, ProtocolException {
+    private void send(byte[] payload) throws ConnectionException, SignalingException {
         // Verify connection state
         final SignalingState state = this.getState();
         if (state != SignalingState.TASK &&
@@ -997,7 +996,7 @@ public abstract class Signaling implements SignalingInterface {
      *
      * This allows the message to be recognized in the case of a send error.
      */
-    void send(byte[] payload, Message message) throws ConnectionException, ProtocolException {
+    void send(byte[] payload, Message message) throws ConnectionException, SignalingException {
         // Send data
         this.send(payload);
 

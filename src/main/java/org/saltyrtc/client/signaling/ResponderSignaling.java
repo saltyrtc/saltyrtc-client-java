@@ -140,7 +140,7 @@ public class ResponderSignaling extends Signaling {
     }
 
     @Override
-    protected void sendClientHello() throws ProtocolException, ConnectionException {
+    protected void sendClientHello() throws SignalingException, ConnectionException {
         final ClientHello msg = new ClientHello(this.permanentKey.getPublicKey());
         final byte[] packet = this.buildPacket(msg, Signaling.SALTYRTC_ADDR_SERVER, false);
         this.getLogger().debug("Sending client-hello");
@@ -183,7 +183,7 @@ public class ResponderSignaling extends Signaling {
     }
 
     @Override
-    protected void initPeerHandshake() throws ProtocolException, ConnectionException {
+    protected void initPeerHandshake() throws SignalingException, ConnectionException {
         if (this.initiator.isConnected()) {
             // Only send token if we don't trust the initiator
             if (!this.hasTrustedKey()) {
@@ -196,7 +196,7 @@ public class ResponderSignaling extends Signaling {
     /**
      * Send our token to the initiator.
      */
-    private void sendToken() throws ProtocolException, ConnectionException {
+    private void sendToken() throws SignalingException, ConnectionException {
         final Token msg = new Token(this.permanentKey.getPublicKey());
         final byte[] packet = this.buildPacket(msg, Signaling.SALTYRTC_ADDR_INITIATOR);
         this.getLogger().debug("Sending token");
@@ -207,9 +207,11 @@ public class ResponderSignaling extends Signaling {
     /**
      * Send our public session key to the initiator.
      */
-    private void sendKey() throws ProtocolException, ConnectionException {
+    private void sendKey() throws SignalingException, ConnectionException {
         // Generate our own session key
         this.sessionKey = new KeyStore();
+
+        // Send public key to initiator
         final Key msg = new Key(this.sessionKey.getPublicKey());
         final byte[] packet = this.buildPacket(msg, SALTYRTC_ADDR_INITIATOR);
         this.getLogger().debug("Sending key");
@@ -228,7 +230,7 @@ public class ResponderSignaling extends Signaling {
     /**
      * Repeat the initiator's cookie and send task list.
      */
-    private void sendAuth(SignalingChannelNonce nonce) throws ProtocolException, ConnectionException {
+    private void sendAuth(SignalingChannelNonce nonce) throws SignalingException, ConnectionException {
         // Ensure that cookies are different
         if (nonce.getCookie().equals(this.cookie)) {
             throw new ProtocolException("Their cookie and our cookie are the same");
@@ -323,7 +325,7 @@ public class ResponderSignaling extends Signaling {
 
     @Override
     protected void onPeerHandshakeMessage(Box box, SignalingChannelNonce nonce)
-            throws ProtocolException, ValidationError, SerializationError,
+            throws ValidationError, SerializationError,
             InternalException, ConnectionException, SignalingException {
 
         // Validate nonce destination
@@ -390,7 +392,7 @@ public class ResponderSignaling extends Signaling {
     /**
      * A new initiator replaces the old one.
      */
-    private void handleNewInitiator(NewInitiator msg) throws ProtocolException, ConnectionException {
+    private void handleNewInitiator(NewInitiator msg) throws SignalingException, ConnectionException {
         this.initiator.setConnected(true);
         // TODO: Replace old initiator?
         this.initPeerHandshake();
