@@ -12,6 +12,11 @@ Possible log types:
 - `[security]` to invite users to upgrade in case of vulnerabilities.
 
 
+### v0.4.0 (2016-10-18)
+
+- [changed] Task.sendSignalingMessage now throws SignalingException, not ConnectionException
+- [fixed] Make sure that new responders aren't already known
+
 ### v0.3.0 (2016-10-06)
 
 - [added] Implement support for tasks

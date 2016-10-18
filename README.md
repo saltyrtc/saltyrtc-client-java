@@ -18,7 +18,7 @@ The package is available [on Bintray](https://bintray.com/saltyrtc/maven/saltyrt
 Gradle:
 
 ```groovy
-compile 'org.saltyrtc.client:saltyrtc-client:0.3.0'
+compile 'org.saltyrtc.client:saltyrtc-client:0.4.0'
 ```
 
 Maven:
@@ -27,7 +27,7 @@ Maven:
 <dependency>
   <groupId>org.saltyrtc.client</groupId>
   <artifactId>saltyrtc-client</artifactId>
-  <version>0.3.0</version>
+  <version>0.4.0</version>
   <type>pom</type>
 </dependency>
 ```
