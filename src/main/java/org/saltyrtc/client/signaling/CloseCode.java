@@ -94,11 +94,11 @@ public class CloseCode {
             case NO_SHARED_SUBPROTOCOL:
                 return "No shared subprotocol could be found";
             case PATH_FULL:
-                return "NO free responder byte";
+                return "No free responder byte";
             case PROTOCOL_ERROR:
                 return "Protocol error";
             case INTERNAL_ERROR:
-                return "Internal server error";
+                return "Internal error";
             case HANDOVER:
                 return "Handover finished";
             case DROPPED_BY_INITIATOR:
