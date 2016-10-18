@@ -151,6 +151,7 @@ public class InitiatorSignaling extends Signaling {
      * Cast it to a short otherwise.
      */
     private short validateResponderId(int id) throws ProtocolException {
+        // TODO: Do we need to check whether it's in the valid responder range too?
         if (id < 0) {
             throw new ProtocolException("Responder id may not be smaller than 0");
         } else if (id > 0xff) {
@@ -375,10 +376,14 @@ public class InitiatorSignaling extends Signaling {
 
     /**
      * Store a new responder.
-     *
-     * If we trust the responder, send our session key.
      */
     private void processNewResponder(short responderId) throws ConnectionException, ProtocolException {
+        // Make sure this is a new responder
+        if (this.responders.containsKey(responderId)) {
+            this.getLogger().warn("Got new-responder message for an already known responder.");
+            return;
+        }
+
         // Create responder instance
         final Responder responder = new Responder(responderId);
 
