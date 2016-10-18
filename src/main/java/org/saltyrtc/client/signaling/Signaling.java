@@ -308,7 +308,7 @@ public abstract class Signaling implements SignalingInterface {
 
                     // Parse and validate nonce
                     final SignalingChannelNonce nonce = new SignalingChannelNonce(ByteBuffer.wrap(box.getNonce()));
-                    validateSignalingNonce(nonce);
+                    validateNonce(nonce);
 
                     // Dispatch message
                     switch (Signaling.this.getState()) {
@@ -775,7 +775,7 @@ public abstract class Signaling implements SignalingInterface {
      *
      * See https://github.com/saltyrtc/saltyrtc-meta/issues/41
      */
-    private void validateSignalingNonce(SignalingChannelNonce nonce) throws ValidationError {
+    private void validateNonce(SignalingChannelNonce nonce) throws ValidationError {
         this.validateSignalingNonceSender(nonce);
         this.validateSignalingNonceReceiver(nonce);
         this.validateSignalingNonceCsn(nonce);
