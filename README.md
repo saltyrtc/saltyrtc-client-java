@@ -11,6 +11,7 @@ for Java 7+.
 The development is still ongoing, the current version is only at alpha-level
 and should not be used for production yet.
 
+
 ## Installing
 
 The package is available [on Bintray](https://bintray.com/saltyrtc/maven/saltyrtc-client/).
@@ -18,7 +19,7 @@ The package is available [on Bintray](https://bintray.com/saltyrtc/maven/saltyrt
 Gradle:
 
 ```groovy
-compile 'org.saltyrtc.client:saltyrtc-client:0.4.0'
+compile 'org.saltyrtc.client:saltyrtc-client:0.5.0'
 ```
 
 Maven:
@@ -27,32 +28,53 @@ Maven:
 <dependency>
   <groupId>org.saltyrtc.client</groupId>
   <artifactId>saltyrtc-client</artifactId>
-  <version>0.4.0</version>
+  <version>0.5.0</version>
   <type>pom</type>
 </dependency>
 ```
+
 
 ## Logging
 
 The library uses the slf4j logging API. Configure a logger (e.g. slf4j-simple)
 to see the log output.
 
+
 ## Dependency Verification
 
 This project uses [gradle-witness](https://github.com/WhisperSystems/gradle-witness)
 to make sure that you always get the exact same versions of your dependencies.
 
+
 ## Publishing
 
-To publish this library to Bintray:
+Set variables:
 
+    export VERSION=X.Y.Z
+    export GPG_KEY=E7ADD9914E260E8B35DFB50665FDE935573ACDA6
     export BINTRAY_USER=...
     export BINTRAY_KEY=...
+
+Update version numbers:
+
+    vim -p build.gradle README.md CHANGELOG.md
+
+Add and commit:
+
+    git commit -m "Release v${VERSION}"
+
+Publish the library to Bintray:
+
     ./gradlew build publish bintrayUpload
+
+Tag and push:
+
+    git tag -s -u ${GPG_KEY} v${VERSION} -m "Version ${VERSION}"
+    git push && git push --tags
 
 ## License
 
-    Copyright (c) 2016 Threema GmbH / SaltyRTC Contributors
+    Copyright (c) 2016 Threema GmbH
 
     Licensed under the Apache License, Version 2.0, <see LICENSE-APACHE file>
     or the MIT license <see LICENSE-MIT file>, at your option. This file may not be
