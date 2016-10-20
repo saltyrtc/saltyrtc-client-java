@@ -12,9 +12,13 @@ Possible log types:
 - `[security]` to invite users to upgrade in case of vulnerabilities.
 
 
+### v0.5.0 (2016-10-20)
+
+- [fixed] Fix concurrency bug in `CombinedSequence`, introduce `CombinedSequenceSnapshot`
+
 ### v0.4.0 (2016-10-18)
 
-- [changed] Task.sendSignalingMessage now throws SignalingException, not ConnectionException
+- [changed] `Task.sendSignalingMessage` now throws `SignalingException`, not `ConnectionException`
 - [fixed] Make sure that new responders aren't already known
 
 ### v0.3.0 (2016-10-06)
