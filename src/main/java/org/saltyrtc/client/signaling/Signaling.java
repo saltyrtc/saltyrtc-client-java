@@ -44,6 +44,7 @@ import org.saltyrtc.client.messages.s2c.SendError;
 import org.saltyrtc.client.messages.s2c.ServerHello;
 import org.saltyrtc.client.nonce.CombinedSequence;
 import org.saltyrtc.client.nonce.CombinedSequencePair;
+import org.saltyrtc.client.nonce.CombinedSequenceSnapshot;
 import org.saltyrtc.client.nonce.SignalingChannelNonce;
 import org.saltyrtc.client.signaling.state.HandoverState;
 import org.saltyrtc.client.signaling.state.ServerHandshakeState;
@@ -446,7 +447,7 @@ public abstract class Signaling implements SignalingInterface {
      */
     byte[] buildPacket(Message msg, short receiver, boolean encrypt) throws ProtocolException {
         // Choose proper combined sequence number
-        final CombinedSequence csn = this.getNextCsn(receiver);
+        final CombinedSequenceSnapshot csn = this.getNextCsn(receiver);
 
         // Create nonce
         final SignalingChannelNonce nonce = new SignalingChannelNonce(
@@ -760,7 +761,7 @@ public abstract class Signaling implements SignalingInterface {
     /**
      * Choose proper combined sequence number
      */
-    abstract CombinedSequence getNextCsn(short receiver) throws ProtocolException;
+    abstract CombinedSequenceSnapshot getNextCsn(short receiver) throws ProtocolException;
 
     /**
      * Return `true` if receiver byte is a valid responder id (in the range 0x02-0xff).

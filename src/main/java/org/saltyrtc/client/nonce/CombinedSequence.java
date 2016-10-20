@@ -15,6 +15,8 @@ import java.security.SecureRandom;
 /**
  * The CombinedSequence class handles the overflow checking of the 48 bit combined sequence number
  * (CSN) consisting of the sequence number and the overflow number.
+ *
+ * This class is thread safe.
  */
 public class CombinedSequence {
     public static long SEQUENCE_NUMBER_MAX = 0x100000000L; // 1<<32
@@ -58,12 +60,12 @@ public class CombinedSequence {
     }
 
     /**
-     * Increment the combined sequence number and return reference to itself.
+     * Increment the combined sequence number and return a CombinedSequenceSnapshot.
      *
      * May throw an error if overflow number overflows. This is extremely unlikely and must be
      * treated as a protocol error.
      */
-    public CombinedSequence next() throws OverflowException {
+    public synchronized CombinedSequenceSnapshot next() throws OverflowException {
         if (this.sequenceNumber + 1 >= CombinedSequence.SEQUENCE_NUMBER_MAX) {
             // Sequence number overflow
             this.sequenceNumber = 0;
@@ -76,6 +78,6 @@ public class CombinedSequence {
             // Simply increment the sequence number
             this.sequenceNumber += 1;
         }
-        return this;
+        return new CombinedSequenceSnapshot(this.sequenceNumber, this.overflow);
     }
 }

@@ -35,6 +35,7 @@ import org.saltyrtc.client.messages.s2c.ClientHello;
 import org.saltyrtc.client.messages.s2c.NewInitiator;
 import org.saltyrtc.client.messages.s2c.ResponderServerAuth;
 import org.saltyrtc.client.nonce.CombinedSequence;
+import org.saltyrtc.client.nonce.CombinedSequenceSnapshot;
 import org.saltyrtc.client.nonce.SignalingChannelNonce;
 import org.saltyrtc.client.signaling.state.InitiatorHandshakeState;
 import org.saltyrtc.client.signaling.state.ServerHandshakeState;
@@ -99,7 +100,7 @@ public class ResponderSignaling extends Signaling {
     }
 
     @Override
-    protected CombinedSequence getNextCsn(short receiver) throws ProtocolException {
+    protected CombinedSequenceSnapshot getNextCsn(short receiver) throws ProtocolException {
         try {
             if (receiver == Signaling.SALTYRTC_ADDR_SERVER) {
                 return this.serverCsn.getOurs().next();
