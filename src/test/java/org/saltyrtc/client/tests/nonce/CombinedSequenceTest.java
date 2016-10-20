@@ -114,7 +114,9 @@ public class CombinedSequenceTest {
             threads.add(new Incrementor());
             expected.add(i);
         }
-        threads.forEach(Thread::start);
+        for (Thread incrementor : threads) {
+            incrementor.start();
+        }
         for (Thread incrementor : threads) {
             incrementor.join();
         }
