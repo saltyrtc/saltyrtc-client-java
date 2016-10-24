@@ -69,8 +69,7 @@ public class ResponderSignaling extends Signaling {
                               byte[] initiatorPublicKey, byte[] authToken,
                               Task[] tasks)
                               throws InvalidKeyException {
-        super(saltyRTC, host, port, permanentKey, sslContext, tasks);
-        this.role = SignalingRole.Responder;
+        super(saltyRTC, host, port, permanentKey, sslContext, SignalingRole.Responder, tasks);
         this.initiator = new Initiator(initiatorPublicKey);
         this.authToken = new AuthToken(authToken);
     }
@@ -82,8 +81,7 @@ public class ResponderSignaling extends Signaling {
                               KeyStore permanentKey, SSLContext sslContext,
                               byte[] initiatorTrustedKey,
                               Task[] tasks) {
-        super(saltyRTC, host, port, permanentKey, sslContext, initiatorTrustedKey, tasks);
-        this.role = SignalingRole.Responder;
+        super(saltyRTC, host, port, permanentKey, sslContext, initiatorTrustedKey, SignalingRole.Responder, tasks);
         this.initiator = new Initiator(initiatorTrustedKey);
         // If we trust the initiator, don't send a token message
         this.initiator.handshakeState = InitiatorHandshakeState.TOKEN_SENT;

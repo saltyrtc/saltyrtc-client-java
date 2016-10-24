@@ -100,7 +100,7 @@ public abstract class Signaling implements SignalingInterface {
 
     // Signaling
     @NonNull
-    SignalingRole role;
+    private SignalingRole role;
     short address = SALTYRTC_ADDR_UNKNOWN;
     Cookie cookie;
     Cookie serverCookie;
@@ -116,20 +116,23 @@ public abstract class Signaling implements SignalingInterface {
 
     public Signaling(SaltyRTC salty, String host, int port,
                      KeyStore permanentKey, SSLContext sslContext,
+                     SignalingRole role,
                      Task[] tasks) {
         this.salty = salty;
         this.host = host;
         this.port = port;
         this.permanentKey = permanentKey;
         this.sslContext = sslContext;
+        this.role = role;
         this.tasks = tasks;
     }
 
     public Signaling(SaltyRTC salty, String host, int port,
                      KeyStore permanentKey, SSLContext sslContext,
                      byte[] peerTrustedKey,
+                     SignalingRole role,
                      Task[] tasks) {
-        this(salty, host, port, permanentKey, sslContext, tasks);
+        this(salty, host, port, permanentKey, sslContext, role, tasks);
         this.peerTrustedKey = peerTrustedKey;
     }
 

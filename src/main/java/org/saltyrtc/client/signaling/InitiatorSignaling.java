@@ -68,8 +68,7 @@ public class InitiatorSignaling extends Signaling {
     public InitiatorSignaling(SaltyRTC saltyRTC, String host, int port,
                               KeyStore permanentKey, SSLContext sslContext,
                               Task[] tasks) {
-        super(saltyRTC, host, port, permanentKey, sslContext, tasks);
-        this.role = SignalingRole.Initiator;
+        super(saltyRTC, host, port, permanentKey, sslContext, SignalingRole.Initiator, tasks);
         this.authToken = new AuthToken();
     }
 
@@ -80,8 +79,8 @@ public class InitiatorSignaling extends Signaling {
                               KeyStore permanentKey, SSLContext sslContext,
                               byte[] responderTrustedKey,
                               Task[] tasks) {
-        super(saltyRTC, host, port, permanentKey, sslContext, responderTrustedKey, tasks);
-        this.role = SignalingRole.Initiator;
+        super(saltyRTC, host, port, permanentKey, sslContext, responderTrustedKey,
+              SignalingRole.Initiator, tasks);
         this.authToken = null;
     }
 
