@@ -27,10 +27,11 @@ public class SignalingTest {
         // Create signaling instances for initiator and responder
         final InitiatorSignaling initiator = new InitiatorSignaling(
                 null, Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, new KeyStore(), null,
+                null, null,
                 new Task[] { new DummyTask() });
         final ResponderSignaling responder = new ResponderSignaling(
                 null, Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, new KeyStore(), null,
-                initiator.getPublicPermanentKey(), initiator.getAuthToken(),
+                initiator.getPublicPermanentKey(), initiator.getAuthToken(), null, null,
                 new Task[] { new DummyTask() });
 
         // Verify WebSocket path

@@ -34,6 +34,7 @@ public class SaltyRTCBuilder {
     private byte[] initiatorPublicKey;
     private byte[] authToken;
     private byte[] peerTrustedKey;
+    private byte[] serverKey;
     private Task[] tasks;
 
     /**
@@ -130,6 +131,22 @@ public class SaltyRTCBuilder {
     }
 
     /**
+     * Set the public permanent server key.
+     *
+     * When setting the server key to a known value, the server will be authenticated during the
+     * handshake, so that MITM attacks can be prevented. It can be thought of as certificate
+     * pinning.
+     *
+     * If you know the public permanent server key, it is strongly recommended to set this value!
+     *
+     * @param serverKey The public permanent key of the server.
+     */
+    public SaltyRTCBuilder withServerKey(byte[] serverKey) {
+        this.serverKey = serverKey;
+        return this;
+    }
+
+    /**
      * Set initiator connection info transferred via a secure data channel.
      * @param initiatorPublicKey The public key of the initiator.
      * @param authToken The secret auth token.
@@ -157,17 +174,21 @@ public class SaltyRTCBuilder {
      * Return a SaltyRTC instance configured as initiator.
      *
      * @throws InvalidBuilderStateException Thrown if key or connection info haven't been set yet.
+     * @throws InvalidKeyException Thrown if a key is invalid.
      */
-    public SaltyRTC asInitiator() throws InvalidBuilderStateException {
+    public SaltyRTC asInitiator() throws InvalidBuilderStateException, InvalidKeyException {
         this.requireKeyStore();
         this.requireConnectionInfo();
         this.requireTasks();
         if (this.hasTrustedPeerKey) {
             return new SaltyRTC(
-                    this.keyStore, this.host, this.port, this.sslContext,
-                    this.peerTrustedKey, this.tasks, SignalingRole.Initiator);
+                this.keyStore, this.host, this.port, this.sslContext,
+                this.peerTrustedKey, this.serverKey,
+                this.tasks, SignalingRole.Initiator);
         } else {
-            return new SaltyRTC(this.keyStore, this.host, this.port, this.sslContext, this.tasks);
+            return new SaltyRTC(
+                this.keyStore, this.host, this.port, this.sslContext,
+                this.serverKey, this.tasks);
         }
     }
 
@@ -184,11 +205,11 @@ public class SaltyRTCBuilder {
         this.requireTasks();
         if (this.hasTrustedPeerKey) {
             return new SaltyRTC(this.keyStore, this.host, this.port, this.sslContext,
-                    this.peerTrustedKey, this.tasks, SignalingRole.Responder);
+                    this.peerTrustedKey, this.serverKey, this.tasks, SignalingRole.Responder);
         } else {
             this.requireInitiatorInfo();
             return new SaltyRTC(this.keyStore, this.host, this.port, this.sslContext,
-                    this.initiatorPublicKey, this.authToken, this.tasks);
+                    this.initiatorPublicKey, this.authToken, this.serverKey, this.tasks);
         }
     }
 }

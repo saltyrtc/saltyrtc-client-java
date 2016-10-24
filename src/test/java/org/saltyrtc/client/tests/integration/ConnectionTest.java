@@ -13,9 +13,13 @@ import org.junit.Before;
 import org.junit.Test;
 import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.SaltyRTCBuilder;
+import org.saltyrtc.client.events.CloseEvent;
 import org.saltyrtc.client.events.EventHandler;
 import org.saltyrtc.client.events.SignalingStateChangedEvent;
+import org.saltyrtc.client.helpers.HexHelper;
+import org.saltyrtc.client.helpers.RandomHelper;
 import org.saltyrtc.client.keystore.KeyStore;
+import org.saltyrtc.client.signaling.CloseCode;
 import org.saltyrtc.client.signaling.state.SignalingState;
 import org.saltyrtc.client.tasks.Task;
 import org.saltyrtc.client.tests.Config;
@@ -32,6 +36,7 @@ import javax.net.ssl.SSLContext;
 import static junit.framework.TestCase.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class ConnectionTest {
 
@@ -502,6 +507,146 @@ public class ConnectionTest {
         // Signaling state should be CLOSED
         assertEquals(SignalingState.CLOSED, initiator.getSignalingState());
         assertEquals(SignalingState.CLOSED, responder.getSignalingState());
+    }
+
+    @Test
+    public void testServerAuthenticationInitiatorSuccess() throws Exception {
+        final SaltyRTC initiator = new SaltyRTCBuilder()
+            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, SSLContextHelper.getSSLContext())
+            .withKeyStore(this.initiator.getKeyStore())
+            .withServerKey(HexHelper.hexStringToByteArray(Config.SALTYRTC_SERVER_PUBLIC_KEY))
+            .usingTasks(new Task[]{ new DummyTask() })
+            .asInitiator();
+
+        // Look for signaling changes
+        final CountDownLatch closed = new CountDownLatch(1);
+        initiator.events.signalingStateChanged.register(
+            new EventHandler<SignalingStateChangedEvent>() {
+                @Override
+                public boolean handle(SignalingStateChangedEvent event) {
+                    if (event.getState() == SignalingState.PEER_HANDSHAKE) {
+                        closed.countDown();
+                    }
+                    return false;
+                }
+            }
+        );
+
+        // Connect server and wait for peer handshake
+        initiator.connect();
+        final boolean success = closed.await(2, TimeUnit.SECONDS);
+        assertTrue(success);
+    }
+
+    @Test
+    public void testServerAuthenticationInitiatorFails() throws Exception {
+        final SaltyRTC initiator = new SaltyRTCBuilder()
+            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, SSLContextHelper.getSSLContext())
+            .withKeyStore(this.initiator.getKeyStore())
+            .withServerKey(RandomHelper.pseudoRandomBytes(32))
+            .usingTasks(new Task[]{ new DummyTask() })
+            .asInitiator();
+
+        // Look for signaling changes
+        final CountDownLatch closed = new CountDownLatch(1);
+        initiator.events.signalingStateChanged.register(
+            new EventHandler<SignalingStateChangedEvent>() {
+                @Override
+                public boolean handle(SignalingStateChangedEvent event) {
+                    if (event.getState() == SignalingState.PEER_HANDSHAKE) {
+                        fail("Server handshake succeeded even though server key was wrong");
+                    }
+                    return false;
+                }
+            }
+        );
+        initiator.events.close.register(new EventHandler<CloseEvent>() {
+            @Override
+            public boolean handle(CloseEvent event) {
+                if (event.getReason() == CloseCode.PROTOCOL_ERROR) {
+                    closed.countDown();
+                } else {
+                    fail("Signaling was closed without a protocol error");
+                }
+                return false;
+            }
+        });
+
+        // Connect server and wait for connection closing
+        initiator.connect();
+        final boolean success = closed.await(2, TimeUnit.SECONDS);
+        assertTrue(success);
+    }
+
+    @Test
+    public void testServerAuthenticationResponderSuccess() throws Exception {
+        final SaltyRTC responder = new SaltyRTCBuilder()
+            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, SSLContextHelper.getSSLContext())
+            .withKeyStore(this.responder.getKeyStore())
+            .withServerKey(HexHelper.hexStringToByteArray(Config.SALTYRTC_SERVER_PUBLIC_KEY))
+            .initiatorInfo(RandomHelper.pseudoRandomBytes(32), RandomHelper.pseudoRandomBytes(32))
+            .usingTasks(new Task[]{ new DummyTask() })
+            .asResponder();
+
+        // Look for signaling changes
+        final CountDownLatch closed = new CountDownLatch(1);
+        responder.events.signalingStateChanged.register(
+            new EventHandler<SignalingStateChangedEvent>() {
+                @Override
+                public boolean handle(SignalingStateChangedEvent event) {
+                    if (event.getState() == SignalingState.PEER_HANDSHAKE) {
+                        closed.countDown();
+                    }
+                    return false;
+                }
+            }
+        );
+
+        // Connect server and wait for peer handshake
+        responder.connect();
+        final boolean success = closed.await(2, TimeUnit.SECONDS);
+        assertTrue(success);
+    }
+
+    @Test
+    public void testServerAuthenticationResponderFails() throws Exception {
+        final SaltyRTC responder = new SaltyRTCBuilder()
+            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, SSLContextHelper.getSSLContext())
+            .withKeyStore(this.responder.getKeyStore())
+            .withServerKey(RandomHelper.pseudoRandomBytes(32))
+            .initiatorInfo(RandomHelper.pseudoRandomBytes(32), RandomHelper.pseudoRandomBytes(32))
+            .usingTasks(new Task[]{ new DummyTask() })
+            .asResponder();
+
+        // Look for signaling changes
+        final CountDownLatch closed = new CountDownLatch(1);
+        responder.events.signalingStateChanged.register(
+            new EventHandler<SignalingStateChangedEvent>() {
+                @Override
+                public boolean handle(SignalingStateChangedEvent event) {
+                    if (event.getState() == SignalingState.PEER_HANDSHAKE) {
+                        fail("Server handshake succeeded even though server key was wrong");
+                    }
+                    return false;
+                }
+            }
+        );
+        responder.events.close.register(new EventHandler<CloseEvent>() {
+            @Override
+            public boolean handle(CloseEvent event) {
+                if (event.getReason() == CloseCode.PROTOCOL_ERROR) {
+                    closed.countDown();
+                } else {
+                    fail("Signaling was closed without a protocol error");
+                }
+                return false;
+            }
+        });
+
+        // Connect server and wait for connection closing
+        responder.connect();
+        final boolean success = closed.await(2, TimeUnit.SECONDS);
+        assertTrue(success);
     }
 
     @After

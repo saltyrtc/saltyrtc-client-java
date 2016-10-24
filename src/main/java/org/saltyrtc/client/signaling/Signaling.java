@@ -89,14 +89,16 @@ public abstract class Signaling implements SignalingInterface {
     private final SaltyRTC salty;
 
     // Keys
-    byte[] serverKey;
+    byte[] serverSessionKey;
+    @Nullable
+    byte[] expectedServerKey = null;
     KeyStore sessionKey;
     @NonNull
     final KeyStore permanentKey;
     @Nullable
     AuthToken authToken;
     @Nullable
-    byte[] peerTrustedKey = null;
+    byte[] peerTrustedKey;
 
     // Signaling
     @NonNull
@@ -116,6 +118,8 @@ public abstract class Signaling implements SignalingInterface {
 
     public Signaling(SaltyRTC salty, String host, int port,
                      KeyStore permanentKey, SSLContext sslContext,
+                     @Nullable byte[] peerTrustedKey,
+                     @Nullable byte[] expectedServerKey,
                      SignalingRole role,
                      Task[] tasks) {
         this.salty = salty;
@@ -123,17 +127,10 @@ public abstract class Signaling implements SignalingInterface {
         this.port = port;
         this.permanentKey = permanentKey;
         this.sslContext = sslContext;
+        this.peerTrustedKey = peerTrustedKey;
+        this.expectedServerKey = expectedServerKey;
         this.role = role;
         this.tasks = tasks;
-    }
-
-    public Signaling(SaltyRTC salty, String host, int port,
-                     KeyStore permanentKey, SSLContext sslContext,
-                     byte[] peerTrustedKey,
-                     SignalingRole role,
-                     Task[] tasks) {
-        this(salty, host, port, permanentKey, sslContext, role, tasks);
-        this.peerTrustedKey = peerTrustedKey;
     }
 
     @NonNull
@@ -191,7 +188,7 @@ public abstract class Signaling implements SignalingInterface {
     public void connect() throws ConnectionException {
         this.getLogger().info("Connecting to SaltyRTC server at "
                 + this.host + ":" + this.port + "...");
-        this.resetConnection(CloseCode.CLOSING_NORMAL);
+        this.resetConnection(null);
         try {
             this.initWebsocket();
         } catch (IOException e) {
@@ -206,13 +203,17 @@ public abstract class Signaling implements SignalingInterface {
      * This operation is asynchronous, once the connection is closed, the
      * `SignalingStateChangedEvent` will be emitted.
      */
-    void disconnect(int reason) {
+    void disconnect(Integer reason) {
         this.setState(SignalingState.CLOSING);
 
-        // Close websocket instance
+        // Close WebSocket instance
         if (this.ws != null) {
             this.getLogger().debug("Disconnecting WebSocket (close code " + reason + ")");
-            this.ws.disconnect(reason);
+            if (reason == null) {
+                this.ws.disconnect();
+            } else {
+                this.ws.disconnect(reason);
+            }
             this.ws = null;
         }
 
@@ -233,8 +234,16 @@ public abstract class Signaling implements SignalingInterface {
 
     /**
      * Reset the connection.
+     *
+     * If the reason passed in is `null`, then this will be treated as a quiet
+     * reset - no listeners will be notified.
      */
-    public void resetConnection(int reason) {
+    public void resetConnection(@Nullable Integer reason) {
+        // Notify listeners
+        if (reason != null) {
+            this.salty.events.close.notifyHandlers(new CloseEvent(reason));
+        }
+
         // Unregister listeners
         if (this.ws != null) {
             this.ws.clearListeners();
@@ -540,7 +549,7 @@ public abstract class Signaling implements SignalingInterface {
         } else {
             // Later, they're encrypted with our permanent key and the server key
             try {
-                payload = this.permanentKey.decrypt(box, this.serverKey);
+                payload = this.permanentKey.decrypt(box, this.serverSessionKey);
             } catch (CryptoFailedException | InvalidKeyException e) {
                 throw new ProtocolException("Could not decrypt server message", e);
             }
@@ -620,7 +629,7 @@ public abstract class Signaling implements SignalingInterface {
         final Message message;
 
         try {
-            final byte[] decrypted = this.permanentKey.decrypt(box, this.serverKey);
+            final byte[] decrypted = this.permanentKey.decrypt(box, this.serverSessionKey);
             message = MessageReader.read(decrypted);
         } catch (CryptoFailedException e) {
             this.getLogger().error("Could not decrypt incoming message from server", e);
@@ -668,7 +677,7 @@ public abstract class Signaling implements SignalingInterface {
      */
     private void handleServerHello(ServerHello msg, SignalingChannelNonce nonce) {
         // Store server public key
-        this.serverKey = msg.getKey();
+        this.serverSessionKey = msg.getKey();
 
         // Generate cookie
         Cookie ourCookie;
@@ -708,6 +717,38 @@ public abstract class Signaling implements SignalingInterface {
      */
     abstract void handleServerAuth(Message baseMsg, SignalingChannelNonce nonce) throws
             ProtocolException;
+
+    /**
+     * Validate the signed keys sent by the server in the server-auth message.
+     *
+     * @param signedKeys The `signed_keys` field from the server-auth message.
+     * @param nonce The incoming message nonce.
+     * @param expectedServerKey The expected server public permanent key.
+     * @throws ValidationError if the signed keys are not valid.
+     */
+    void validateSignedKeys(@Nullable byte[] signedKeys,
+                            @NonNull SignalingChannelNonce nonce,
+                            @NonNull byte[] expectedServerKey)
+            throws ValidationError {
+        if (signedKeys == null) {
+            throw new ValidationError("Server did not send signed_keys in server-auth message");
+        }
+        final Box box = new Box(nonce.toBytes(), signedKeys);
+        final byte[] decrypted;
+        try {
+            getLogger().debug("Expected server key is " + NaCl.asHex(expectedServerKey));
+            getLogger().debug("Server session key is " + NaCl.asHex(this.serverSessionKey));
+            decrypted = this.permanentKey.decrypt(box, expectedServerKey);
+        } catch (CryptoFailedException e) {
+            throw new ValidationError("Could not decrypt signed_keys in server-auth message", e);
+        } catch (InvalidKeyException e) {
+            throw new ValidationError("Invalid key when trying to decrypt signed_keys in server-auth message", e);
+        }
+        final byte[] expected = ArrayHelper.concat(this.serverSessionKey, this.permanentKey.getPublicKey());
+        if (!Arrays.equals(decrypted, expected)) {
+            throw new ValidationError("Decrypted signed_keys in server-auth message is invalid");
+        }
+    }
 
     /**
      * Initialize the peer handshake.
@@ -961,7 +1002,7 @@ public abstract class Signaling implements SignalingInterface {
      */
     private Box encryptHandshakeDataForServer(byte[] payload, byte[] nonce)
             throws CryptoFailedException, InvalidKeyException {
-        return this.permanentKey.encrypt(payload, nonce, this.serverKey);
+        return this.permanentKey.encrypt(payload, nonce, this.serverSessionKey);
     }
 
     /**
@@ -1022,9 +1063,6 @@ public abstract class Signaling implements SignalingInterface {
     private void handleClose(Close msg) {
         final Integer closeCode = msg.getReason();
         this.getLogger().warn("Received close message. Reason: " + CloseCode.explain(closeCode));
-
-        // Notify the listeners
-        this.salty.events.close.notifyHandlers(new CloseEvent(closeCode));
 
         // Notify the task
         this.task.close(closeCode);
