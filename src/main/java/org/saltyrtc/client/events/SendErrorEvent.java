@@ -16,8 +16,10 @@ import org.saltyrtc.client.messages.s2c.SendError;
  */
 public class SendErrorEvent implements Event {
 
-    private @NonNull SendError error;
-    private @NonNull Object originalMessage; // TODO: Use generics
+    @NonNull
+    private final SendError error;
+    @NonNull
+    private final Object originalMessage; // TODO: Use generics
 
     public SendErrorEvent(@NonNull SendError error, @NonNull Object originalMessage) {
         this.error = error;

@@ -18,7 +18,7 @@ import java.util.Map;
 
 public class DropResponder extends Message {
 
-    public static String TYPE = "drop-responder";
+    public static final String TYPE = "drop-responder";
 
     private Integer id;
 

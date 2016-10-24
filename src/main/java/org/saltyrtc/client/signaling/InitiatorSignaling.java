@@ -33,7 +33,6 @@ import org.saltyrtc.client.messages.c2c.Token;
 import org.saltyrtc.client.messages.s2c.DropResponder;
 import org.saltyrtc.client.messages.s2c.InitiatorServerAuth;
 import org.saltyrtc.client.messages.s2c.NewResponder;
-import org.saltyrtc.client.nonce.CombinedSequence;
 import org.saltyrtc.client.nonce.CombinedSequenceSnapshot;
 import org.saltyrtc.client.nonce.SignalingChannelNonce;
 import org.saltyrtc.client.signaling.state.ResponderHandshakeState;
@@ -69,8 +68,7 @@ public class InitiatorSignaling extends Signaling {
     public InitiatorSignaling(SaltyRTC saltyRTC, String host, int port,
                               KeyStore permanentKey, SSLContext sslContext,
                               Task[] tasks) {
-        super(saltyRTC, host, port, permanentKey, sslContext, tasks);
-        this.role = SignalingRole.Initiator;
+        super(saltyRTC, host, port, permanentKey, sslContext, SignalingRole.Initiator, tasks);
         this.authToken = new AuthToken();
     }
 
@@ -81,8 +79,8 @@ public class InitiatorSignaling extends Signaling {
                               KeyStore permanentKey, SSLContext sslContext,
                               byte[] responderTrustedKey,
                               Task[] tasks) {
-        super(saltyRTC, host, port, permanentKey, sslContext, responderTrustedKey, tasks);
-        this.role = SignalingRole.Initiator;
+        super(saltyRTC, host, port, permanentKey, sslContext, responderTrustedKey,
+              SignalingRole.Initiator, tasks);
         this.authToken = null;
     }
 
@@ -183,8 +181,7 @@ public class InitiatorSignaling extends Signaling {
     }
 
     @Override
-    protected void handleServerAuth(Message baseMsg, SignalingChannelNonce nonce)
-            throws ProtocolException, ConnectionException {
+    protected void handleServerAuth(Message baseMsg, SignalingChannelNonce nonce) throws ProtocolException {
         // Cast to proper subtype
         final InitiatorServerAuth msg;
         try {
@@ -360,7 +357,7 @@ public class InitiatorSignaling extends Signaling {
     /**
      * A new responder wants to connect.
      */
-    private void handleNewResponder(NewResponder msg) throws ProtocolException, ConnectionException {
+    private void handleNewResponder(NewResponder msg) throws SignalingException {
         // Validate responder id
         final short id = this.validateResponderId(msg.getId());
 
@@ -377,7 +374,7 @@ public class InitiatorSignaling extends Signaling {
     /**
      * Store a new responder.
      */
-    private void processNewResponder(short responderId) throws ConnectionException, ProtocolException {
+    private void processNewResponder(short responderId) {
         // Make sure this is a new responder
         if (this.responders.containsKey(responderId)) {
             this.getLogger().warn("Got new-responder message for an already known responder.");

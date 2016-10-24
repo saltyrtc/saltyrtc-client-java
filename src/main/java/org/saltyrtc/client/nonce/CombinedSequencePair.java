@@ -12,7 +12,7 @@ package org.saltyrtc.client.nonce;
  * A SaltyRTC CSN pair.
  */
 public class CombinedSequencePair {
-    private CombinedSequence ours;
+    private final CombinedSequence ours;
     private Long theirs = null;
 
     public CombinedSequencePair() {

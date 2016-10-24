@@ -19,7 +19,7 @@ import java.util.Arrays;
  * using a copy constructor.
  */
 public class Cookie {
-    public static int COOKIE_LENGTH = 16;
+    public static final int COOKIE_LENGTH = 16;
 
     private byte[] bytes;
 

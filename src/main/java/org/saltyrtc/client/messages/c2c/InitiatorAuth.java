@@ -21,7 +21,7 @@ import java.util.Map;
 
 public class InitiatorAuth extends Message {
 
-    public static String TYPE = "auth";
+    public static final String TYPE = "auth";
 
     private byte[] yourCookie;
     private String task;

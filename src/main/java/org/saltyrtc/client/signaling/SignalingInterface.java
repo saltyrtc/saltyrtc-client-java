@@ -3,8 +3,6 @@ package org.saltyrtc.client.signaling;
 import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
-import org.saltyrtc.client.exceptions.InvalidKeyException;
-import org.saltyrtc.client.exceptions.ProtocolException;
 import org.saltyrtc.client.exceptions.SignalingException;
 import org.saltyrtc.client.keystore.Box;
 import org.saltyrtc.client.messages.c2c.TaskMessage;

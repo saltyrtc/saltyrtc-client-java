@@ -19,7 +19,7 @@ import java.util.Map;
 
 public class ClientAuth extends Message {
 
-    public static String TYPE = "client-auth";
+    public static final String TYPE = "client-auth";
 
     private byte[] yourCookie;
     private List<String> subprotocols;

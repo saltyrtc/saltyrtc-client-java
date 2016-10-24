@@ -12,6 +12,11 @@ Possible log types:
 - `[security]` to invite users to upgrade in case of vulnerabilities.
 
 
+### Unreleased
+
+- [changed] `SaltyRTCBuilder.asInitiator` does not throw `InvalidKeyException` anymore
+- [changed] Use custom `InvalidKeyException` instead of `java.security.InvalidKeyException`
+
 ### v0.5.0 (2016-10-20)
 
 - [fixed] Fix concurrency bug in `CombinedSequence`, introduce `CombinedSequenceSnapshot`

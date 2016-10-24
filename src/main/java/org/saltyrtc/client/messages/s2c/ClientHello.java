@@ -19,7 +19,7 @@ import java.util.Map;
 
 public class ClientHello extends Message {
 
-    public static String TYPE = "client-hello";
+    public static final String TYPE = "client-hello";
 
     private byte[] key;
 

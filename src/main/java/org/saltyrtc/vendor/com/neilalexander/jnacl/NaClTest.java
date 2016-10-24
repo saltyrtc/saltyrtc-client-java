@@ -27,6 +27,7 @@
 
 package org.saltyrtc.vendor.com.neilalexander.jnacl;
 
+@SuppressWarnings("FieldCanBeLocal")
 public class NaClTest
 {
 	private static String publickey = "0cba66066896ffb51e92bc3c36ffa627c2493770d9b0b4368a2466c801b0184e";

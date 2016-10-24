@@ -18,7 +18,7 @@ import java.util.Map;
 
 public class NewInitiator extends Message {
 
-    public static String TYPE = "new-initiator";
+    public static final String TYPE = "new-initiator";
 
     public NewInitiator() { }
 

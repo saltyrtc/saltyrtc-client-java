@@ -15,7 +15,7 @@ package org.saltyrtc.client.exceptions;
  */
 public class SignalingException extends Exception {
 
-    private int closeCode;
+    private final int closeCode;
 
     public SignalingException(int closeCode, String message) {
         super(message);

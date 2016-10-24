@@ -34,7 +34,6 @@ import org.saltyrtc.client.messages.c2c.Token;
 import org.saltyrtc.client.messages.s2c.ClientHello;
 import org.saltyrtc.client.messages.s2c.NewInitiator;
 import org.saltyrtc.client.messages.s2c.ResponderServerAuth;
-import org.saltyrtc.client.nonce.CombinedSequence;
 import org.saltyrtc.client.nonce.CombinedSequenceSnapshot;
 import org.saltyrtc.client.nonce.SignalingChannelNonce;
 import org.saltyrtc.client.signaling.state.InitiatorHandshakeState;
@@ -69,9 +68,8 @@ public class ResponderSignaling extends Signaling {
                               KeyStore permanentKey, SSLContext sslContext,
                               byte[] initiatorPublicKey, byte[] authToken,
                               Task[] tasks)
-                              throws java.security.InvalidKeyException {
-        super(saltyRTC, host, port, permanentKey, sslContext, tasks);
-        this.role = SignalingRole.Responder;
+                              throws InvalidKeyException {
+        super(saltyRTC, host, port, permanentKey, sslContext, SignalingRole.Responder, tasks);
         this.initiator = new Initiator(initiatorPublicKey);
         this.authToken = new AuthToken(authToken);
     }
@@ -82,10 +80,8 @@ public class ResponderSignaling extends Signaling {
     public ResponderSignaling(SaltyRTC saltyRTC, String host, int port,
                               KeyStore permanentKey, SSLContext sslContext,
                               byte[] initiatorTrustedKey,
-                              Task[] tasks)
-            throws java.security.InvalidKeyException {
-        super(saltyRTC, host, port, permanentKey, sslContext, initiatorTrustedKey, tasks);
-        this.role = SignalingRole.Responder;
+                              Task[] tasks) {
+        super(saltyRTC, host, port, permanentKey, sslContext, initiatorTrustedKey, SignalingRole.Responder, tasks);
         this.initiator = new Initiator(initiatorTrustedKey);
         // If we trust the initiator, don't send a token message
         this.initiator.handshakeState = InitiatorHandshakeState.TOKEN_SENT;
@@ -127,6 +123,10 @@ public class ResponderSignaling extends Signaling {
         }
         switch (messageType) {
             case "token":
+                if (this.authToken == null) {
+                    throw new ProtocolException(
+                        "Cannot encrypt token message for peer: Auth token is null");
+                }
                 return this.authToken.encrypt(payload, nonce);
             case "key":
                 return this.permanentKey.encrypt(payload, nonce, this.initiator.permanentKey);
@@ -257,7 +257,7 @@ public class ResponderSignaling extends Signaling {
     /**
      * The initiator repeats our cookie and sends the chosen task.
      */
-    private void handleAuth(InitiatorAuth msg, SignalingChannelNonce nonce) throws ProtocolException, SignalingException {
+    private void handleAuth(InitiatorAuth msg, SignalingChannelNonce nonce) throws SignalingException {
         // Validate cookie
         this.validateRepeatedCookie(msg.getYourCookie());
 

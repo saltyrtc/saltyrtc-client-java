@@ -18,7 +18,7 @@ import java.util.Map;
 
 public class NewResponder extends Message {
 
-    public static String TYPE = "new-responder";
+    public static final String TYPE = "new-responder";
 
     private Integer id;
 

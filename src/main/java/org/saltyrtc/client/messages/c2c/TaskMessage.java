@@ -4,8 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.msgpack.core.MessagePacker;
 import org.msgpack.jackson.dataformat.MessagePackFactory;
-import org.saltyrtc.client.exceptions.ValidationError;
-import org.saltyrtc.client.helpers.ValidationHelper;
 import org.saltyrtc.client.messages.Message;
 
 import java.io.IOException;
@@ -20,8 +18,8 @@ import java.util.Map;
  */
 public class TaskMessage extends Message {
 
-    private String type;
-    private Map<String, Object> data;
+    private final String type;
+    private final Map<String, Object> data;
 
     public TaskMessage(String type, Map<String, Object> otherData) {
         this.type = type;

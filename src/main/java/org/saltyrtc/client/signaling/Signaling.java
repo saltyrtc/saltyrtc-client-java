@@ -42,7 +42,6 @@ import org.saltyrtc.client.messages.s2c.InitiatorServerAuth;
 import org.saltyrtc.client.messages.s2c.ResponderServerAuth;
 import org.saltyrtc.client.messages.s2c.SendError;
 import org.saltyrtc.client.messages.s2c.ServerHello;
-import org.saltyrtc.client.nonce.CombinedSequence;
 import org.saltyrtc.client.nonce.CombinedSequencePair;
 import org.saltyrtc.client.nonce.CombinedSequenceSnapshot;
 import org.saltyrtc.client.nonce.SignalingChannelNonce;
@@ -84,7 +83,7 @@ public abstract class Signaling implements SignalingInterface {
 
     // Connection state
     private SignalingState state = SignalingState.NEW;
-    private HandoverState handoverState = new HandoverState();
+    private final HandoverState handoverState = new HandoverState();
 
     // Reference to main class
     private final SaltyRTC salty;
@@ -101,7 +100,7 @@ public abstract class Signaling implements SignalingInterface {
 
     // Signaling
     @NonNull
-    SignalingRole role;
+    private SignalingRole role;
     short address = SALTYRTC_ADDR_UNKNOWN;
     Cookie cookie;
     Cookie serverCookie;
@@ -117,20 +116,23 @@ public abstract class Signaling implements SignalingInterface {
 
     public Signaling(SaltyRTC salty, String host, int port,
                      KeyStore permanentKey, SSLContext sslContext,
+                     SignalingRole role,
                      Task[] tasks) {
         this.salty = salty;
         this.host = host;
         this.port = port;
         this.permanentKey = permanentKey;
         this.sslContext = sslContext;
+        this.role = role;
         this.tasks = tasks;
     }
 
     public Signaling(SaltyRTC salty, String host, int port,
                      KeyStore permanentKey, SSLContext sslContext,
                      byte[] peerTrustedKey,
+                     SignalingRole role,
                      Task[] tasks) {
-        this(salty, host, port, permanentKey, sslContext, tasks);
+        this(salty, host, port, permanentKey, sslContext, role, tasks);
         this.peerTrustedKey = peerTrustedKey;
     }
 
@@ -588,7 +590,7 @@ public abstract class Signaling implements SignalingInterface {
      * Message received during peer handshake.
      */
     abstract void onPeerHandshakeMessage(Box box, SignalingChannelNonce nonce)
-        throws ProtocolException, ValidationError, SerializationError,
+        throws ValidationError, SerializationError,
         InternalException, ConnectionException, SignalingException;
 
     /**
@@ -705,7 +707,7 @@ public abstract class Signaling implements SignalingInterface {
      * responder signaling subclasses.
      */
     abstract void handleServerAuth(Message baseMsg, SignalingChannelNonce nonce) throws
-            ProtocolException, ConnectionException;
+            ProtocolException;
 
     /**
      * Initialize the peer handshake.
@@ -817,7 +819,7 @@ public abstract class Signaling implements SignalingInterface {
                 break;
             case TASK:
                 // Messages after the handshake must come from the peer.
-                if (nonce.getSource() != this.getPeerAddress()) {
+                if (this.getPeerAddress() == null || nonce.getSource() != this.getPeerAddress()) {
                     // TODO: Ignore instead of throw?
                     throw new ValidationError("Received message with invalid sender address (" +
                             nonce.getSource() + " != " + this.getPeerAddress() + ")");

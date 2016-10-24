@@ -15,6 +15,7 @@ import org.saltyrtc.client.events.HandoverEvent;
 import org.saltyrtc.client.events.SendErrorEvent;
 import org.saltyrtc.client.events.SignalingStateChangedEvent;
 import org.saltyrtc.client.exceptions.ConnectionException;
+import org.saltyrtc.client.exceptions.InvalidKeyException;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.signaling.InitiatorSignaling;
 import org.saltyrtc.client.signaling.ResponderSignaling;
@@ -23,8 +24,6 @@ import org.saltyrtc.client.signaling.SignalingRole;
 import org.saltyrtc.client.signaling.state.SignalingState;
 import org.saltyrtc.client.tasks.Task;
 import org.slf4j.Logger;
-
-import java.security.InvalidKeyException;
 
 import javax.net.ssl.SSLContext;
 
@@ -63,7 +62,7 @@ public class SaltyRTC {
     // Internal constructor used by SaltyRTCBuilder.
     // Initialize as initiator or responder with trusted key.
     SaltyRTC(KeyStore permanentKey, String host, int port, SSLContext sslContext,
-             byte[] peerTrustedKey, Task[] tasks, SignalingRole role) throws InvalidKeyException {
+             byte[] peerTrustedKey, Task[] tasks, SignalingRole role) {
         switch (role) {
             case Initiator:
                 this.signaling = new InitiatorSignaling(
@@ -131,10 +130,10 @@ public class SaltyRTC {
      * Collection of all possible events.
      */
     public static class Events {
-        public EventRegistry<SignalingStateChangedEvent> signalingStateChanged = new EventRegistry<>();
-        public EventRegistry<HandoverEvent> handover = new EventRegistry<>();
-        public EventRegistry<CloseEvent> close = new EventRegistry<>();
-        public EventRegistry<SendErrorEvent> sendError = new EventRegistry<>();
+        public final EventRegistry<SignalingStateChangedEvent> signalingStateChanged = new EventRegistry<>();
+        public final EventRegistry<HandoverEvent> handover = new EventRegistry<>();
+        public final EventRegistry<CloseEvent> close = new EventRegistry<>();
+        public final EventRegistry<SendErrorEvent> sendError = new EventRegistry<>();
     }
 
     public void setDebug(boolean debug) {

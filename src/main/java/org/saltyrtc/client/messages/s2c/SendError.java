@@ -18,7 +18,7 @@ import java.util.Map;
 
 public class SendError extends Message {
 
-    public static String TYPE = "send-error";
+    public static final String TYPE = "send-error";
 
     private byte[] hash;
 

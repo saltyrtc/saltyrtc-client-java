@@ -18,7 +18,7 @@ import java.util.Map;
 
 public class Close extends Message {
 
-    public static String TYPE = "close";
+    public static final String TYPE = "close";
 
     private Integer reason;
 
