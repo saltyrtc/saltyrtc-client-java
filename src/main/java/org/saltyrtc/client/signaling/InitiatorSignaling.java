@@ -33,7 +33,6 @@ import org.saltyrtc.client.messages.c2c.Token;
 import org.saltyrtc.client.messages.s2c.DropResponder;
 import org.saltyrtc.client.messages.s2c.InitiatorServerAuth;
 import org.saltyrtc.client.messages.s2c.NewResponder;
-import org.saltyrtc.client.nonce.CombinedSequence;
 import org.saltyrtc.client.nonce.CombinedSequenceSnapshot;
 import org.saltyrtc.client.nonce.SignalingChannelNonce;
 import org.saltyrtc.client.signaling.state.ResponderHandshakeState;

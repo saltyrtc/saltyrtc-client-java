@@ -4,8 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.msgpack.core.MessagePacker;
 import org.msgpack.jackson.dataformat.MessagePackFactory;
-import org.saltyrtc.client.exceptions.ValidationError;
-import org.saltyrtc.client.helpers.ValidationHelper;
 import org.saltyrtc.client.messages.Message;
 
 import java.io.IOException;

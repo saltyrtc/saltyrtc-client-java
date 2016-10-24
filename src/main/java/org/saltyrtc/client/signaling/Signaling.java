@@ -42,7 +42,6 @@ import org.saltyrtc.client.messages.s2c.InitiatorServerAuth;
 import org.saltyrtc.client.messages.s2c.ResponderServerAuth;
 import org.saltyrtc.client.messages.s2c.SendError;
 import org.saltyrtc.client.messages.s2c.ServerHello;
-import org.saltyrtc.client.nonce.CombinedSequence;
 import org.saltyrtc.client.nonce.CombinedSequencePair;
 import org.saltyrtc.client.nonce.CombinedSequenceSnapshot;
 import org.saltyrtc.client.nonce.SignalingChannelNonce;
