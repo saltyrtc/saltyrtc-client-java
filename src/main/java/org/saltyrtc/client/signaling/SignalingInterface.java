@@ -1,6 +1,7 @@
 package org.saltyrtc.client.signaling;
 
 import org.saltyrtc.client.annotations.NonNull;
+import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
 import org.saltyrtc.client.exceptions.SignalingException;
@@ -82,8 +83,12 @@ public interface SignalingInterface {
 
     /**
      * Close and reset the connection with the specified close code.
+     *
+     * If the reason passed in is `null`, then this will be treated as a quiet
+     * reset - no listeners will be notified.
+     *
      * @param reason The close code to use.
      */
-    void resetConnection(int reason);
+    void resetConnection(@Nullable Integer reason);
 
 }

@@ -188,7 +188,7 @@ public abstract class Signaling implements SignalingInterface {
     public void connect() throws ConnectionException {
         this.getLogger().info("Connecting to SaltyRTC server at "
                 + this.host + ":" + this.port + "...");
-        this.resetConnection(CloseCode.CLOSING_NORMAL);
+        this.resetConnection(null);
         try {
             this.initWebsocket();
         } catch (IOException e) {
@@ -203,13 +203,17 @@ public abstract class Signaling implements SignalingInterface {
      * This operation is asynchronous, once the connection is closed, the
      * `SignalingStateChangedEvent` will be emitted.
      */
-    void disconnect(int reason) {
+    void disconnect(Integer reason) {
         this.setState(SignalingState.CLOSING);
 
-        // Close websocket instance
+        // Close WebSocket instance
         if (this.ws != null) {
             this.getLogger().debug("Disconnecting WebSocket (close code " + reason + ")");
-            this.ws.disconnect(reason);
+            if (reason == null) {
+                this.ws.disconnect();
+            } else {
+                this.ws.disconnect(reason);
+            }
             this.ws = null;
         }
 
@@ -230,8 +234,16 @@ public abstract class Signaling implements SignalingInterface {
 
     /**
      * Reset the connection.
+     *
+     * If the reason passed in is `null`, then this will be treated as a quiet
+     * reset - no listeners will be notified.
      */
-    public void resetConnection(int reason) {
+    public void resetConnection(@Nullable Integer reason) {
+        // Notify listeners
+        if (reason != null) {
+            this.salty.events.close.notifyHandlers(new CloseEvent(reason));
+        }
+
         // Unregister listeners
         if (this.ws != null) {
             this.ws.clearListeners();
@@ -1019,9 +1031,6 @@ public abstract class Signaling implements SignalingInterface {
     private void handleClose(Close msg) {
         final Integer closeCode = msg.getReason();
         this.getLogger().warn("Received close message. Reason: " + CloseCode.explain(closeCode));
-
-        // Notify the listeners
-        this.salty.events.close.notifyHandlers(new CloseEvent(closeCode));
 
         // Notify the task
         this.task.close(closeCode);

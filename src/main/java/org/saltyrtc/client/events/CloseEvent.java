@@ -9,7 +9,7 @@
 package org.saltyrtc.client.events;
 
 /**
- * The peer requests to close the connection.
+ * The connection is closed.
  */
 public class CloseEvent implements Event {
 
