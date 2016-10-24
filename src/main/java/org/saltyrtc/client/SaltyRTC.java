@@ -131,10 +131,10 @@ public class SaltyRTC {
      * Collection of all possible events.
      */
     public static class Events {
-        public EventRegistry<SignalingStateChangedEvent> signalingStateChanged = new EventRegistry<>();
-        public EventRegistry<HandoverEvent> handover = new EventRegistry<>();
-        public EventRegistry<CloseEvent> close = new EventRegistry<>();
-        public EventRegistry<SendErrorEvent> sendError = new EventRegistry<>();
+        public final EventRegistry<SignalingStateChangedEvent> signalingStateChanged = new EventRegistry<>();
+        public final EventRegistry<HandoverEvent> handover = new EventRegistry<>();
+        public final EventRegistry<CloseEvent> close = new EventRegistry<>();
+        public final EventRegistry<SendErrorEvent> sendError = new EventRegistry<>();
     }
 
     public void setDebug(boolean debug) {

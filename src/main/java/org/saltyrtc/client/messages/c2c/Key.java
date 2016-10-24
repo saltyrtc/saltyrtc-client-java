@@ -19,7 +19,7 @@ import java.util.Map;
 
 public class Key extends Message {
 
-    public static String TYPE = "key";
+    public static final String TYPE = "key";
 
     private byte[] key;
 

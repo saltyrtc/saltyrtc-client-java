@@ -14,7 +14,7 @@ import org.saltyrtc.client.nonce.CombinedSequencePair;
 public abstract class Peer {
     protected byte[] permanentKey;
     protected byte[] sessionKey;
-    protected CombinedSequencePair csnPair;
+    protected final CombinedSequencePair csnPair;
     protected Cookie cookie;
 
     public Peer() {

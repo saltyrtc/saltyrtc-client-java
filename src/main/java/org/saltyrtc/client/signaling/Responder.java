@@ -15,8 +15,8 @@ import org.saltyrtc.client.signaling.state.ResponderHandshakeState;
  * Information about a responder. Used by initiator during handshake.
  */
 public class Responder extends Peer {
-    private short id;
-    private KeyStore keyStore;
+    private final short id;
+    private final KeyStore keyStore;
     public ResponderHandshakeState handshakeState;
 
     public Responder(short id) {

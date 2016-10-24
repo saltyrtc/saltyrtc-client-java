@@ -17,8 +17,8 @@ public abstract class Nonce {
     protected int overflow;
     protected long sequence;
 
-    public static int COOKIE_LENGTH = 16;
-    public static int TOTAL_LENGTH = NaCl.NONCEBYTES;
+    public static final int COOKIE_LENGTH = 16;
+    public static final int TOTAL_LENGTH = NaCl.NONCEBYTES;
 
     /**
      * Convert nonce to bytes.

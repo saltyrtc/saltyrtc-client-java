@@ -19,7 +19,7 @@ import java.util.Map;
 
 public class Token extends Message {
 
-    public static String TYPE = "token";
+    public static final String TYPE = "token";
 
     private byte[] key;
 

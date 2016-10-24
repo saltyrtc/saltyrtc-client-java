@@ -22,7 +22,7 @@ import java.util.Map;
 
 public class ResponderAuth extends Message {
 
-    public static String TYPE = "auth";
+    public static final String TYPE = "auth";
 
     private byte[] yourCookie;
     private List<String> tasks;

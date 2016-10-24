@@ -19,8 +19,8 @@ import java.security.SecureRandom;
  * This class is thread safe.
  */
 public class CombinedSequence {
-    public static long SEQUENCE_NUMBER_MAX = 0x100000000L; // 1<<32
-    public static int OVERFLOW_MAX = 0x100000; // 1<<16
+    public static final long SEQUENCE_NUMBER_MAX = 0x100000000L; // 1<<32
+    public static final int OVERFLOW_MAX = 0x100000; // 1<<16
 
     private long sequenceNumber;
     private int overflow;

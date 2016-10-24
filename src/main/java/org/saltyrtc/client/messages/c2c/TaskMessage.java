@@ -20,8 +20,8 @@ import java.util.Map;
  */
 public class TaskMessage extends Message {
 
-    private String type;
-    private Map<String, Object> data;
+    private final String type;
+    private final Map<String, Object> data;
 
     public TaskMessage(String type, Map<String, Object> otherData) {
         this.type = type;

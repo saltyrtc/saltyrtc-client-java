@@ -19,7 +19,7 @@ import java.util.Map;
 
 public class InitiatorServerAuth extends Message {
 
-    public static String TYPE = "server-auth";
+    public static final String TYPE = "server-auth";
 
     private byte[] yourCookie;
     private List<Integer> responders;

@@ -84,7 +84,7 @@ public abstract class Signaling implements SignalingInterface {
 
     // Connection state
     private SignalingState state = SignalingState.NEW;
-    private HandoverState handoverState = new HandoverState();
+    private final HandoverState handoverState = new HandoverState();
 
     // Reference to main class
     private final SaltyRTC salty;
