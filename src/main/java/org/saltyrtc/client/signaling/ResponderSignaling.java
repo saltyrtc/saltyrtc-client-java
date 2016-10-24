@@ -175,6 +175,18 @@ public class ResponderSignaling extends Signaling {
             throw new ProtocolException("Bad repeated cookie in server-auth message");
         }
 
+        // Validate expected server key
+        if (this.expectedServerKey != null) {
+            try {
+                this.validateSignedKeys(msg.getSignedKeys(), nonce, this.expectedServerKey);
+            } catch (ValidationError e) {
+                this.getLogger().error(e.getMessage());
+                throw new ProtocolException("Verification of signed_keys failed", e);
+            }
+        } else if (msg.getSignedKeys() != null) {
+            this.getLogger().warn("Server sent signed keys, but we're not verifying them.");
+        }
+
         // Store whether initiator is connected
         this.initiator.setConnected(msg.isInitiatorConnected());
         this.getLogger().debug("Initiator is " + (msg.isInitiatorConnected() ? "" : "not ") + "connected.");
@@ -339,7 +351,7 @@ public class ResponderSignaling extends Signaling {
             // Nonce claims to come from server.
             // Try to decrypt data accordingly.
             try {
-                payload = this.permanentKey.decrypt(box, this.serverKey);
+                payload = this.permanentKey.decrypt(box, this.serverSessionKey);
             } catch (CryptoFailedException | InvalidKeyException e) {
                 e.printStackTrace();
                 throw new ProtocolException("Could not decrypt server message");
