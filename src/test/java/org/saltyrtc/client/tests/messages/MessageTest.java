@@ -88,20 +88,43 @@ public class MessageTest {
     @Test
     public void testInitiatorServerAuthRoundtrip() throws SerializationError, ValidationError {
         final InitiatorServerAuth original = new InitiatorServerAuth(
-                RandomHelper.pseudoRandomBytes(16), asList(1, 2, 3));
+                RandomHelper.pseudoRandomBytes(16), null, asList(1, 2, 3));
         final InitiatorServerAuth returned = this.roundTrip(original);
         assertArrayEquals(original.getYourCookie(), returned.getYourCookie());
         assertArrayEquals(original.getResponders().toArray(), returned.getResponders().toArray());
+        assertArrayEquals(original.getSignedKeys(), returned.getSignedKeys());
+    }
+
+    @Test
+    public void testInitiatorServerAuthRoundtripWithSignedKeys() throws SerializationError, ValidationError {
+        final InitiatorServerAuth original = new InitiatorServerAuth(
+            RandomHelper.pseudoRandomBytes(16), RandomHelper.pseudoRandomBytes(80), asList(1, 2, 3));
+        final InitiatorServerAuth returned = this.roundTrip(original);
+        assertArrayEquals(original.getYourCookie(), returned.getYourCookie());
+        assertArrayEquals(original.getResponders().toArray(), returned.getResponders().toArray());
+        assertArrayEquals(original.getSignedKeys(), returned.getSignedKeys());
     }
 
     @Test
     public void testResponderServerAuthRoundtrip() throws SerializationError, ValidationError {
         final ResponderServerAuth original = new ResponderServerAuth(
-                RandomHelper.pseudoRandomBytes(16), false);
+                RandomHelper.pseudoRandomBytes(16), null, false);
         final ResponderServerAuth returned = this.roundTrip(original);
         assertArrayEquals(original.getYourCookie(), returned.getYourCookie());
         assertFalse(original.isInitiatorConnected());
         assertFalse(returned.isInitiatorConnected());
+        assertArrayEquals(original.getSignedKeys(), returned.getSignedKeys());
+    }
+
+    @Test
+    public void testResponderServerAuthRoundtripWithSignedKeys() throws SerializationError, ValidationError {
+        final ResponderServerAuth original = new ResponderServerAuth(
+            RandomHelper.pseudoRandomBytes(16), RandomHelper.pseudoRandomBytes(80), false);
+        final ResponderServerAuth returned = this.roundTrip(original);
+        assertArrayEquals(original.getYourCookie(), returned.getYourCookie());
+        assertFalse(original.isInitiatorConnected());
+        assertFalse(returned.isInitiatorConnected());
+        assertArrayEquals(original.getSignedKeys(), returned.getSignedKeys());
     }
 
     @Test
