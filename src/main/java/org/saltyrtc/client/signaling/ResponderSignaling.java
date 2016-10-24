@@ -61,30 +61,30 @@ public class ResponderSignaling extends Signaling {
         return org.slf4j.LoggerFactory.getLogger("SaltyRTC.RSignaling");
     }
 
-    /**
-     * Create an instance without a trusted key.
-     */
     public ResponderSignaling(SaltyRTC saltyRTC, String host, int port,
                               KeyStore permanentKey, SSLContext sslContext,
-                              byte[] initiatorPublicKey, byte[] authToken,
+                              @Nullable byte[] initiatorPublicKey, @Nullable byte[] authToken,
+                              @Nullable byte[] initiatorTrustedKey,
+                              @Nullable byte[] expectedServerKey,
                               Task[] tasks)
                               throws InvalidKeyException {
-        super(saltyRTC, host, port, permanentKey, sslContext, SignalingRole.Responder, tasks);
-        this.initiator = new Initiator(initiatorPublicKey);
-        this.authToken = new AuthToken(authToken);
-    }
-
-    /**
-     * Create an instance with a trusted key.
-     */
-    public ResponderSignaling(SaltyRTC saltyRTC, String host, int port,
-                              KeyStore permanentKey, SSLContext sslContext,
-                              byte[] initiatorTrustedKey,
-                              Task[] tasks) {
-        super(saltyRTC, host, port, permanentKey, sslContext, initiatorTrustedKey, SignalingRole.Responder, tasks);
-        this.initiator = new Initiator(initiatorTrustedKey);
-        // If we trust the initiator, don't send a token message
-        this.initiator.handshakeState = InitiatorHandshakeState.TOKEN_SENT;
+        super(saltyRTC, host, port, permanentKey, sslContext, initiatorTrustedKey, expectedServerKey,
+              SignalingRole.Responder, tasks);
+        if (initiatorTrustedKey != null) {
+            if (initiatorPublicKey != null || authToken != null) {
+                throw new IllegalArgumentException(
+                    "Cannot specify both a trusted key and a public key / auth token pair");
+            }
+            this.initiator = new Initiator(initiatorTrustedKey);
+            // If we trust the initiator, don't send a token message
+            this.initiator.handshakeState = InitiatorHandshakeState.TOKEN_SENT;
+        } else if (initiatorPublicKey != null && authToken != null) {
+            this.initiator = new Initiator(initiatorPublicKey);
+            this.authToken = new AuthToken(authToken);
+        } else {
+            throw new IllegalArgumentException(
+                "You must specify either a trusted key or a public key / auth token pair");
+        }
     }
 
     /**

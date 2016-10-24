@@ -62,26 +62,16 @@ public class InitiatorSignaling extends Signaling {
         return org.slf4j.LoggerFactory.getLogger("SaltyRTC.ISignaling");
     }
 
-    /**
-     * Create an instance without a trusted key.
-     */
     public InitiatorSignaling(SaltyRTC saltyRTC, String host, int port,
                               KeyStore permanentKey, SSLContext sslContext,
+                              @Nullable byte[] responderTrustedKey,
+                              @Nullable byte[] expectedServerKey,
                               Task[] tasks) {
-        super(saltyRTC, host, port, permanentKey, sslContext, SignalingRole.Initiator, tasks);
-        this.authToken = new AuthToken();
-    }
-
-    /**
-     * Create an instance with a trusted key.
-     */
-    public InitiatorSignaling(SaltyRTC saltyRTC, String host, int port,
-                              KeyStore permanentKey, SSLContext sslContext,
-                              byte[] responderTrustedKey,
-                              Task[] tasks) {
-        super(saltyRTC, host, port, permanentKey, sslContext, responderTrustedKey,
+        super(saltyRTC, host, port, permanentKey, sslContext, responderTrustedKey, expectedServerKey,
               SignalingRole.Initiator, tasks);
-        this.authToken = null;
+        if (responderTrustedKey == null) {
+            this.authToken = new AuthToken();
+        }
     }
 
     /**

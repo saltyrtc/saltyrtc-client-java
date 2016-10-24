@@ -46,31 +46,40 @@ public class SaltyRTC {
 
     // Internal constructor used by SaltyRTCBuilder.
     // Initialize as initiator without trusted key.
-    SaltyRTC(KeyStore permanentKey, String host, int port, SSLContext sslContext, Task[] tasks) {
+    SaltyRTC(KeyStore permanentKey, String host, int port, SSLContext sslContext,
+             @Nullable byte[] serverKey, Task[] tasks)
+             throws InvalidKeyException {
         this.signaling = new InitiatorSignaling(
-                this, host, port, permanentKey, sslContext, tasks);
+            this, host, port, permanentKey, sslContext,
+            null, serverKey, tasks);
     }
 
     // Internal constructor used by SaltyRTCBuilder.
     // Initialize as responder without trusted key.
     SaltyRTC(KeyStore permanentKey, String host, int port, SSLContext sslContext,
-             byte[] initiatorPublicKey, byte[] authToken, Task[] tasks) throws InvalidKeyException {
+             byte[] initiatorPublicKey, byte[] authToken,
+             @Nullable byte[] serverKey, Task[] tasks)
+             throws InvalidKeyException {
         this.signaling = new ResponderSignaling(
-                this, host, port, permanentKey, sslContext, initiatorPublicKey, authToken, tasks);
+            this, host, port, permanentKey, sslContext,
+            initiatorPublicKey, authToken, null, serverKey, tasks);
     }
 
     // Internal constructor used by SaltyRTCBuilder.
     // Initialize as initiator or responder with trusted key.
     SaltyRTC(KeyStore permanentKey, String host, int port, SSLContext sslContext,
-             byte[] peerTrustedKey, Task[] tasks, SignalingRole role) {
+             byte[] peerTrustedKey, @Nullable byte[] serverKey, Task[] tasks, SignalingRole role)
+             throws InvalidKeyException {
         switch (role) {
             case Initiator:
                 this.signaling = new InitiatorSignaling(
-                        this, host, port, permanentKey, sslContext, peerTrustedKey, tasks);
+                    this, host, port, permanentKey, sslContext,
+                    peerTrustedKey, serverKey, tasks);
                 break;
             case Responder:
                 this.signaling = new ResponderSignaling(
-                        this, host, port, permanentKey, sslContext, peerTrustedKey, tasks);
+                    this, host, port, permanentKey, sslContext,
+                    null, null, peerTrustedKey, serverKey, tasks);
                 break;
             default:
                 throw new IllegalArgumentException("Invalid role: " + role);

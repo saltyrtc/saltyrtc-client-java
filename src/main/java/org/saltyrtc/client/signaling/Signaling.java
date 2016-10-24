@@ -90,13 +90,15 @@ public abstract class Signaling implements SignalingInterface {
 
     // Keys
     byte[] serverKey;
+    @Nullable
+    byte[] expectedServerKey = null;
     KeyStore sessionKey;
     @NonNull
     final KeyStore permanentKey;
     @Nullable
     AuthToken authToken;
     @Nullable
-    byte[] peerTrustedKey = null;
+    byte[] peerTrustedKey;
 
     // Signaling
     @NonNull
@@ -116,6 +118,8 @@ public abstract class Signaling implements SignalingInterface {
 
     public Signaling(SaltyRTC salty, String host, int port,
                      KeyStore permanentKey, SSLContext sslContext,
+                     @Nullable byte[] peerTrustedKey,
+                     @Nullable byte[] expectedServerKey,
                      SignalingRole role,
                      Task[] tasks) {
         this.salty = salty;
@@ -123,17 +127,10 @@ public abstract class Signaling implements SignalingInterface {
         this.port = port;
         this.permanentKey = permanentKey;
         this.sslContext = sslContext;
+        this.peerTrustedKey = peerTrustedKey;
+        this.expectedServerKey = expectedServerKey;
         this.role = role;
         this.tasks = tasks;
-    }
-
-    public Signaling(SaltyRTC salty, String host, int port,
-                     KeyStore permanentKey, SSLContext sslContext,
-                     byte[] peerTrustedKey,
-                     SignalingRole role,
-                     Task[] tasks) {
-        this(salty, host, port, permanentKey, sslContext, role, tasks);
-        this.peerTrustedKey = peerTrustedKey;
     }
 
     @NonNull
