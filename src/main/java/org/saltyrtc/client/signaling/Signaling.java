@@ -588,7 +588,7 @@ public abstract class Signaling implements SignalingInterface {
      * Message received during peer handshake.
      */
     abstract void onPeerHandshakeMessage(Box box, SignalingChannelNonce nonce)
-        throws ProtocolException, ValidationError, SerializationError,
+        throws ValidationError, SerializationError,
         InternalException, ConnectionException, SignalingException;
 
     /**
@@ -705,7 +705,7 @@ public abstract class Signaling implements SignalingInterface {
      * responder signaling subclasses.
      */
     abstract void handleServerAuth(Message baseMsg, SignalingChannelNonce nonce) throws
-            ProtocolException, ConnectionException;
+            ProtocolException;
 
     /**
      * Initialize the peer handshake.

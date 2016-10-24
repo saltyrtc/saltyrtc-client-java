@@ -34,7 +34,6 @@ import org.saltyrtc.client.messages.c2c.Token;
 import org.saltyrtc.client.messages.s2c.ClientHello;
 import org.saltyrtc.client.messages.s2c.NewInitiator;
 import org.saltyrtc.client.messages.s2c.ResponderServerAuth;
-import org.saltyrtc.client.nonce.CombinedSequence;
 import org.saltyrtc.client.nonce.CombinedSequenceSnapshot;
 import org.saltyrtc.client.nonce.SignalingChannelNonce;
 import org.saltyrtc.client.signaling.state.InitiatorHandshakeState;
@@ -69,7 +68,7 @@ public class ResponderSignaling extends Signaling {
                               KeyStore permanentKey, SSLContext sslContext,
                               byte[] initiatorPublicKey, byte[] authToken,
                               Task[] tasks)
-                              throws java.security.InvalidKeyException {
+                              throws InvalidKeyException {
         super(saltyRTC, host, port, permanentKey, sslContext, tasks);
         this.role = SignalingRole.Responder;
         this.initiator = new Initiator(initiatorPublicKey);
@@ -82,8 +81,7 @@ public class ResponderSignaling extends Signaling {
     public ResponderSignaling(SaltyRTC saltyRTC, String host, int port,
                               KeyStore permanentKey, SSLContext sslContext,
                               byte[] initiatorTrustedKey,
-                              Task[] tasks)
-            throws java.security.InvalidKeyException {
+                              Task[] tasks) {
         super(saltyRTC, host, port, permanentKey, sslContext, initiatorTrustedKey, tasks);
         this.role = SignalingRole.Responder;
         this.initiator = new Initiator(initiatorTrustedKey);
@@ -257,7 +255,7 @@ public class ResponderSignaling extends Signaling {
     /**
      * The initiator repeats our cookie and sends the chosen task.
      */
-    private void handleAuth(InitiatorAuth msg, SignalingChannelNonce nonce) throws ProtocolException, SignalingException {
+    private void handleAuth(InitiatorAuth msg, SignalingChannelNonce nonce) throws SignalingException {
         // Validate cookie
         this.validateRepeatedCookie(msg.getYourCookie());
 

@@ -9,11 +9,10 @@
 package org.saltyrtc.client;
 
 import org.saltyrtc.client.exceptions.InvalidBuilderStateException;
+import org.saltyrtc.client.exceptions.InvalidKeyException;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.signaling.SignalingRole;
 import org.saltyrtc.client.tasks.Task;
-
-import java.security.InvalidKeyException;
 
 import javax.net.ssl.SSLContext;
 
@@ -159,7 +158,7 @@ public class SaltyRTCBuilder {
      *
      * @throws InvalidBuilderStateException Thrown if key or connection info haven't been set yet.
      */
-    public SaltyRTC asInitiator() throws InvalidBuilderStateException, InvalidKeyException {
+    public SaltyRTC asInitiator() throws InvalidBuilderStateException {
         this.requireKeyStore();
         this.requireConnectionInfo();
         this.requireTasks();

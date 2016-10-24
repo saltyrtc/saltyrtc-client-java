@@ -183,8 +183,7 @@ public class InitiatorSignaling extends Signaling {
     }
 
     @Override
-    protected void handleServerAuth(Message baseMsg, SignalingChannelNonce nonce)
-            throws ProtocolException, ConnectionException {
+    protected void handleServerAuth(Message baseMsg, SignalingChannelNonce nonce) throws ProtocolException {
         // Cast to proper subtype
         final InitiatorServerAuth msg;
         try {
@@ -360,7 +359,7 @@ public class InitiatorSignaling extends Signaling {
     /**
      * A new responder wants to connect.
      */
-    private void handleNewResponder(NewResponder msg) throws ProtocolException, ConnectionException {
+    private void handleNewResponder(NewResponder msg) throws SignalingException {
         // Validate responder id
         final short id = this.validateResponderId(msg.getId());
 
@@ -377,7 +376,7 @@ public class InitiatorSignaling extends Signaling {
     /**
      * Store a new responder.
      */
-    private void processNewResponder(short responderId) throws ConnectionException, ProtocolException {
+    private void processNewResponder(short responderId) {
         // Make sure this is a new responder
         if (this.responders.containsKey(responderId)) {
             this.getLogger().warn("Got new-responder message for an already known responder.");
