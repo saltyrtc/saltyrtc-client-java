@@ -123,6 +123,10 @@ public class ResponderSignaling extends Signaling {
         }
         switch (messageType) {
             case "token":
+                if (this.authToken == null) {
+                    throw new ProtocolException(
+                        "Cannot encrypt token message for peer: Auth token is null");
+                }
                 return this.authToken.encrypt(payload, nonce);
             case "key":
                 return this.permanentKey.encrypt(payload, nonce, this.initiator.permanentKey);

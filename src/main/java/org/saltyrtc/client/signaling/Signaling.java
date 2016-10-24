@@ -819,7 +819,7 @@ public abstract class Signaling implements SignalingInterface {
                 break;
             case TASK:
                 // Messages after the handshake must come from the peer.
-                if (nonce.getSource() != this.getPeerAddress()) {
+                if (this.getPeerAddress() == null || nonce.getSource() != this.getPeerAddress()) {
                     // TODO: Ignore instead of throw?
                     throw new ValidationError("Received message with invalid sender address (" +
                             nonce.getSource() + " != " + this.getPeerAddress() + ")");
