@@ -78,7 +78,6 @@ public abstract class Signaling implements SignalingInterface {
     // WebSocket
     private final String host;
     private final int port;
-    private final String protocol = "wss";
     private final SSLContext sslContext;
     private WebSocket ws;
 
@@ -90,44 +89,38 @@ public abstract class Signaling implements SignalingInterface {
     private final SaltyRTC salty;
 
     // Server information
-    @Nullable
-    Server server;
+    @Nullable Server server;
 
     // Our keys
-    @NonNull
-    final KeyStore permanentKey;
+    @NonNull final KeyStore permanentKey;
     KeyStore sessionKey;
 
     // Peer trusted key or auth token
-    @Nullable
-    AuthToken authToken;
-    @Nullable
-    byte[] peerTrustedKey;
+    @Nullable AuthToken authToken;
+    @Nullable byte[] peerTrustedKey;
 
     // Server trusted key
-    @Nullable
-    byte[] expectedServerKey;
+    @Nullable byte[] expectedServerKey;
 
     // Signaling
-    @NonNull
-    private SignalingRole role;
+    @NonNull private SignalingRole role;
     short address = SALTYRTC_ADDR_UNKNOWN;
     CombinedSequencePair serverCsn = new CombinedSequencePair();
     ServerHandshakeState serverHandshakeState = ServerHandshakeState.NEW;
 
     // Tasks
-    final Task[] tasks;
-    Task task = null;
+    @NonNull final Task[] tasks;
+    Task task;
 
     // Message history
     private final MessageHistory history = new MessageHistory(10);
 
     public Signaling(SaltyRTC salty, String host, int port,
-                     KeyStore permanentKey, SSLContext sslContext,
+                     @NonNull KeyStore permanentKey, SSLContext sslContext,
                      @Nullable byte[] peerTrustedKey,
                      @Nullable byte[] expectedServerKey,
-                     SignalingRole role,
-                     Task[] tasks) {
+                     @NonNull SignalingRole role,
+                     @NonNull Task[] tasks) {
         this.salty = salty;
         this.host = host;
         this.port = port;
@@ -278,7 +271,7 @@ public abstract class Signaling implements SignalingInterface {
      */
     private void initWebsocket() throws IOException {
         // Build connection URL
-        final String baseUrl = this.protocol + "://" + this.host + ":" + this.port + "/";
+        final String baseUrl = "wss://" + this.host + ":" + this.port + "/";
         final URI uri = URI.create(baseUrl + this.getWebsocketPath());
         this.getLogger().debug("Initialize WebSocket connection to " + uri);
 
