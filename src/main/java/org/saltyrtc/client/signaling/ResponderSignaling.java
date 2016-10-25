@@ -352,7 +352,8 @@ public class ResponderSignaling extends Signaling {
             // Nonce claims to come from server.
             // Try to decrypt data accordingly.
             try {
-                payload = this.permanentKey.decrypt(box, this.serverSessionKey);
+                assert this.server != null;
+                payload = this.permanentKey.decrypt(box, this.server.getSessionKey());
             } catch (CryptoFailedException | InvalidKeyException e) {
                 e.printStackTrace();
                 throw new ProtocolException("Could not decrypt server message");

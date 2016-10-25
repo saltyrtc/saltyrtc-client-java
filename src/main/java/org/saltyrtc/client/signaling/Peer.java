@@ -9,6 +9,7 @@
 package org.saltyrtc.client.signaling;
 
 import org.saltyrtc.client.annotations.NonNull;
+import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.cookie.CookiePair;
 import org.saltyrtc.client.nonce.CombinedSequencePair;
 
@@ -16,13 +17,20 @@ import org.saltyrtc.client.nonce.CombinedSequencePair;
  * Either the server, the initiator or a responder.
  */
 public abstract class Peer {
-    short id;
-    byte[] permanentKey;
-    byte[] sessionKey;
-    @NonNull
-    private final CombinedSequencePair csnPair;
-    @NonNull
-    private CookiePair cookiePair;
+    // Receiver id
+    private short id;
+
+    // Permanent key of the peer
+    @Nullable byte[] permanentKey;
+
+    // Session key of the peer
+    @Nullable byte[] sessionKey;
+
+    // CSN pair
+    @NonNull private final CombinedSequencePair csnPair;
+
+    // Cookie pair
+    @NonNull private CookiePair cookiePair;
 
 	/**
      * Initialize a peer with just an ID.
@@ -34,17 +42,9 @@ public abstract class Peer {
     }
 
 	/**
-     * Initialize a peer with an permanent key.
-     */
-    public Peer(short id, byte[] permanentKey) {
-        this(id);
-        this.permanentKey = permanentKey;
-    }
-
-	/**
      * Initialize a peer with a cookie pair.
      */
-    public Peer(short id, CookiePair cookiePair) {
+    public Peer(short id, @NonNull CookiePair cookiePair) {
         this.id = id;
         this.cookiePair = cookiePair;
         this.csnPair = new CombinedSequencePair();
@@ -54,20 +54,30 @@ public abstract class Peer {
         return id;
     }
 
+    @Nullable
     public byte[] getPermanentKey() {
         return this.permanentKey;
     }
 
-    public void setPermanentKey(byte[] permanentKey) {
+    public void setPermanentKey(@Nullable byte[] permanentKey) {
         this.permanentKey = permanentKey;
     }
 
+    public boolean hasPermanentKey() {
+        return this.permanentKey != null;
+    }
+
+    @Nullable
     public byte[] getSessionKey() {
         return this.sessionKey;
     }
 
-    public void setSessionKey(byte[] sessionKey) {
+    public void setSessionKey(@Nullable byte[] sessionKey) {
         this.sessionKey = sessionKey;
+    }
+
+    public boolean hasSessionKey() {
+        return this.sessionKey != null;
     }
 
     @NonNull

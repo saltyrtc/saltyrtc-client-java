@@ -21,13 +21,10 @@ public class Initiator extends Peer {
     public InitiatorHandshakeState handshakeState;
 
     public Initiator(byte[] permanentKey) {
-        super(Initiator.ID, permanentKey);
+        super(Initiator.ID);
+        this.permanentKey = permanentKey;
         this.connected = false;
         this.handshakeState = InitiatorHandshakeState.NEW;
-    }
-
-    public short getId() {
-        return 0x01;
     }
 
     public boolean isConnected() {

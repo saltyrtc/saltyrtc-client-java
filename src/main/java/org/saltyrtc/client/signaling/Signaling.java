@@ -93,17 +93,20 @@ public abstract class Signaling implements SignalingInterface {
     @Nullable
     Server server;
 
-    // Keys
-    byte[] serverSessionKey;
-    @Nullable
-    byte[] expectedServerKey;
-    KeyStore sessionKey;
+    // Our keys
     @NonNull
     final KeyStore permanentKey;
+    KeyStore sessionKey;
+
+    // Peer trusted key or auth token
     @Nullable
     AuthToken authToken;
     @Nullable
     byte[] peerTrustedKey;
+
+    // Server trusted key
+    @Nullable
+    byte[] expectedServerKey;
 
     // Signaling
     @NonNull
@@ -538,7 +541,8 @@ public abstract class Signaling implements SignalingInterface {
         } else {
             // Later, they're encrypted with our permanent key and the server key
             try {
-                payload = this.permanentKey.decrypt(box, this.serverSessionKey);
+                assert this.server != null;
+                payload = this.permanentKey.decrypt(box, this.server.getSessionKey());
             } catch (CryptoFailedException | InvalidKeyException e) {
                 throw new ProtocolException("Could not decrypt server message", e);
             }
@@ -618,7 +622,8 @@ public abstract class Signaling implements SignalingInterface {
         final Message message;
 
         try {
-            final byte[] decrypted = this.permanentKey.decrypt(box, this.serverSessionKey);
+            assert this.server != null;
+            final byte[] decrypted = this.permanentKey.decrypt(box, this.server.getSessionKey());
             message = MessageReader.read(decrypted);
         } catch (CryptoFailedException e) {
             this.getLogger().error("Could not decrypt incoming message from server", e);
@@ -665,11 +670,10 @@ public abstract class Signaling implements SignalingInterface {
      * Handle an incoming server-hello message.
      */
     private void handleServerHello(ServerHello msg, SignalingChannelNonce nonce) {
-        // Store server public key
-        this.serverSessionKey = msg.getKey();
-
-        // Store cookie
-        this.server = new Server(new CookiePair(nonce.getCookie()));
+        // Create server instance
+        final CookiePair cookiePair = new CookiePair(nonce.getCookie());
+        final byte[] sessionKey = msg.getKey();
+        this.server = new Server(cookiePair, sessionKey);
     }
 
     /**
@@ -711,6 +715,7 @@ public abstract class Signaling implements SignalingInterface {
                             @NonNull SignalingChannelNonce nonce,
                             @NonNull byte[] expectedServerKey)
             throws ValidationError {
+        assert this.server != null;
         if (signedKeys == null) {
             throw new ValidationError("Server did not send signed_keys in server-auth message");
         }
@@ -718,14 +723,14 @@ public abstract class Signaling implements SignalingInterface {
         final byte[] decrypted;
         try {
             getLogger().debug("Expected server key is " + NaCl.asHex(expectedServerKey));
-            getLogger().debug("Server session key is " + NaCl.asHex(this.serverSessionKey));
+            getLogger().debug("Server session key is " + NaCl.asHex(this.server.getSessionKey()));
             decrypted = this.permanentKey.decrypt(box, expectedServerKey);
         } catch (CryptoFailedException e) {
             throw new ValidationError("Could not decrypt signed_keys in server-auth message", e);
         } catch (InvalidKeyException e) {
             throw new ValidationError("Invalid key when trying to decrypt signed_keys in server-auth message", e);
         }
-        final byte[] expected = ArrayHelper.concat(this.serverSessionKey, this.permanentKey.getPublicKey());
+        final byte[] expected = ArrayHelper.concat(this.server.getSessionKey(), this.permanentKey.getPublicKey());
         if (!Arrays.equals(decrypted, expected)) {
             throw new ValidationError("Decrypted signed_keys in server-auth message is invalid");
         }
@@ -986,7 +991,8 @@ public abstract class Signaling implements SignalingInterface {
      */
     private Box encryptHandshakeDataForServer(byte[] payload, byte[] nonce)
             throws CryptoFailedException, InvalidKeyException {
-        return this.permanentKey.encrypt(payload, nonce, this.serverSessionKey);
+        assert this.server != null;
+        return this.permanentKey.encrypt(payload, nonce, this.server.getSessionKey());
     }
 
     /**
