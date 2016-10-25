@@ -8,22 +8,50 @@
 
 package org.saltyrtc.client.signaling;
 
-import org.saltyrtc.client.cookie.Cookie;
+import org.saltyrtc.client.annotations.NonNull;
+import org.saltyrtc.client.cookie.CookiePair;
 import org.saltyrtc.client.nonce.CombinedSequencePair;
 
+/**
+ * Either the server, the initiator or a responder.
+ */
 public abstract class Peer {
-    protected byte[] permanentKey;
-    protected byte[] sessionKey;
-    protected final CombinedSequencePair csnPair;
-    protected Cookie cookie;
+    short id;
+    byte[] permanentKey;
+    byte[] sessionKey;
+    @NonNull
+    private final CombinedSequencePair csnPair;
+    @NonNull
+    private CookiePair cookiePair;
 
-    public Peer() {
+	/**
+     * Initialize a peer with just an ID.
+     */
+    public Peer(short id) {
+        this.id = id;
+        this.csnPair = new CombinedSequencePair();
+        this.cookiePair = new CookiePair();
+    }
+
+	/**
+     * Initialize a peer with an permanent key.
+     */
+    public Peer(short id, byte[] permanentKey) {
+        this(id);
+        this.permanentKey = permanentKey;
+    }
+
+	/**
+     * Initialize a peer with a cookie pair.
+     */
+    public Peer(short id, CookiePair cookiePair) {
+        this.id = id;
+        this.cookiePair = cookiePair;
         this.csnPair = new CombinedSequencePair();
     }
 
-    public Peer(byte[] permanentKey) {
-        this();
-        this.permanentKey = permanentKey;
+    public short getId() {
+        return id;
     }
 
     public byte[] getPermanentKey() {
@@ -42,21 +70,16 @@ public abstract class Peer {
         this.sessionKey = sessionKey;
     }
 
+    @NonNull
     public CombinedSequencePair getCsnPair() {
         return this.csnPair;
     }
 
     /**
-     * Return the peer cookie.
+     * Return the cookie pair.
      */
-    public Cookie getCookie() {
-        return cookie;
-    }
-
-    /**
-     * Set the peer cookie.
-     */
-    public void setCookie(Cookie cookie) {
-        this.cookie = cookie;
+    @NonNull
+    public CookiePair getCookiePair() {
+        return this.cookiePair;
     }
 }
