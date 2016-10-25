@@ -85,7 +85,7 @@ public class InitiatorSignaling extends Signaling {
     protected CombinedSequenceSnapshot getNextCsn(short receiver) throws ProtocolException {
         try {
             if (receiver == SALTYRTC_ADDR_SERVER) {
-                return this.serverCsn.getOurs().next();
+                return this.server.getCsnPair().getOurs().next();
             } else if (receiver == SALTYRTC_ADDR_INITIATOR) {
                 throw new ProtocolException("Initiator cannot send messages to initiator");
             } else if (this.isResponderId(receiver)) {
@@ -235,7 +235,7 @@ public class InitiatorSignaling extends Signaling {
             // Nonce claims to come from server.
             // Try to decrypt data accordingly.
             try {
-                assert this.server != null;
+                assert this.server.hasSessionKey();
                 payload = this.permanentKey.decrypt(box, this.server.getSessionKey());
             } catch (CryptoFailedException | InvalidKeyException e) {
                 e.printStackTrace();

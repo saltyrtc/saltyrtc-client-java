@@ -89,7 +89,7 @@ public abstract class Signaling implements SignalingInterface {
     private final SaltyRTC salty;
 
     // Server information
-    @Nullable Server server;
+    @NonNull Server server;
 
     // Our keys
     @NonNull final KeyStore permanentKey;
@@ -105,7 +105,7 @@ public abstract class Signaling implements SignalingInterface {
     // Signaling
     @NonNull private SignalingRole role;
     short address = SALTYRTC_ADDR_UNKNOWN;
-    CombinedSequencePair serverCsn = new CombinedSequencePair();
+    // TODO: Move into Server instance
     ServerHandshakeState serverHandshakeState = ServerHandshakeState.NEW;
 
     // Tasks
@@ -130,6 +130,7 @@ public abstract class Signaling implements SignalingInterface {
         this.expectedServerKey = expectedServerKey;
         this.role = role;
         this.tasks = tasks;
+        this.server = new Server();
     }
 
     @NonNull
@@ -252,9 +253,9 @@ public abstract class Signaling implements SignalingInterface {
         this.disconnect(reason);
 
         // Reset
+        this.server = new Server();
         this.handoverState.reset();
         this.serverHandshakeState = ServerHandshakeState.NEW;
-        this.serverCsn = new CombinedSequencePair();
         this.setState(SignalingState.NEW);
         this.getLogger().debug("Connection reset");
     }
@@ -457,7 +458,6 @@ public abstract class Signaling implements SignalingInterface {
      */
     byte[] buildPacket(Message msg, Peer receiver, boolean encrypt) throws ProtocolException {
         // Choose proper combined sequence number
-        // TODO: Use proper receiver CSN
         final CombinedSequenceSnapshot csn = this.getNextCsn(receiver.getId());
 
         // Create nonce
@@ -534,7 +534,7 @@ public abstract class Signaling implements SignalingInterface {
         } else {
             // Later, they're encrypted with our permanent key and the server key
             try {
-                assert this.server != null;
+                assert this.server.hasSessionKey();
                 payload = this.permanentKey.decrypt(box, this.server.getSessionKey());
             } catch (CryptoFailedException | InvalidKeyException e) {
                 throw new ProtocolException("Could not decrypt server message", e);
@@ -615,7 +615,7 @@ public abstract class Signaling implements SignalingInterface {
         final Message message;
 
         try {
-            assert this.server != null;
+            assert this.server.hasSessionKey();
             final byte[] decrypted = this.permanentKey.decrypt(box, this.server.getSessionKey());
             message = MessageReader.read(decrypted);
         } catch (CryptoFailedException e) {
@@ -662,11 +662,10 @@ public abstract class Signaling implements SignalingInterface {
     /**
      * Handle an incoming server-hello message.
      */
-    private void handleServerHello(ServerHello msg, SignalingChannelNonce nonce) {
+    private void handleServerHello(ServerHello msg, SignalingChannelNonce nonce) throws ProtocolException {
         // Create server instance
-        final CookiePair cookiePair = new CookiePair(nonce.getCookie());
-        final byte[] sessionKey = msg.getKey();
-        this.server = new Server(cookiePair, sessionKey);
+        this.server.setSessionKey(msg.getKey());
+        this.server.getCookiePair().setTheirs(nonce.getCookie());
     }
 
     /**
@@ -708,7 +707,7 @@ public abstract class Signaling implements SignalingInterface {
                             @NonNull SignalingChannelNonce nonce,
                             @NonNull byte[] expectedServerKey)
             throws ValidationError {
-        assert this.server != null;
+        assert this.server.hasSessionKey();
         if (signedKeys == null) {
             throw new ValidationError("Server did not send signed_keys in server-auth message");
         }
@@ -896,7 +895,7 @@ public abstract class Signaling implements SignalingInterface {
      */
     private void validateSignalingNonceCsn(SignalingChannelNonce nonce) throws ValidationError {
         if (nonce.getSource() == SALTYRTC_ADDR_SERVER) {
-            this.validateSignalingNonceCsn(nonce, this.serverCsn, "server");
+            this.validateSignalingNonceCsn(nonce, this.server.getCsnPair(), "server");
         } else {
             this.validateSignalingNoncePeerCsn(nonce);
         }
@@ -948,8 +947,9 @@ public abstract class Signaling implements SignalingInterface {
      */
     private void validateSignalingNonceCookie(SignalingChannelNonce nonce) throws ValidationError {
         if (nonce.getSource() == SALTYRTC_ADDR_SERVER) {
-            if (this.server != null) { // Server might not yet have been set
-                if (!nonce.getCookie().equals(this.server.getCookiePair().getTheirs())) {
+            final CookiePair cookiePair = this.server.getCookiePair();
+            if (cookiePair.hasTheirs()) { // Server cookie might not yet have been set
+                if (!nonce.getCookie().equals(cookiePair.getTheirs())) {
                     throw new ValidationError("Server cookie changed");
                 }
             }
@@ -984,7 +984,7 @@ public abstract class Signaling implements SignalingInterface {
      */
     private Box encryptHandshakeDataForServer(byte[] payload, byte[] nonce)
             throws CryptoFailedException, InvalidKeyException {
-        assert this.server != null;
+        assert this.server.hasSessionKey();
         return this.permanentKey.encrypt(payload, nonce, this.server.getSessionKey());
     }
 
