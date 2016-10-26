@@ -16,7 +16,6 @@ import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
 import org.saltyrtc.client.exceptions.InternalException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
-import org.saltyrtc.client.exceptions.OverflowException;
 import org.saltyrtc.client.exceptions.ProtocolException;
 import org.saltyrtc.client.exceptions.SerializationError;
 import org.saltyrtc.client.exceptions.SignalingException;
@@ -34,7 +33,6 @@ import org.saltyrtc.client.messages.c2c.Token;
 import org.saltyrtc.client.messages.s2c.ClientHello;
 import org.saltyrtc.client.messages.s2c.NewInitiator;
 import org.saltyrtc.client.messages.s2c.ResponderServerAuth;
-import org.saltyrtc.client.nonce.CombinedSequenceSnapshot;
 import org.saltyrtc.client.nonce.SignalingChannelNonce;
 import org.saltyrtc.client.signaling.state.InitiatorHandshakeState;
 import org.saltyrtc.client.signaling.state.ServerHandshakeState;
@@ -93,23 +91,6 @@ public class ResponderSignaling extends Signaling {
     @Override
     protected String getWebsocketPath() {
         return NaCl.asHex(this.initiator.getPermanentKey());
-    }
-
-    @Override
-    protected CombinedSequenceSnapshot getNextCsn(short receiver) throws ProtocolException {
-        try {
-            if (receiver == Signaling.SALTYRTC_ADDR_SERVER) {
-                return this.server.getCsnPair().getOurs().next();
-            } else if (receiver == Signaling.SALTYRTC_ADDR_INITIATOR) {
-                return this.initiator.getCsnPair().getOurs().next();
-            } else if (this.isResponderId(receiver)) {
-                throw new ProtocolException("Responder may not send messages to other responders: " + receiver);
-            } else {
-                throw new ProtocolException("Bad receiver byte: " + receiver);
-            }
-        } catch (OverflowException e) {
-            throw new ProtocolException("OverflowException: " + e.getMessage());
-        }
     }
 
     @Override

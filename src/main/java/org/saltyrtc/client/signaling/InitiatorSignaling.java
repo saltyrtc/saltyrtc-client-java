@@ -15,7 +15,6 @@ import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
 import org.saltyrtc.client.exceptions.InternalException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
-import org.saltyrtc.client.exceptions.OverflowException;
 import org.saltyrtc.client.exceptions.ProtocolException;
 import org.saltyrtc.client.exceptions.SerializationError;
 import org.saltyrtc.client.exceptions.SignalingException;
@@ -33,7 +32,6 @@ import org.saltyrtc.client.messages.c2c.Token;
 import org.saltyrtc.client.messages.s2c.DropResponder;
 import org.saltyrtc.client.messages.s2c.InitiatorServerAuth;
 import org.saltyrtc.client.messages.s2c.NewResponder;
-import org.saltyrtc.client.nonce.CombinedSequenceSnapshot;
 import org.saltyrtc.client.nonce.SignalingChannelNonce;
 import org.saltyrtc.client.signaling.state.ResponderHandshakeState;
 import org.saltyrtc.client.signaling.state.ServerHandshakeState;
@@ -82,30 +80,6 @@ public class InitiatorSignaling extends Signaling {
     }
 
     @Override
-    protected CombinedSequenceSnapshot getNextCsn(short receiver) throws ProtocolException {
-        try {
-            if (receiver == SALTYRTC_ADDR_SERVER) {
-                return this.server.getCsnPair().getOurs().next();
-            } else if (receiver == SALTYRTC_ADDR_INITIATOR) {
-                throw new ProtocolException("Initiator cannot send messages to initiator");
-            } else if (this.isResponderId(receiver)) {
-                if (this.getState() == SignalingState.TASK) {
-                    assert this.responder != null;
-                    return this.responder.getCsnPair().getOurs().next();
-                } else if (this.responders.containsKey(receiver)) {
-                    return this.responders.get(receiver).getCsnPair().getOurs().next();
-                } else {
-                    throw new ProtocolException("Unknown responder: " + receiver);
-                }
-            } else {
-                throw new ProtocolException("Bad receiver byte: " + receiver);
-            }
-        } catch (OverflowException e) {
-            throw new ProtocolException("OverflowException: " + e.getMessage());
-        }
-    }
-
-    @Override
     protected Box encryptHandshakeDataForPeer(short receiver, String messageType,
                                               byte[] payload, byte[] nonce)
             throws CryptoFailedException, InvalidKeyException, ProtocolException {
@@ -127,7 +101,7 @@ public class InitiatorSignaling extends Signaling {
         }
 
         // Encrypt
-        if (messageType.equals("key")) {
+        if ("key".equals(messageType)) {
             return this.permanentKey.encrypt(payload, nonce, responder.getPermanentKey());
         } else {
             return responder.getKeyStore().encrypt(payload, nonce, responder.getSessionKey());

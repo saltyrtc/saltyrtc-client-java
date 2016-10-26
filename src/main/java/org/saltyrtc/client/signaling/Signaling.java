@@ -25,6 +25,7 @@ import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
 import org.saltyrtc.client.exceptions.InternalException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
+import org.saltyrtc.client.exceptions.OverflowException;
 import org.saltyrtc.client.exceptions.ProtocolException;
 import org.saltyrtc.client.exceptions.SerializationError;
 import org.saltyrtc.client.exceptions.SignalingException;
@@ -456,7 +457,12 @@ public abstract class Signaling implements SignalingInterface {
      */
     byte[] buildPacket(Message msg, Peer receiver, boolean encrypt) throws ProtocolException {
         // Choose proper combined sequence number
-        final CombinedSequenceSnapshot csn = this.getNextCsn(receiver.getId());
+        final CombinedSequenceSnapshot csn;
+        try {
+            csn = receiver.getCsnPair().getOurs().next();
+        } catch (OverflowException e) {
+            throw new ProtocolException("CSN overflow", e);
+        }
 
         // Create nonce
         final SignalingChannelNonce nonce = new SignalingChannelNonce(
@@ -776,11 +782,6 @@ public abstract class Signaling implements SignalingInterface {
             this.getLogger().error("Could not send close message");
         }
     }
-
-    /**
-     * Choose proper combined sequence number
-     */
-    abstract CombinedSequenceSnapshot getNextCsn(short receiver) throws ProtocolException;
 
     /**
      * Return `true` if receiver byte is a valid responder id (in the range 0x02-0xff).
