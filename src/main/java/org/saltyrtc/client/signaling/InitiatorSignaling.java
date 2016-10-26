@@ -390,7 +390,7 @@ public class InitiatorSignaling extends Signaling {
         final Key msg = new Key(responder.getKeyStore().getPublicKey());
         final byte[] packet = this.buildPacket(msg, responder);
         this.getLogger().debug("Sending key");
-        this.send(packet, msg);
+        this.send(packet);
         responder.handshakeState = ResponderHandshakeState.KEY_SENT;
     }
 
@@ -439,7 +439,7 @@ public class InitiatorSignaling extends Signaling {
         }
         final byte[] packet = this.buildPacket(msg, responder);
         this.getLogger().debug("Sending auth");
-        this.send(packet, msg);
+        this.send(packet);
 
         // Update state
         responder.handshakeState = ResponderHandshakeState.AUTH_SENT;
@@ -452,7 +452,7 @@ public class InitiatorSignaling extends Signaling {
         final DropResponder msg = new DropResponder(responder.getId(), reason);
         final byte[] packet = this.buildPacket(msg, responder);
         this.getLogger().debug("Sending drop-responder " + responder.getId());
-        this.send(packet, msg);
+        this.send(packet);
         this.responders.remove(responder.getId());
     }
 

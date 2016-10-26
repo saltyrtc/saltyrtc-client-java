@@ -9,10 +9,10 @@
 package org.saltyrtc.client.helpers;
 
 import org.saltyrtc.client.messages.Message;
+import org.saltyrtc.client.nonce.SignalingChannelNonce;
 import org.saltyrtc.vendor.com.neilalexander.jnacl.NaCl;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.nio.ByteBuffer;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -41,23 +41,25 @@ public class MessageHistory {
 
     /**
      * Store the message in the history.
-     *
-     * You also need to pass in the actually sent message bytes
-     * in order for this implementation to calculate the hash sum.
      */
-    public synchronized void store(Message message, byte[] sentData) {
-        // Calculate SHA256 over encrypted bytes
-        final MessageDigest md;
-        try {
-            md = MessageDigest.getInstance("SHA-256");
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("SHA-256 digest algorithm not available", e);
-        }
-        md.update(sentData);
-        final byte[] sha256sum = md.digest();
+    public synchronized void store(Message message, SignalingChannelNonce nonce) {
+        final byte[] key = MessageHistory.getMessageKey(nonce);
+        this.history.put(NaCl.asHex(key).toLowerCase(), message);
+    }
 
-        // Store message
-        this.history.put(NaCl.asHex(sha256sum).toLowerCase(), message);
+    /**
+     * Return the message key according to the specification:
+     *
+     * The concatenation of the source address, the destination address, the overflow number and the
+     * sequence number of the nonce section from the original message.
+     */
+    public static byte[] getMessageKey(SignalingChannelNonce nonce) {
+        final ByteBuffer buf = ByteBuffer.allocate(8);
+        buf.put(UnsignedHelper.getUnsignedByte(nonce.getSource()));
+        buf.put(UnsignedHelper.getUnsignedByte(nonce.getDestination()));
+        buf.putShort(UnsignedHelper.getUnsignedShort(nonce.getOverflow()));
+        buf.putInt(UnsignedHelper.getUnsignedInt(nonce.getSequence()));
+        return buf.array();
     }
 
     /**
@@ -65,15 +67,15 @@ public class MessageHistory {
      *
      * If message is not found, null is returned.
      */
-    public synchronized Message find(byte[] sha256Sum) {
-        return this.history.get(NaCl.asHex(sha256Sum).toLowerCase());
+    public synchronized Message find(byte[] key) {
+        return this.history.get(NaCl.asHex(key).toLowerCase());
     }
 
     /**
      * Look up a sent message by SHA256 hash hex string.
      */
-    public synchronized Message find(String sha256Sum) {
-        return this.history.get(sha256Sum.toLowerCase());
+    public synchronized Message find(String key) {
+        return this.history.get(key.toLowerCase());
     }
 
     public synchronized int size() {

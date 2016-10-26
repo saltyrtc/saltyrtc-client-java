@@ -126,7 +126,7 @@ public class ResponderSignaling extends Signaling {
         final ClientHello msg = new ClientHello(this.permanentKey.getPublicKey());
         final byte[] packet = this.buildPacket(msg, this.server, false);
         this.getLogger().debug("Sending client-hello");
-        this.send(packet, msg);
+        this.send(packet);
         this.server.handshakeState = ServerHandshakeState.HELLO_SENT;
     }
 
@@ -195,7 +195,7 @@ public class ResponderSignaling extends Signaling {
         final Token msg = new Token(this.permanentKey.getPublicKey());
         final byte[] packet = this.buildPacket(msg, this.initiator);
         this.getLogger().debug("Sending token");
-        this.send(packet, msg);
+        this.send(packet);
         this.initiator.handshakeState = InitiatorHandshakeState.TOKEN_SENT;
     }
 
@@ -210,7 +210,7 @@ public class ResponderSignaling extends Signaling {
         final Key msg = new Key(this.sessionKey.getPublicKey());
         final byte[] packet = this.buildPacket(msg, this.initiator);
         this.getLogger().debug("Sending key");
-        this.send(packet, msg);
+        this.send(packet);
         this.initiator.handshakeState = InitiatorHandshakeState.KEY_SENT;
     }
 
@@ -244,7 +244,7 @@ public class ResponderSignaling extends Signaling {
         }
         final byte[] packet = this.buildPacket(msg, this.initiator);
         this.getLogger().debug("Sending auth");
-        this.send(packet, msg);
+        this.send(packet);
         this.initiator.handshakeState = InitiatorHandshakeState.AUTH_SENT;
     }
 

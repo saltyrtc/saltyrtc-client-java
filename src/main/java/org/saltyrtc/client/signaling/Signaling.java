@@ -493,6 +493,10 @@ public abstract class Signaling implements SignalingInterface {
         } catch (CryptoFailedException | InvalidKeyException e) {
             throw new ProtocolException("Encrypting failed: " + e.getMessage(), e);
         }
+
+        // Store message in message history
+        this.history.store(msg, nonce);
+
         return box.toBytes();
     }
 
@@ -685,7 +689,7 @@ public abstract class Signaling implements SignalingInterface {
         final ClientAuth msg = new ClientAuth(this.server.getCookiePair().getTheirs().getBytes(), subprotocols);
         final byte[] packet = this.buildPacket(msg, this.server);
         this.getLogger().debug("Sending client-auth");
-        this.send(packet, msg);
+        this.send(packet);
         this.server.handshakeState = ServerHandshakeState.AUTH_SENT;
     }
 
@@ -776,7 +780,7 @@ public abstract class Signaling implements SignalingInterface {
         }
         this.getLogger().debug("Sending close");
         try {
-            this.send(packet, msg);
+            this.send(packet);
         } catch (SignalingException | ConnectionException e) {
             e.printStackTrace();
             this.getLogger().error("Could not send close message");
@@ -997,7 +1001,7 @@ public abstract class Signaling implements SignalingInterface {
     /**
      * Send binary data through the signaling channel.
      */
-    private void send(byte[] payload) throws ConnectionException, SignalingException {
+    void send(byte[] payload) throws ConnectionException, SignalingException {
         // Verify connection state
         final SignalingState state = this.getState();
         if (state != SignalingState.TASK &&
@@ -1018,19 +1022,6 @@ public abstract class Signaling implements SignalingInterface {
     }
 
     /**
-     * Like `send(byte[] payload)`, but additionally store the sent message in the message history.
-     *
-     * This allows the message to be recognized in the case of a send error.
-     */
-    void send(byte[] payload, Message message) throws ConnectionException, SignalingException {
-        // Send data
-        this.send(payload);
-
-        // Store sent message in history
-        this.history.store(message, payload);
-    }
-
-    /**
      * Send a task message through the signaling channel.
      */
     public void sendTaskMessage(TaskMessage msg) throws SignalingException, ConnectionException {
@@ -1039,7 +1030,7 @@ public abstract class Signaling implements SignalingInterface {
             throw new SignalingException(CloseCode.INTERNAL_ERROR, "No peer address could be found");
         }
         final byte[] packet = this.buildPacket(msg, receiver);
-        this.send(packet, msg);
+        this.send(packet);
     }
 
     private void handleClose(Close msg) {
