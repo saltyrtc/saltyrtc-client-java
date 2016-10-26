@@ -50,7 +50,7 @@ import javax.net.ssl.SSLContext;
 public class ResponderSignaling extends Signaling {
 
     @NonNull
-    private final Initiator initiator;
+    private Initiator initiator;
     @Nullable
     private AuthToken authToken = null;
 
@@ -389,8 +389,8 @@ public class ResponderSignaling extends Signaling {
      * A new initiator replaces the old one.
      */
     private void handleNewInitiator(NewInitiator msg) throws SignalingException, ConnectionException {
+        this.initiator = new Initiator(this.initiator.getPermanentKey());
         this.initiator.setConnected(true);
-        // TODO: Replace old initiator?
         this.initPeerHandshake();
     }
 
