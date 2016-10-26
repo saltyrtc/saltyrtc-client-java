@@ -146,7 +146,7 @@ public class ResponderSignaling extends Signaling {
         final byte[] packet = this.buildPacket(msg, this.server, false);
         this.getLogger().debug("Sending client-hello");
         this.send(packet, msg);
-        this.serverHandshakeState = ServerHandshakeState.HELLO_SENT;
+        this.server.handshakeState = ServerHandshakeState.HELLO_SENT;
     }
 
     @Override
@@ -193,7 +193,7 @@ public class ResponderSignaling extends Signaling {
         this.getLogger().debug("Initiator is " + (msg.isInitiatorConnected() ? "" : "not ") + "connected.");
 
         // Server handshake is done!
-        this.serverHandshakeState = ServerHandshakeState.DONE;
+        this.server.handshakeState = ServerHandshakeState.DONE;
     }
 
     @Override

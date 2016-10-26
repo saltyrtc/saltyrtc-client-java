@@ -105,8 +105,6 @@ public abstract class Signaling implements SignalingInterface {
     // Signaling
     @NonNull private SignalingRole role;
     short address = SALTYRTC_ADDR_UNKNOWN;
-    // TODO: Move into Server instance
-    ServerHandshakeState serverHandshakeState = ServerHandshakeState.NEW;
 
     // Tasks
     @NonNull final Task[] tasks;
@@ -254,8 +252,8 @@ public abstract class Signaling implements SignalingInterface {
 
         // Reset
         this.server = new Server();
+        this.server.handshakeState = ServerHandshakeState.NEW;
         this.handoverState.reset();
-        this.serverHandshakeState = ServerHandshakeState.NEW;
         this.setState(SignalingState.NEW);
         this.getLogger().debug("Connection reset");
     }
@@ -528,7 +526,7 @@ public abstract class Signaling implements SignalingInterface {
             throws ValidationError, SerializationError, SignalingException, ConnectionException {
         // Decrypt if necessary
         final byte[] payload;
-        if (this.serverHandshakeState == ServerHandshakeState.NEW) {
+        if (this.server.handshakeState == ServerHandshakeState.NEW) {
             // The very first message is unencrypted
             payload = box.getData();
         } else {
@@ -543,7 +541,7 @@ public abstract class Signaling implements SignalingInterface {
 
         // Handle message depending on state
         Message msg = MessageReader.read(payload);
-        switch (this.serverHandshakeState) {
+        switch (this.server.handshakeState) {
             case NEW:
                 // Expect server-hello
                 if (msg instanceof ServerHello) {
@@ -574,7 +572,7 @@ public abstract class Signaling implements SignalingInterface {
         }
 
         // Check if we're done yet
-        if (this.serverHandshakeState == ServerHandshakeState.DONE) {
+        if (this.server.handshakeState == ServerHandshakeState.DONE) {
             this.setState(SignalingState.PEER_HANDSHAKE);
             this.getLogger().info("Server handshake done");
             this.initPeerHandshake();
@@ -682,7 +680,7 @@ public abstract class Signaling implements SignalingInterface {
         final byte[] packet = this.buildPacket(msg, this.server);
         this.getLogger().debug("Sending client-auth");
         this.send(packet, msg);
-        this.serverHandshakeState = ServerHandshakeState.AUTH_SENT;
+        this.server.handshakeState = ServerHandshakeState.AUTH_SENT;
     }
 
     /**
@@ -857,7 +855,7 @@ public abstract class Signaling implements SignalingInterface {
     private void validateSignalingNonceReceiver(SignalingChannelNonce nonce) throws ValidationError {
         Short expected = null;
         if (this.getState() == SignalingState.SERVER_HANDSHAKE) {
-            switch (this.serverHandshakeState) {
+            switch (this.server.handshakeState) {
                 // Before receiving the server auth-message, the receiver byte is 0x00
                 case NEW:
                 case HELLO_SENT:

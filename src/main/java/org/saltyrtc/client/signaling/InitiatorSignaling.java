@@ -212,7 +212,7 @@ public class InitiatorSignaling extends Signaling {
         this.getLogger().debug(this.responders.size() + " responder(s) connected.");
 
         // Server handshake is done!
-        this.serverHandshakeState = ServerHandshakeState.DONE;
+        this.server.handshakeState = ServerHandshakeState.DONE;
     }
 
     @Override
