@@ -338,12 +338,6 @@ public class InitiatorSignaling extends Signaling {
         // Validate responder id
         final short id = this.validateResponderId(msg.getId());
 
-        // Check whether responder is already known
-        if (this.responders.containsKey(id)) {
-            throw new ProtocolException("Got new-responder message for an " +
-                                        "already known responder (" + id + ")");
-        }
-
         // Process responder
         this.processNewResponder(id);
     }
@@ -352,10 +346,9 @@ public class InitiatorSignaling extends Signaling {
      * Store a new responder.
      */
     private void processNewResponder(short responderId) {
-        // Make sure this is a new responder
+        // Drop responder if it's already known
         if (this.responders.containsKey(responderId)) {
-            this.getLogger().warn("Got new-responder message for an already known responder.");
-            return;
+            this.responders.remove(responderId);
         }
 
         // Create responder instance
