@@ -15,7 +15,6 @@ import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
 import org.saltyrtc.client.exceptions.InternalException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
-import org.saltyrtc.client.exceptions.OverflowException;
 import org.saltyrtc.client.exceptions.ProtocolException;
 import org.saltyrtc.client.exceptions.SerializationError;
 import org.saltyrtc.client.exceptions.SignalingException;
@@ -33,7 +32,6 @@ import org.saltyrtc.client.messages.c2c.Token;
 import org.saltyrtc.client.messages.s2c.DropResponder;
 import org.saltyrtc.client.messages.s2c.InitiatorServerAuth;
 import org.saltyrtc.client.messages.s2c.NewResponder;
-import org.saltyrtc.client.nonce.CombinedSequenceSnapshot;
 import org.saltyrtc.client.nonce.SignalingChannelNonce;
 import org.saltyrtc.client.signaling.state.ResponderHandshakeState;
 import org.saltyrtc.client.signaling.state.ServerHandshakeState;
@@ -45,7 +43,6 @@ import org.slf4j.Logger;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 import javax.net.ssl.SSLContext;
 
@@ -83,30 +80,6 @@ public class InitiatorSignaling extends Signaling {
     }
 
     @Override
-    protected CombinedSequenceSnapshot getNextCsn(short receiver) throws ProtocolException {
-        try {
-            if (receiver == SALTYRTC_ADDR_SERVER) {
-                return this.serverCsn.getOurs().next();
-            } else if (receiver == SALTYRTC_ADDR_INITIATOR) {
-                throw new ProtocolException("Initiator cannot send messages to initiator");
-            } else if (this.isResponderId(receiver)) {
-                if (this.getState() == SignalingState.TASK) {
-                    assert this.responder != null;
-                    return this.responder.getCsnPair().getOurs().next();
-                } else if (this.responders.containsKey(receiver)) {
-                    return this.responders.get(receiver).getCsnPair().getOurs().next();
-                } else {
-                    throw new ProtocolException("Unknown responder: " + receiver);
-                }
-            } else {
-                throw new ProtocolException("Bad receiver byte: " + receiver);
-            }
-        } catch (OverflowException e) {
-            throw new ProtocolException("OverflowException: " + e.getMessage());
-        }
-    }
-
-    @Override
     protected Box encryptHandshakeDataForPeer(short receiver, String messageType,
                                               byte[] payload, byte[] nonce)
             throws CryptoFailedException, InvalidKeyException, ProtocolException {
@@ -128,7 +101,7 @@ public class InitiatorSignaling extends Signaling {
         }
 
         // Encrypt
-        if (messageType.equals("key")) {
+        if ("key".equals(messageType)) {
             return this.permanentKey.encrypt(payload, nonce, responder.getPermanentKey());
         } else {
             return responder.getKeyStore().encrypt(payload, nonce, responder.getSessionKey());
@@ -184,11 +157,12 @@ public class InitiatorSignaling extends Signaling {
         this.address = SALTYRTC_ADDR_INITIATOR;
 
         // Validate cookie
-        final Cookie cookie = new Cookie(msg.getYourCookie());
-        if (!cookie.equals(this.cookie)) {
+        final Cookie repeatedCookie = new Cookie(msg.getYourCookie());
+        final Cookie ourCookie = this.server.getCookiePair().getOurs();
+        if (!repeatedCookie.equals(ourCookie)) {
             this.getLogger().error("Bad repeated cookie in server-auth message");
-            this.getLogger().debug("Their response: " + Arrays.toString(msg.getYourCookie()) +
-                              ", our cookie: " + Arrays.toString(this.cookie.getBytes()));
+            this.getLogger().debug("Their response: " + Arrays.toString(repeatedCookie.getBytes()) +
+                              ", our cookie: " + Arrays.toString(ourCookie.getBytes()));
             throw new ProtocolException("Bad repeated cookie in server-auth message");
         }
 
@@ -212,7 +186,7 @@ public class InitiatorSignaling extends Signaling {
         this.getLogger().debug(this.responders.size() + " responder(s) connected.");
 
         // Server handshake is done!
-        this.serverHandshakeState = ServerHandshakeState.DONE;
+        this.server.handshakeState = ServerHandshakeState.DONE;
     }
 
     @Override
@@ -235,7 +209,8 @@ public class InitiatorSignaling extends Signaling {
             // Nonce claims to come from server.
             // Try to decrypt data accordingly.
             try {
-                payload = this.permanentKey.decrypt(box, this.serverSessionKey);
+                assert this.server.hasSessionKey();
+                payload = this.permanentKey.decrypt(box, this.server.getSessionKey());
             } catch (CryptoFailedException | InvalidKeyException e) {
                 e.printStackTrace();
                 throw new ProtocolException("Could not decrypt server message");
@@ -270,7 +245,7 @@ public class InitiatorSignaling extends Signaling {
                         payload = this.authToken.decrypt(box);
                     } catch (CryptoFailedException e) {
                         this.getLogger().warn("Could not decrypt token message");
-                        this.dropResponder(responder.getId()); // TODO: Reason
+                        this.dropResponder(responder); // TODO: Reason
                         return;
                     }
                     msg = MessageReader.read(payload);
@@ -291,7 +266,7 @@ public class InitiatorSignaling extends Signaling {
                         payload = this.permanentKey.decrypt(box, peerPublicKey);
                     } catch (CryptoFailedException e) {
                         this.getLogger().warn("Could not decrypt key message");
-                        this.dropResponder(responder.getId());
+                        this.dropResponder(responder);
                         return;
                     } catch (InvalidKeyException e) {
                         e.printStackTrace();
@@ -420,7 +395,7 @@ public class InitiatorSignaling extends Signaling {
      */
     private void sendKey(Responder responder) throws SignalingException, ConnectionException {
         final Key msg = new Key(responder.getKeyStore().getPublicKey());
-        final byte[] packet = this.buildPacket(msg, responder.getId());
+        final byte[] packet = this.buildPacket(msg, responder);
         this.getLogger().debug("Sending key");
         this.send(packet, msg);
         responder.handshakeState = ResponderHandshakeState.KEY_SENT;
@@ -431,7 +406,7 @@ public class InitiatorSignaling extends Signaling {
      */
     private void handleAuth(ResponderAuth msg, Responder responder, SignalingChannelNonce nonce) throws SignalingException {
         // Validate cookie
-        this.validateRepeatedCookie(msg.getYourCookie());
+        this.validateRepeatedCookie(responder, msg.getYourCookie());
 
         // Validation of task list and data already happens in the `ResponderAuth` constructor
 
@@ -450,10 +425,7 @@ public class InitiatorSignaling extends Signaling {
         this.getLogger().debug("Responder 0x" + NaCl.asHex(new int[] { responder.getId() }) + " authenticated");
 
         // Store cookie
-        if (nonce.getCookie().equals(this.cookie)) {
-            throw new ProtocolException("Local and remote cookies are equal");
-        }
-        responder.setCookie(nonce.getCookie());
+        responder.getCookiePair().setTheirs(nonce.getCookie());
 
         // Update state
         responder.handshakeState = ResponderHandshakeState.AUTH_RECEIVED;
@@ -463,11 +435,6 @@ public class InitiatorSignaling extends Signaling {
      * Repeat the responder's cookie and choose a task.
      */
     private void sendAuth(Responder responder, SignalingChannelNonce nonce) throws SignalingException, ConnectionException {
-        // Ensure that cookies are different
-        if (nonce.getCookie().equals(this.cookie)) {
-            throw new ProtocolException("Their cookie and our cookie are the same");
-        }
-
         // Send auth
         final InitiatorAuth msg;
         try {
@@ -477,7 +444,7 @@ public class InitiatorSignaling extends Signaling {
         } catch (ValidationError e) {
             throw new ProtocolException("Invalid task data", e);
         }
-        final byte[] packet = this.buildPacket(msg, responder.getId());
+        final byte[] packet = this.buildPacket(msg, responder);
         this.getLogger().debug("Sending auth");
         this.send(packet, msg);
 
@@ -488,12 +455,12 @@ public class InitiatorSignaling extends Signaling {
     /**
      * Drop specific responder.
      */
-    private void dropResponder(short responderId) throws SignalingException, ConnectionException {
-        final DropResponder msg = new DropResponder(responderId);
-        final byte[] packet = this.buildPacket(msg, responderId);
-        this.getLogger().debug("Sending drop-responder " + responderId);
+    private void dropResponder(Responder responder) throws SignalingException, ConnectionException {
+        final DropResponder msg = new DropResponder(responder.getId());
+        final byte[] packet = this.buildPacket(msg, responder);
+        this.getLogger().debug("Sending drop-responder " + responder.getId());
         this.send(packet, msg);
-        this.responders.remove(responderId);
+        this.responders.remove(responder.getId());
     }
 
     /**
@@ -501,28 +468,15 @@ public class InitiatorSignaling extends Signaling {
      */
     private void dropResponders() throws SignalingException, ConnectionException {
         this.getLogger().debug("Dropping " + this.responders.size() + " other responders");
-        final Set<Short> ids = this.responders.keySet();
-        for (short id : ids) {
-            this.dropResponder(id);
+        for (Responder responder : this.responders.values()) {
+            this.dropResponder(responder);
         }
     }
 
     @Override
     @Nullable
-    protected Short getPeerAddress() {
-        if (this.responder != null) {
-            return this.responder.getId();
-        }
-        return null;
-    }
-
-    @Override
-    @Nullable
-    public Cookie getPeerCookie() {
-        if (this.responder != null) {
-            return this.responder.getCookie();
-        }
-        return null;
+    protected Peer getPeer() {
+        return this.responder;
     }
 
     @Override

@@ -8,55 +8,88 @@
 
 package org.saltyrtc.client.signaling;
 
-import org.saltyrtc.client.cookie.Cookie;
+import org.saltyrtc.client.annotations.NonNull;
+import org.saltyrtc.client.annotations.Nullable;
+import org.saltyrtc.client.cookie.CookiePair;
 import org.saltyrtc.client.nonce.CombinedSequencePair;
 
+/**
+ * Either the server, the initiator or a responder.
+ */
 public abstract class Peer {
-    protected byte[] permanentKey;
-    protected byte[] sessionKey;
-    protected final CombinedSequencePair csnPair;
-    protected Cookie cookie;
+    // Receiver id
+    private short id;
 
-    public Peer() {
+    // Permanent key of the peer
+    @Nullable byte[] permanentKey;
+
+    // Session key of the peer
+    @Nullable byte[] sessionKey;
+
+    // CSN pair
+    @NonNull private final CombinedSequencePair csnPair;
+
+    // Cookie pair
+    @NonNull private CookiePair cookiePair;
+
+	/**
+     * Initialize a peer with just an ID.
+     */
+    public Peer(short id) {
+        this.id = id;
+        this.csnPair = new CombinedSequencePair();
+        this.cookiePair = new CookiePair();
+    }
+
+	/**
+     * Initialize a peer with a cookie pair.
+     */
+    public Peer(short id, @NonNull CookiePair cookiePair) {
+        this.id = id;
+        this.cookiePair = cookiePair;
         this.csnPair = new CombinedSequencePair();
     }
 
-    public Peer(byte[] permanentKey) {
-        this();
-        this.permanentKey = permanentKey;
+    public short getId() {
+        return id;
     }
 
+    @Nullable
     public byte[] getPermanentKey() {
         return this.permanentKey;
     }
 
-    public void setPermanentKey(byte[] permanentKey) {
+    public void setPermanentKey(@Nullable byte[] permanentKey) {
         this.permanentKey = permanentKey;
     }
 
+    public boolean hasPermanentKey() {
+        return this.permanentKey != null;
+    }
+
+    @Nullable
     public byte[] getSessionKey() {
         return this.sessionKey;
     }
 
-    public void setSessionKey(byte[] sessionKey) {
+    public void setSessionKey(@Nullable byte[] sessionKey) {
         this.sessionKey = sessionKey;
     }
 
+    public boolean hasSessionKey() {
+        return this.sessionKey != null;
+    }
+
+    @NonNull
     public CombinedSequencePair getCsnPair() {
         return this.csnPair;
     }
 
     /**
-     * Return the peer cookie.
+     * Return the cookie pair.
      */
-    public Cookie getCookie() {
-        return cookie;
-    }
-
-    /**
-     * Set the peer cookie.
-     */
-    public void setCookie(Cookie cookie) {
-        this.cookie = cookie;
+    @NonNull
+    public CookiePair getCookiePair() {
+        return this.cookiePair;
     }
 }

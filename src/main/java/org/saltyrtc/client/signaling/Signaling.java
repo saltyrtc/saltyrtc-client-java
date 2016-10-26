@@ -18,12 +18,14 @@ import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.cookie.Cookie;
+import org.saltyrtc.client.cookie.CookiePair;
 import org.saltyrtc.client.events.CloseEvent;
 import org.saltyrtc.client.events.SignalingStateChangedEvent;
 import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
 import org.saltyrtc.client.exceptions.InternalException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
+import org.saltyrtc.client.exceptions.OverflowException;
 import org.saltyrtc.client.exceptions.ProtocolException;
 import org.saltyrtc.client.exceptions.SerializationError;
 import org.saltyrtc.client.exceptions.SignalingException;
@@ -77,7 +79,6 @@ public abstract class Signaling implements SignalingInterface {
     // WebSocket
     private final String host;
     private final int port;
-    private final String protocol = "wss";
     private final SSLContext sslContext;
     private WebSocket ws;
 
@@ -88,40 +89,37 @@ public abstract class Signaling implements SignalingInterface {
     // Reference to main class
     private final SaltyRTC salty;
 
-    // Keys
-    byte[] serverSessionKey;
-    @Nullable
-    byte[] expectedServerKey = null;
+    // Server information
+    @NonNull Server server;
+
+    // Our keys
+    @NonNull final KeyStore permanentKey;
     KeyStore sessionKey;
-    @NonNull
-    final KeyStore permanentKey;
-    @Nullable
-    AuthToken authToken;
-    @Nullable
-    byte[] peerTrustedKey;
+
+    // Peer trusted key or auth token
+    @Nullable AuthToken authToken;
+    @Nullable byte[] peerTrustedKey;
+
+    // Server trusted key
+    @Nullable byte[] expectedServerKey;
 
     // Signaling
-    @NonNull
-    private SignalingRole role;
+    @NonNull private SignalingRole role;
     short address = SALTYRTC_ADDR_UNKNOWN;
-    Cookie cookie;
-    Cookie serverCookie;
-    CombinedSequencePair serverCsn = new CombinedSequencePair();
-    ServerHandshakeState serverHandshakeState = ServerHandshakeState.NEW;
 
     // Tasks
-    final Task[] tasks;
-    Task task = null;
+    @NonNull final Task[] tasks;
+    Task task;
 
     // Message history
     private final MessageHistory history = new MessageHistory(10);
 
     public Signaling(SaltyRTC salty, String host, int port,
-                     KeyStore permanentKey, SSLContext sslContext,
+                     @NonNull KeyStore permanentKey, SSLContext sslContext,
                      @Nullable byte[] peerTrustedKey,
                      @Nullable byte[] expectedServerKey,
-                     SignalingRole role,
-                     Task[] tasks) {
+                     @NonNull SignalingRole role,
+                     @NonNull Task[] tasks) {
         this.salty = salty;
         this.host = host;
         this.port = port;
@@ -131,6 +129,7 @@ public abstract class Signaling implements SignalingInterface {
         this.expectedServerKey = expectedServerKey;
         this.role = role;
         this.tasks = tasks;
+        this.server = new Server();
     }
 
     @NonNull
@@ -253,9 +252,9 @@ public abstract class Signaling implements SignalingInterface {
         this.disconnect(reason);
 
         // Reset
+        this.server = new Server();
+        this.server.handshakeState = ServerHandshakeState.NEW;
         this.handoverState.reset();
-        this.serverHandshakeState = ServerHandshakeState.NEW;
-        this.serverCsn = new CombinedSequencePair();
         this.setState(SignalingState.NEW);
         this.getLogger().debug("Connection reset");
     }
@@ -272,7 +271,7 @@ public abstract class Signaling implements SignalingInterface {
      */
     private void initWebsocket() throws IOException {
         // Build connection URL
-        final String baseUrl = this.protocol + "://" + this.host + ":" + this.port + "/";
+        final String baseUrl = "wss://" + this.host + ":" + this.port + "/";
         final URI uri = URI.create(baseUrl + this.getWebsocketPath());
         this.getLogger().debug("Initialize WebSocket connection to " + uri);
 
@@ -456,13 +455,18 @@ public abstract class Signaling implements SignalingInterface {
      * @param encrypt Whether to encrypt the message.
      * @return Encrypted msgpacked bytes, ready to send.
      */
-    byte[] buildPacket(Message msg, short receiver, boolean encrypt) throws ProtocolException {
+    byte[] buildPacket(Message msg, Peer receiver, boolean encrypt) throws ProtocolException {
         // Choose proper combined sequence number
-        final CombinedSequenceSnapshot csn = this.getNextCsn(receiver);
+        final CombinedSequenceSnapshot csn;
+        try {
+            csn = receiver.getCsnPair().getOurs().next();
+        } catch (OverflowException e) {
+            throw new ProtocolException("CSN overflow", e);
+        }
 
         // Create nonce
         final SignalingChannelNonce nonce = new SignalingChannelNonce(
-                this.cookie.getBytes(), this.address, receiver,
+                receiver.getCookiePair().getOurs().getBytes(), this.address, receiver.getId(),
                 csn.getOverflow(), csn.getSequenceNumber());
         final byte[] nonceBytes = nonce.toBytes();
 
@@ -475,13 +479,14 @@ public abstract class Signaling implements SignalingInterface {
         }
 
         // Otherwise, encrypt packet
+        // TODO: Use polymorphism using peer object
         final Box box;
         try {
-            if (receiver == SALTYRTC_ADDR_SERVER) {
+            if (receiver.getId() == SALTYRTC_ADDR_SERVER) {
                 box = this.encryptHandshakeDataForServer(payload, nonceBytes);
-            } else if (receiver == SALTYRTC_ADDR_INITIATOR || this.isResponderId(receiver)) {
+            } else if (receiver.getId() == SALTYRTC_ADDR_INITIATOR || this.isResponderId(receiver.getId())) {
                 // TODO: Do we re-use the same cookie everywhere?
-                box = this.encryptHandshakeDataForPeer(receiver, msg.getType(), payload, nonceBytes);
+                box = this.encryptHandshakeDataForPeer(receiver.getId(), msg.getType(), payload, nonceBytes);
             } else {
                 throw new ProtocolException("Bad receiver byte: " + receiver);
             }
@@ -498,7 +503,7 @@ public abstract class Signaling implements SignalingInterface {
      * @param receiver The receiver byte.
      * @return Encrypted msgpacked bytes, ready to send.
      */
-    byte[] buildPacket(Message msg, short receiver) throws ProtocolException {
+    byte[] buildPacket(Message msg, Peer receiver) throws ProtocolException {
         return this.buildPacket(msg, receiver, true);
     }
 
@@ -508,15 +513,7 @@ public abstract class Signaling implements SignalingInterface {
      * May return null if peer is not yet set.
      */
     @Nullable
-    abstract Short getPeerAddress();
-
-    /**
-     * Return the cookie of the peer.
-     *
-     * May return null if peer is not yet set or if cookie is not yet stored.
-     */
-    @Nullable
-    abstract Cookie getPeerCookie();
+    abstract Peer getPeer();
 
     /**
      * Return the session key of the peer.
@@ -527,14 +524,6 @@ public abstract class Signaling implements SignalingInterface {
     abstract byte[] getPeerSessionKey();
 
     /**
-     * Return the own cookie.
-     */
-    @Nullable
-    Cookie getCookie() {
-        return this.cookie;
-    }
-
-    /**
      * Message received during server handshake.
      *
      * @param box The box containing raw nonce and payload bytes.
@@ -543,13 +532,14 @@ public abstract class Signaling implements SignalingInterface {
             throws ValidationError, SerializationError, SignalingException, ConnectionException {
         // Decrypt if necessary
         final byte[] payload;
-        if (this.serverHandshakeState == ServerHandshakeState.NEW) {
+        if (this.server.handshakeState == ServerHandshakeState.NEW) {
             // The very first message is unencrypted
             payload = box.getData();
         } else {
             // Later, they're encrypted with our permanent key and the server key
             try {
-                payload = this.permanentKey.decrypt(box, this.serverSessionKey);
+                assert this.server.hasSessionKey();
+                payload = this.permanentKey.decrypt(box, this.server.getSessionKey());
             } catch (CryptoFailedException | InvalidKeyException e) {
                 throw new ProtocolException("Could not decrypt server message", e);
             }
@@ -557,7 +547,7 @@ public abstract class Signaling implements SignalingInterface {
 
         // Handle message depending on state
         Message msg = MessageReader.read(payload);
-        switch (this.serverHandshakeState) {
+        switch (this.server.handshakeState) {
             case NEW:
                 // Expect server-hello
                 if (msg instanceof ServerHello) {
@@ -588,7 +578,7 @@ public abstract class Signaling implements SignalingInterface {
         }
 
         // Check if we're done yet
-        if (this.serverHandshakeState == ServerHandshakeState.DONE) {
+        if (this.server.handshakeState == ServerHandshakeState.DONE) {
             this.setState(SignalingState.PEER_HANDSHAKE);
             this.getLogger().info("Server handshake done");
             this.initPeerHandshake();
@@ -629,7 +619,8 @@ public abstract class Signaling implements SignalingInterface {
         final Message message;
 
         try {
-            final byte[] decrypted = this.permanentKey.decrypt(box, this.serverSessionKey);
+            assert this.server.hasSessionKey();
+            final byte[] decrypted = this.permanentKey.decrypt(box, this.server.getSessionKey());
             message = MessageReader.read(decrypted);
         } catch (CryptoFailedException e) {
             this.getLogger().error("Could not decrypt incoming message from server", e);
@@ -675,20 +666,10 @@ public abstract class Signaling implements SignalingInterface {
     /**
      * Handle an incoming server-hello message.
      */
-    private void handleServerHello(ServerHello msg, SignalingChannelNonce nonce) {
-        // Store server public key
-        this.serverSessionKey = msg.getKey();
-
-        // Generate cookie
-        Cookie ourCookie;
-        final Cookie serverCookie = nonce.getCookie();
-        do {
-            ourCookie = new Cookie();
-        } while (ourCookie.equals(serverCookie));
-
-        // Store cookies
-        this.cookie = ourCookie;
-        this.serverCookie = serverCookie;
+    private void handleServerHello(ServerHello msg, SignalingChannelNonce nonce) throws ProtocolException {
+        // Create server instance
+        this.server.setSessionKey(msg.getKey());
+        this.server.getCookiePair().setTheirs(nonce.getCookie());
     }
 
     /**
@@ -701,11 +682,11 @@ public abstract class Signaling implements SignalingInterface {
      */
     private void sendClientAuth() throws SignalingException, ConnectionException {
         final List<String> subprotocols = Collections.singletonList(Signaling.SALTYRTC_SUBPROTOCOL);
-        final ClientAuth msg = new ClientAuth(this.serverCookie.getBytes(), subprotocols);
-        final byte[] packet = this.buildPacket(msg, Signaling.SALTYRTC_ADDR_SERVER);
+        final ClientAuth msg = new ClientAuth(this.server.getCookiePair().getTheirs().getBytes(), subprotocols);
+        final byte[] packet = this.buildPacket(msg, this.server);
         this.getLogger().debug("Sending client-auth");
         this.send(packet, msg);
-        this.serverHandshakeState = ServerHandshakeState.AUTH_SENT;
+        this.server.handshakeState = ServerHandshakeState.AUTH_SENT;
     }
 
     /**
@@ -730,6 +711,7 @@ public abstract class Signaling implements SignalingInterface {
                             @NonNull SignalingChannelNonce nonce,
                             @NonNull byte[] expectedServerKey)
             throws ValidationError {
+        assert this.server.hasSessionKey();
         if (signedKeys == null) {
             throw new ValidationError("Server did not send signed_keys in server-auth message");
         }
@@ -737,14 +719,14 @@ public abstract class Signaling implements SignalingInterface {
         final byte[] decrypted;
         try {
             getLogger().debug("Expected server key is " + NaCl.asHex(expectedServerKey));
-            getLogger().debug("Server session key is " + NaCl.asHex(this.serverSessionKey));
+            getLogger().debug("Server session key is " + NaCl.asHex(this.server.getSessionKey()));
             decrypted = this.permanentKey.decrypt(box, expectedServerKey);
         } catch (CryptoFailedException e) {
             throw new ValidationError("Could not decrypt signed_keys in server-auth message", e);
         } catch (InvalidKeyException e) {
             throw new ValidationError("Invalid key when trying to decrypt signed_keys in server-auth message", e);
         }
-        final byte[] expected = ArrayHelper.concat(this.serverSessionKey, this.permanentKey.getPublicKey());
+        final byte[] expected = ArrayHelper.concat(this.server.getSessionKey(), this.permanentKey.getPublicKey());
         if (!Arrays.equals(decrypted, expected)) {
             throw new ValidationError("Decrypted signed_keys in server-auth message is invalid");
         }
@@ -786,7 +768,7 @@ public abstract class Signaling implements SignalingInterface {
         final byte[] packet;
         try {
             //noinspection ConstantConditions
-            packet = this.buildPacket(msg, this.getPeerAddress());
+            packet = this.buildPacket(msg, this.getPeer());
         } catch (ProtocolException | NullPointerException e) {
             e.printStackTrace();
             this.getLogger().error("Could not build close message");
@@ -800,11 +782,6 @@ public abstract class Signaling implements SignalingInterface {
             this.getLogger().error("Could not send close message");
         }
     }
-
-    /**
-     * Choose proper combined sequence number
-     */
-    abstract CombinedSequenceSnapshot getNextCsn(short receiver) throws ProtocolException;
 
     /**
      * Return `true` if receiver byte is a valid responder id (in the range 0x02-0xff).
@@ -827,6 +804,7 @@ public abstract class Signaling implements SignalingInterface {
 
     /**
      * Validate the sender address in the nonce.
+     * TODO: Rewrite or remove with new peer logic
      */
     private void validateSignalingNonceSender(SignalingChannelNonce nonce) throws ValidationError {
         switch (this.getState()) {
@@ -860,10 +838,10 @@ public abstract class Signaling implements SignalingInterface {
                 break;
             case TASK:
                 // Messages after the handshake must come from the peer.
-                if (this.getPeerAddress() == null || nonce.getSource() != this.getPeerAddress()) {
+                if (this.getPeer() == null || nonce.getSource() != this.getPeer().getId()) {
                     // TODO: Ignore instead of throw?
                     throw new ValidationError("Received message with invalid sender address (" +
-                            nonce.getSource() + " != " + this.getPeerAddress() + ")");
+                            nonce.getSource() + " != " + this.getPeer() + ")");
                 }
                 break;
             default:
@@ -878,7 +856,7 @@ public abstract class Signaling implements SignalingInterface {
     private void validateSignalingNonceReceiver(SignalingChannelNonce nonce) throws ValidationError {
         Short expected = null;
         if (this.getState() == SignalingState.SERVER_HANDSHAKE) {
-            switch (this.serverHandshakeState) {
+            switch (this.server.handshakeState) {
                 // Before receiving the server auth-message, the receiver byte is 0x00
                 case NEW:
                 case HELLO_SENT:
@@ -916,7 +894,7 @@ public abstract class Signaling implements SignalingInterface {
      */
     private void validateSignalingNonceCsn(SignalingChannelNonce nonce) throws ValidationError {
         if (nonce.getSource() == SALTYRTC_ADDR_SERVER) {
-            this.validateSignalingNonceCsn(nonce, this.serverCsn, "server");
+            this.validateSignalingNonceCsn(nonce, this.server.getCsnPair(), "server");
         } else {
             this.validateSignalingNoncePeerCsn(nonce);
         }
@@ -964,18 +942,20 @@ public abstract class Signaling implements SignalingInterface {
 
     /**
      * Validate the cookie in the nonce.
+     * TODO: Rewrite with new Peer logic
      */
     private void validateSignalingNonceCookie(SignalingChannelNonce nonce) throws ValidationError {
         if (nonce.getSource() == SALTYRTC_ADDR_SERVER) {
-            if (this.serverCookie != null) { // Server cookie might not yet have been set
-                if (!nonce.getCookie().equals(this.serverCookie)) {
+            final CookiePair cookiePair = this.server.getCookiePair();
+            if (cookiePair.hasTheirs()) { // Server cookie might not yet have been set
+                if (!nonce.getCookie().equals(cookiePair.getTheirs())) {
                     throw new ValidationError("Server cookie changed");
                 }
             }
         } else {
-            final Cookie cookie = this.getPeerCookie();
-            if (cookie != null) { // Peer cookie might not yet have been set
-                if (!nonce.getCookie().equals(cookie)) {
+            final Peer peer = this.getPeer();
+            if (peer != null && peer.getCookiePair().hasTheirs()) { // Peer cookie might not yet have been set
+                if (!nonce.getCookie().equals(peer.getCookiePair().getTheirs())) {
                     throw new ValidationError("Peer cookie changed");
                 }
             }
@@ -987,12 +967,13 @@ public abstract class Signaling implements SignalingInterface {
      * @param theirCookie The cookie bytes of the peer.
      * @throws ProtocolException Thrown if repeated cookie does not match our own cookie.
      */
-    void validateRepeatedCookie(byte[] theirCookie) throws ProtocolException {
+    void validateRepeatedCookie(Peer peer, byte[] theirCookie) throws ProtocolException {
         // Verify the cookie
         final Cookie repeatedCookie = new Cookie(theirCookie);
-        if (!repeatedCookie.equals(this.cookie)) {
+        final Cookie ourCookie = peer.getCookiePair().getOurs();
+        if (!repeatedCookie.equals(ourCookie)) {
             this.getLogger().debug("Peer repeated cookie: " + Arrays.toString(theirCookie));
-            this.getLogger().debug("Our cookie: " + Arrays.toString(this.cookie.getBytes()));
+            this.getLogger().debug("Our cookie: " + Arrays.toString(ourCookie.getBytes()));
             throw new ProtocolException("Peer repeated cookie does not match our cookie");
         }
     }
@@ -1002,7 +983,8 @@ public abstract class Signaling implements SignalingInterface {
      */
     private Box encryptHandshakeDataForServer(byte[] payload, byte[] nonce)
             throws CryptoFailedException, InvalidKeyException {
-        return this.permanentKey.encrypt(payload, nonce, this.serverSessionKey);
+        assert this.server.hasSessionKey();
+        return this.permanentKey.encrypt(payload, nonce, this.server.getSessionKey());
     }
 
     /**
@@ -1052,7 +1034,7 @@ public abstract class Signaling implements SignalingInterface {
      * Send a task message through the signaling channel.
      */
     public void sendTaskMessage(TaskMessage msg) throws SignalingException, ConnectionException {
-        final Short receiver = this.getPeerAddress();
+        final Peer receiver = this.getPeer();
         if (receiver == null) {
             throw new SignalingException(CloseCode.INTERNAL_ERROR, "No peer address could be found");
         }

@@ -14,18 +14,17 @@ import org.saltyrtc.client.signaling.state.InitiatorHandshakeState;
  * Information about the initiator. Used by responder during handshake.
  */
 public class Initiator extends Peer {
+    private static short ID = 0x01;
+
     private boolean connected;
 
     public InitiatorHandshakeState handshakeState;
 
     public Initiator(byte[] permanentKey) {
-        super(permanentKey);
+        super(Initiator.ID);
+        this.permanentKey = permanentKey;
         this.connected = false;
         this.handshakeState = InitiatorHandshakeState.NEW;
-    }
-
-    public short getId() {
-        return 0x01;
     }
 
     public boolean isConnected() {
