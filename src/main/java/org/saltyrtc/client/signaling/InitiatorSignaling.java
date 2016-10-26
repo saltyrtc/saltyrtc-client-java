@@ -245,7 +245,7 @@ public class InitiatorSignaling extends Signaling {
                         payload = this.authToken.decrypt(box);
                     } catch (CryptoFailedException e) {
                         this.getLogger().warn("Could not decrypt token message");
-                        this.dropResponder(responder); // TODO: Reason
+                        this.dropResponder(responder, CloseCode.INITIATOR_COULD_NOT_DECRYPT);
                         return;
                     }
                     msg = MessageReader.read(payload);
@@ -266,7 +266,7 @@ public class InitiatorSignaling extends Signaling {
                         payload = this.permanentKey.decrypt(box, peerPublicKey);
                     } catch (CryptoFailedException e) {
                         this.getLogger().warn("Could not decrypt key message");
-                        this.dropResponder(responder);
+                        this.dropResponder(responder, CloseCode.INITIATOR_COULD_NOT_DECRYPT);
                         return;
                     } catch (InvalidKeyException e) {
                         e.printStackTrace();
@@ -314,7 +314,7 @@ public class InitiatorSignaling extends Signaling {
                     this.responders.remove(responder.getId());
 
                     // Drop other responders
-                    this.dropResponders();
+                    this.dropResponders(CloseCode.DROPPED_BY_INITIATOR);
 
                     // Peer handshake done
                     this.setState(SignalingState.TASK);
@@ -448,8 +448,8 @@ public class InitiatorSignaling extends Signaling {
     /**
      * Drop specific responder.
      */
-    private void dropResponder(Responder responder) throws SignalingException, ConnectionException {
-        final DropResponder msg = new DropResponder(responder.getId());
+    private void dropResponder(Responder responder, @Nullable Integer reason) throws SignalingException, ConnectionException {
+        final DropResponder msg = new DropResponder(responder.getId(), reason);
         final byte[] packet = this.buildPacket(msg, responder);
         this.getLogger().debug("Sending drop-responder " + responder.getId());
         this.send(packet, msg);
@@ -459,10 +459,10 @@ public class InitiatorSignaling extends Signaling {
     /**
      * Drop all responders.
      */
-    private void dropResponders() throws SignalingException, ConnectionException {
+    private void dropResponders(@Nullable Integer reason) throws SignalingException, ConnectionException {
         this.getLogger().debug("Dropping " + this.responders.size() + " other responders");
         for (Responder responder : this.responders.values()) {
-            this.dropResponder(responder);
+            this.dropResponder(responder, reason);
         }
     }
 

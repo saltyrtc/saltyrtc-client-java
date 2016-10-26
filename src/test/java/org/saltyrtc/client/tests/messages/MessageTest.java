@@ -38,6 +38,7 @@ import static java.util.Arrays.asList;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 public class MessageTest {
@@ -157,16 +158,37 @@ public class MessageTest {
         final DropResponder original = new DropResponder(42);
         final DropResponder returned = this.roundTrip(original);
         assertEquals(original.getId(), returned.getId());
+        assertNull(original.getReason());
+        assertNull(returned.getReason());
     }
 
     @Test
-    public void testDropResponderValidation() throws SerializationError, ValidationError {
+    public void testDropResponderRoundtripWithReason() throws SerializationError, ValidationError {
+        final DropResponder original = new DropResponder(42, 3001);
+        final DropResponder returned = this.roundTrip(original);
+        assertEquals(original.getId(), returned.getId());
+        assertEquals(original.getReason(), returned.getReason());
+    }
+
+    @Test
+    public void testDropResponderIdValidation() throws SerializationError, ValidationError {
         final DropResponder original = new DropResponder(0xff + 1);
         try {
             roundTrip(original);
             fail("No ValidationError thrown");
         } catch (ValidationError e) {
             assertEquals("id must be < 255", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testDropResponderReasonValidation() throws SerializationError, ValidationError {
+        final DropResponder original = new DropResponder(0xff, 6000);
+        try {
+            roundTrip(original);
+            fail("No ValidationError thrown");
+        } catch (ValidationError e) {
+            assertEquals("reason is not valid", e.getMessage());
         }
     }
 

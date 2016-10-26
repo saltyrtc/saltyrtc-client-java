@@ -88,6 +88,17 @@ public class ValidationHelper {
         return number;
     }
 
+    public static Integer validateInteger(Object value, List<Integer> validRange, String name) throws ValidationError {
+        if (!(value instanceof Integer)) {
+            throw new ValidationError(name + " must be an Integer");
+        }
+        final Integer number = (Integer) value;
+        if (!validRange.contains(number)) {
+            throw new ValidationError(name + " is not valid");
+        }
+        return number;
+    }
+
     public static String validateString(Object value, String name) throws ValidationError {
         if (!(value instanceof String)) {
             throw new ValidationError(name + " must be a String, not " + value.getClass().getName());
