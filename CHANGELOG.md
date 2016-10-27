@@ -12,9 +12,14 @@ Possible log types:
 - `[security]` to invite users to upgrade in case of vulnerabilities.
 
 
-### Unreleased
+### v0.6.0 (2016-10-27)
 
+- [added] Implement MITM prevention by accepting server keys in SaltyRTCBuilder (#29)
+- [added] Update drop-responder messages (#35)
+- [added] Support send-error messages (#37)
 - [changed] Use custom `InvalidKeyException` instead of `java.security.InvalidKeyException`
+- [fixed] Proper cookie / CSN scoping (#30)
+- [fixed] Various small bugfixes and improvements
 
 ### v0.5.0 (2016-10-20)
 
