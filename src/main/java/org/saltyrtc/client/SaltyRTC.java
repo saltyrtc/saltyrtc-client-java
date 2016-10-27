@@ -10,9 +10,9 @@ package org.saltyrtc.client;
 
 import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.events.CloseEvent;
+import org.saltyrtc.client.events.SignalingConnectionLostEvent;
 import org.saltyrtc.client.events.EventRegistry;
 import org.saltyrtc.client.events.HandoverEvent;
-import org.saltyrtc.client.events.SendErrorEvent;
 import org.saltyrtc.client.events.SignalingStateChangedEvent;
 import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
@@ -141,8 +141,8 @@ public class SaltyRTC {
     public static class Events {
         public final EventRegistry<SignalingStateChangedEvent> signalingStateChanged = new EventRegistry<>();
         public final EventRegistry<HandoverEvent> handover = new EventRegistry<>();
+        public final EventRegistry<SignalingConnectionLostEvent> signalingConnectionLost = new EventRegistry<>();
         public final EventRegistry<CloseEvent> close = new EventRegistry<>();
-        public final EventRegistry<SendErrorEvent> sendError = new EventRegistry<>();
     }
 
     public void setDebug(boolean debug) {

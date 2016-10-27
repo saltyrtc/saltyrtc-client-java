@@ -14,6 +14,7 @@ import com.neovisionaries.ws.client.WebSocketException;
 import com.neovisionaries.ws.client.WebSocketFactory;
 import com.neovisionaries.ws.client.WebSocketFrame;
 
+import org.saltyrtc.chunkedDc.UnsignedHelper;
 import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.annotations.Nullable;
@@ -87,7 +88,7 @@ public abstract class Signaling implements SignalingInterface {
     private final HandoverState handoverState = new HandoverState();
 
     // Reference to main class
-    private final SaltyRTC salty;
+    final SaltyRTC salty;
 
     // Server information
     @NonNull Server server;
@@ -493,6 +494,10 @@ public abstract class Signaling implements SignalingInterface {
         } catch (CryptoFailedException | InvalidKeyException e) {
             throw new ProtocolException("Encrypting failed: " + e.getMessage(), e);
         }
+
+        // Store message in message history
+        this.history.store(msg, nonce);
+
         return box.toBytes();
     }
 
@@ -595,7 +600,7 @@ public abstract class Signaling implements SignalingInterface {
     /**
      * Message received from peer or server *after* the handshake is done.
      */
-    private void onSignalingMessage(Box box, SignalingChannelNonce nonce) {
+    private void onSignalingMessage(Box box, SignalingChannelNonce nonce) throws SignalingException {
         this.getLogger().debug("Message received");
         if (nonce.getSource() == SALTYRTC_ADDR_SERVER) {
             this.onSignalingServerMessage(box);
@@ -615,7 +620,7 @@ public abstract class Signaling implements SignalingInterface {
     /**
      * Signaling message received from server *after* the handshake is done.
      */
-    private void onSignalingServerMessage(Box box) {
+    private void onSignalingServerMessage(Box box) throws SignalingException {
         final Message message;
 
         try {
@@ -685,7 +690,7 @@ public abstract class Signaling implements SignalingInterface {
         final ClientAuth msg = new ClientAuth(this.server.getCookiePair().getTheirs().getBytes(), subprotocols);
         final byte[] packet = this.buildPacket(msg, this.server);
         this.getLogger().debug("Sending client-auth");
-        this.send(packet, msg);
+        this.send(packet);
         this.server.handshakeState = ServerHandshakeState.AUTH_SENT;
     }
 
@@ -776,7 +781,7 @@ public abstract class Signaling implements SignalingInterface {
         }
         this.getLogger().debug("Sending close");
         try {
-            this.send(packet, msg);
+            this.send(packet);
         } catch (SignalingException | ConnectionException e) {
             e.printStackTrace();
             this.getLogger().error("Could not send close message");
@@ -997,7 +1002,7 @@ public abstract class Signaling implements SignalingInterface {
     /**
      * Send binary data through the signaling channel.
      */
-    private void send(byte[] payload) throws ConnectionException, SignalingException {
+    void send(byte[] payload) throws ConnectionException, SignalingException {
         // Verify connection state
         final SignalingState state = this.getState();
         if (state != SignalingState.TASK &&
@@ -1018,19 +1023,6 @@ public abstract class Signaling implements SignalingInterface {
     }
 
     /**
-     * Like `send(byte[] payload)`, but additionally store the sent message in the message history.
-     *
-     * This allows the message to be recognized in the case of a send error.
-     */
-    void send(byte[] payload, Message message) throws ConnectionException, SignalingException {
-        // Send data
-        this.send(payload);
-
-        // Store sent message in history
-        this.history.store(message, payload);
-    }
-
-    /**
      * Send a task message through the signaling channel.
      */
     public void sendTaskMessage(TaskMessage msg) throws SignalingException, ConnectionException {
@@ -1039,7 +1031,7 @@ public abstract class Signaling implements SignalingInterface {
             throw new SignalingException(CloseCode.INTERNAL_ERROR, "No peer address could be found");
         }
         final byte[] packet = this.buildPacket(msg, receiver);
-        this.send(packet, msg);
+        this.send(packet);
     }
 
     private void handleClose(Close msg) {
@@ -1053,17 +1045,31 @@ public abstract class Signaling implements SignalingInterface {
         this.resetConnection(CloseCode.GOING_AWAY);
     }
 
-    private void handleSendError(SendError msg) {
-        final byte[] hash = msg.getHash();
-        final String hashPrefix = NaCl.asHex(hash).substring(0, 7);
-        final Message message = this.history.find(hash);
+	/**
+     * Handle the case where sending a message to the specified receiver failed.
+     */
+    abstract void handleSendError(short receiver) throws SignalingException;
 
+	/**
+     * Handle incoming send-error messages.
+     */
+    void handleSendError(SendError msg) throws SignalingException {
+        // Get the message id from the SendError message
+        final byte[] id = msg.getId();
+        final String idString = NaCl.asHex(id);
+
+        // Determine the receiver of the message
+        final short receiver = UnsignedHelper.readUnsignedByte(ByteBuffer.wrap(id).get(1));
+
+        // Log info about message
+        final Message message = this.history.find(id);
         if (message != null) {
-            this.getLogger().warn("SendError: Could not send " + message.getType() + " message " + hashPrefix);
-            // TODO: Implement. See git history for old implementation.
+            this.getLogger().warn("SendError: Could not send " + message.getType() + " message " + idString);
         } else {
-            this.getLogger().warn("SendError: " + NaCl.asHex(hash));
+            this.getLogger().warn("SendError: Could not send unknown message: " + idString);
         }
+
+        this.handleSendError(receiver);
     }
 
     /**
