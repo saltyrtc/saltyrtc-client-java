@@ -70,8 +70,7 @@ public class CloseCode {
      * Valid close codes for drop-responder messages.
      */
     public static final int[] CLOSE_CODES_DROP_RESPONDER = new int[] {
-        PROTOCOL_ERROR, INTERNAL_ERROR, DROPPED_BY_INITIATOR,
-        INITIATOR_COULD_NOT_DECRYPT, NO_SHARED_TASK
+        PROTOCOL_ERROR, INTERNAL_ERROR, DROPPED_BY_INITIATOR, INITIATOR_COULD_NOT_DECRYPT
     };
 
     /**
