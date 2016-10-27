@@ -12,6 +12,7 @@ import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.cookie.Cookie;
+import org.saltyrtc.client.events.SignalingConnectionLostEvent;
 import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
 import org.saltyrtc.client.exceptions.InternalException;
@@ -33,6 +34,7 @@ import org.saltyrtc.client.messages.c2c.Token;
 import org.saltyrtc.client.messages.s2c.ClientHello;
 import org.saltyrtc.client.messages.s2c.NewInitiator;
 import org.saltyrtc.client.messages.s2c.ResponderServerAuth;
+import org.saltyrtc.client.messages.s2c.SendError;
 import org.saltyrtc.client.nonce.SignalingChannelNonce;
 import org.saltyrtc.client.signaling.state.InitiatorHandshakeState;
 import org.saltyrtc.client.signaling.state.ServerHandshakeState;
@@ -344,6 +346,9 @@ public class ResponderSignaling extends Signaling {
             if (msg instanceof NewInitiator) {
                 this.getLogger().debug("Received new-initiator");
                 this.handleNewInitiator((NewInitiator) msg);
+            } else if (msg instanceof SendError) {
+                this.getLogger().debug("Received send-error");
+                this.handleSendError((SendError) msg);
             } else {
                 throw new ProtocolException("Got unexpected server message: " + msg.getType());
             }
@@ -392,6 +397,20 @@ public class ResponderSignaling extends Signaling {
         this.initiator = new Initiator(this.initiator.getPermanentKey());
         this.initiator.setConnected(true);
         this.initPeerHandshake();
+    }
+
+    @Override
+    void handleSendError(short receiver) throws SignalingException {
+        if (receiver != Signaling.SALTYRTC_ADDR_INITIATOR) {
+            throw new ProtocolException("Outgoing c2c messages must have been sent to the initiator");
+        }
+
+        // Notify application
+        this.salty.events.signalingConnectionLost.notifyHandlers(new SignalingConnectionLostEvent(receiver));
+
+        // Reset connection
+        this.resetConnection(CloseCode.PROTOCOL_ERROR);
+        // TODO: Maybe keep ws connection open and wait for reconnect
     }
 
     @Override

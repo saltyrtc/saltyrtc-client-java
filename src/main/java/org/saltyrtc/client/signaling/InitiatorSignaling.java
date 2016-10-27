@@ -11,6 +11,7 @@ package org.saltyrtc.client.signaling;
 import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.cookie.Cookie;
+import org.saltyrtc.client.events.SignalingConnectionLostEvent;
 import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
 import org.saltyrtc.client.exceptions.InternalException;
@@ -32,6 +33,7 @@ import org.saltyrtc.client.messages.c2c.Token;
 import org.saltyrtc.client.messages.s2c.DropResponder;
 import org.saltyrtc.client.messages.s2c.InitiatorServerAuth;
 import org.saltyrtc.client.messages.s2c.NewResponder;
+import org.saltyrtc.client.messages.s2c.SendError;
 import org.saltyrtc.client.nonce.SignalingChannelNonce;
 import org.saltyrtc.client.signaling.state.ResponderHandshakeState;
 import org.saltyrtc.client.signaling.state.ServerHandshakeState;
@@ -220,6 +222,9 @@ public class InitiatorSignaling extends Signaling {
             if (msg instanceof NewResponder) {
                 this.getLogger().debug("Received new-responder");
                 this.handleNewResponder((NewResponder) msg);
+            } else if (msg instanceof SendError) {
+                this.getLogger().debug("Received send-error");
+                this.handleSendError((SendError) msg);
             } else {
                 throw new ProtocolException("Got unexpected server message: " + msg.getType());
             }
@@ -463,6 +468,41 @@ public class InitiatorSignaling extends Signaling {
         this.getLogger().debug("Dropping " + this.responders.size() + " other responders");
         for (Responder responder : this.responders.values()) {
             this.dropResponder(responder, reason);
+        }
+    }
+
+    @Override
+    synchronized void handleSendError(short receiver) throws SignalingException {
+        // Validate receiver byte
+        if (!this.isResponderId(receiver)) {
+            throw new ProtocolException("Outgoing c2c messages must have been sent to a responder");
+        }
+
+        boolean notify = false;
+        if (this.responder != null) { // We're not authenticated
+            if (this.responder.getId() == receiver) {
+                notify = true;
+                this.resetConnection(CloseCode.PROTOCOL_ERROR);
+                // TODO: Maybe keep ws connection open and wait for reconnect
+            } else {
+                this.getLogger().warn("Got send-error message for unknown responder " + receiver);
+            }
+
+        } else { // We're authenticated
+            // Get responder
+            final Responder responder = this.responders.get(receiver);
+            if (responder == null) {
+                this.getLogger().warn("Got send-error message for unknown responder " + receiver);
+            } else {
+                notify = true;
+                // Drop information about responder
+                this.responders.remove(receiver);
+            }
+        }
+
+        // Notify user application if relevant
+        if (notify) {
+            this.salty.events.signalingConnectionLost.notifyHandlers(new SignalingConnectionLostEvent(receiver));
         }
     }
 

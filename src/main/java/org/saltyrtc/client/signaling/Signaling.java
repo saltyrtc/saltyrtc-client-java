@@ -14,6 +14,7 @@ import com.neovisionaries.ws.client.WebSocketException;
 import com.neovisionaries.ws.client.WebSocketFactory;
 import com.neovisionaries.ws.client.WebSocketFrame;
 
+import org.saltyrtc.chunkedDc.UnsignedHelper;
 import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.annotations.Nullable;
@@ -87,7 +88,7 @@ public abstract class Signaling implements SignalingInterface {
     private final HandoverState handoverState = new HandoverState();
 
     // Reference to main class
-    private final SaltyRTC salty;
+    final SaltyRTC salty;
 
     // Server information
     @NonNull Server server;
@@ -599,7 +600,7 @@ public abstract class Signaling implements SignalingInterface {
     /**
      * Message received from peer or server *after* the handshake is done.
      */
-    private void onSignalingMessage(Box box, SignalingChannelNonce nonce) {
+    private void onSignalingMessage(Box box, SignalingChannelNonce nonce) throws SignalingException {
         this.getLogger().debug("Message received");
         if (nonce.getSource() == SALTYRTC_ADDR_SERVER) {
             this.onSignalingServerMessage(box);
@@ -619,7 +620,7 @@ public abstract class Signaling implements SignalingInterface {
     /**
      * Signaling message received from server *after* the handshake is done.
      */
-    private void onSignalingServerMessage(Box box) {
+    private void onSignalingServerMessage(Box box) throws SignalingException {
         final Message message;
 
         try {
@@ -1044,17 +1045,31 @@ public abstract class Signaling implements SignalingInterface {
         this.resetConnection(CloseCode.GOING_AWAY);
     }
 
-    private void handleSendError(SendError msg) {
-        final byte[] hash = msg.getHash();
-        final String hashPrefix = NaCl.asHex(hash).substring(0, 7);
-        final Message message = this.history.find(hash);
+	/**
+     * Handle the case where sending a message to the specified receiver failed.
+     */
+    abstract void handleSendError(short receiver) throws SignalingException;
 
+	/**
+     * Handle incoming send-error messages.
+     */
+    void handleSendError(SendError msg) throws SignalingException {
+        // Get the message id from the SendError message
+        final byte[] id = msg.getId();
+        final String idString = NaCl.asHex(id);
+
+        // Determine the receiver of the message
+        final short receiver = UnsignedHelper.readUnsignedByte(ByteBuffer.wrap(id).get(1));
+
+        // Log info about message
+        final Message message = this.history.find(id);
         if (message != null) {
-            this.getLogger().warn("SendError: Could not send " + message.getType() + " message " + hashPrefix);
-            // TODO: Implement. See git history for old implementation.
+            this.getLogger().warn("SendError: Could not send " + message.getType() + " message " + idString);
         } else {
-            this.getLogger().warn("SendError: " + NaCl.asHex(hash));
+            this.getLogger().warn("SendError: Could not send unknown message: " + idString);
         }
+
+        this.handleSendError(receiver);
     }
 
     /**

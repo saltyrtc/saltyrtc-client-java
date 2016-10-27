@@ -20,19 +20,19 @@ public class SendError extends Message {
 
     public static final String TYPE = "send-error";
 
-    private byte[] hash;
+    private byte[] id;
 
-    public SendError(byte[] hash) {
-        this.hash = hash;
+    public SendError(byte[] id) {
+        this.id = id;
     }
 
     public SendError(Map<String, Object> map) throws ValidationError {
         ValidationHelper.validateType(map.get("type"), TYPE);
-        this.hash = ValidationHelper.validateByteArray(map.get("hash"), 32, "Hash");
+        this.id = ValidationHelper.validateByteArray(map.get("id"), 32, "Id");
     }
 
-    public byte[] getHash() {
-        return hash;
+    public byte[] getId() {
+        return id;
     }
 
     @Override
@@ -40,9 +40,9 @@ public class SendError extends Message {
         packer.packMapHeader(2)
                 .packString("type")
                     .packString(TYPE)
-                .packString("hash")
-                    .packBinaryHeader(this.hash.length)
-                    .writePayload(this.hash);
+                .packString("id")
+                    .packBinaryHeader(this.id.length)
+                    .writePayload(this.id);
     }
 
     @Override
