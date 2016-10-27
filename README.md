@@ -45,7 +45,10 @@ to see the log output.
 This project uses [gradle-witness](https://github.com/WhisperSystems/gradle-witness)
 to make sure that you always get the exact same versions of your dependencies.
 
-Here are the SHA256 signatures for the releases of this project:
+
+## Signatures
+
+These are the SHA256 signatures for the published releases of this project:
 
 - v0.6.0: 394f5ce12bada22c483cc86ebc92598743f143b250e49d18e3c2a1292cf5abdc
 
