@@ -244,7 +244,7 @@ public abstract class Signaling implements SignalingInterface {
             this.salty.events.close.notifyHandlers(new CloseEvent(reason));
         }
 
-        // Unregister listeners
+        // Unregister ws listeners
         if (this.ws != null) {
             this.ws.clearListeners();
         }
@@ -254,7 +254,6 @@ public abstract class Signaling implements SignalingInterface {
 
         // Reset
         this.server = new Server();
-        this.server.handshakeState = ServerHandshakeState.NEW;
         this.handoverState.reset();
         this.setState(SignalingState.NEW);
         this.getLogger().debug("Connection reset");
@@ -452,7 +451,7 @@ public abstract class Signaling implements SignalingInterface {
      * Build an optionally encrypted msgpacked message.
      *
      * @param msg The `Message` to be sent.
-     * @param receiver The receiver byte.
+     * @param receiver The receiver.
      * @param encrypt Whether to encrypt the message.
      * @return Encrypted msgpacked bytes, ready to send.
      */
@@ -513,7 +512,7 @@ public abstract class Signaling implements SignalingInterface {
     }
 
     /**
-     * Return the address of the peer.
+     * Return the peer instance.
      *
      * May return null if peer is not yet set.
      */
@@ -672,7 +671,7 @@ public abstract class Signaling implements SignalingInterface {
      * Handle an incoming server-hello message.
      */
     private void handleServerHello(ServerHello msg, SignalingChannelNonce nonce) throws ProtocolException {
-        // Create server instance
+        // Update server instance
         this.server.setSessionKey(msg.getKey());
         this.server.getCookiePair().setTheirs(nonce.getCookie());
     }
@@ -772,7 +771,6 @@ public abstract class Signaling implements SignalingInterface {
         final Close msg = new Close(reason);
         final byte[] packet;
         try {
-            //noinspection ConstantConditions
             packet = this.buildPacket(msg, this.getPeer());
         } catch (ProtocolException | NullPointerException e) {
             e.printStackTrace();

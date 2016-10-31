@@ -46,8 +46,8 @@ public abstract class Peer {
      */
     public Peer(short id, @NonNull CookiePair cookiePair) {
         this.id = id;
-        this.cookiePair = cookiePair;
         this.csnPair = new CombinedSequencePair();
+        this.cookiePair = cookiePair;
     }
 
     public short getId() {

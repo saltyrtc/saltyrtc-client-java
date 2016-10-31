@@ -150,6 +150,7 @@ public class ResponderSignaling extends Signaling {
         this.getLogger().debug("Server assigned address 0x" + NaCl.asHex(new int[] { this.address }));
 
         // Validate cookie
+        // TODO: Move into validateRepeatedCookie method
         final Cookie repeatedCookie = new Cookie(msg.getYourCookie());
         final Cookie ourCookie = this.server.getCookiePair().getOurs();
         if (!repeatedCookie.equals(ourCookie)) {
