@@ -203,7 +203,7 @@ public abstract class Signaling implements SignalingInterface {
      * This operation is asynchronous, once the connection is closed, the
      * `SignalingStateChangedEvent` will be emitted.
      */
-    void disconnect(Integer reason) {
+    synchronized void disconnect(Integer reason) {
         this.setState(SignalingState.CLOSING);
 
         // Close WebSocket instance
