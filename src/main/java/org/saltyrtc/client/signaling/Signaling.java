@@ -689,7 +689,7 @@ public abstract class Signaling implements SignalingInterface {
         final ClientAuth msg = new ClientAuth(this.server.getCookiePair().getTheirs().getBytes(), subprotocols);
         final byte[] packet = this.buildPacket(msg, this.server);
         this.getLogger().debug("Sending client-auth");
-        this.send(packet);
+        this.send(packet, msg);
         this.server.handshakeState = ServerHandshakeState.AUTH_SENT;
     }
 
@@ -779,7 +779,7 @@ public abstract class Signaling implements SignalingInterface {
         }
         this.getLogger().debug("Sending close");
         try {
-            this.send(packet);
+            this.send(packet, msg);
         } catch (SignalingException | ConnectionException e) {
             e.printStackTrace();
             this.getLogger().error("Could not send close message");
@@ -998,9 +998,12 @@ public abstract class Signaling implements SignalingInterface {
         throws CryptoFailedException, InvalidKeyException, ProtocolException;
 
     /**
-     * Send binary data through the signaling channel.
+     * Send data through the signaling channel.
+     *
+     * The message needs to be passed in too, because encryption after handshake is done in the
+     * task.
      */
-    void send(byte[] payload) throws ConnectionException, SignalingException {
+    void send(@NonNull byte[] payload, @NonNull Message msg) throws ConnectionException, SignalingException {
         // Verify connection state
         final SignalingState state = this.getState();
         if (state != SignalingState.TASK &&
@@ -1011,12 +1014,16 @@ public abstract class Signaling implements SignalingInterface {
         }
 
         // Send data...
-        if (!this.handoverState.getLocal()) {
-            // ...through websocket
-            this.ws.sendBinary(payload);
-        } else {
-            // ...via task
-            this.task.sendSignalingMessage(payload);
+        synchronized (this) {
+            if (!this.handoverState.getLocal()) {
+                // ...through websocket...
+                this.ws.sendBinary(payload);
+            } else {
+                // ...or via task.
+                // Note: By sending a message through the task, the packet with the already sent CSN is dropped.
+                // That's not a problem though, as the CSN will never be used again after handover.
+                this.task.sendSignalingMessage(msg.toBytes());
+            }
         }
     }
 
@@ -1029,7 +1036,7 @@ public abstract class Signaling implements SignalingInterface {
             throw new SignalingException(CloseCode.INTERNAL_ERROR, "No peer address could be found");
         }
         final byte[] packet = this.buildPacket(msg, receiver);
-        this.send(packet);
+        this.send(packet, msg);
     }
 
     private void handleClose(Close msg) {

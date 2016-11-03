@@ -50,8 +50,12 @@ public interface Task {
      *
      * This method should only be called after the handover.
      *
-     * @throws SignalingException if the signaling state is not OPEN or if the handover hasn't
-     *                            taken place yet.
+     * Note that the data passed in to this method should *not* already be encrypted. Otherwise,
+     * data will be encrypted twice.
+     *
+     * @param payload the *non-encrypted* data to be sent.
+     * @throws SignalingException if the signaling state is not OPEN or if the handover hasn't taken
+     *                            place yet.
      */
     void sendSignalingMessage(byte[] payload) throws SignalingException;
 
