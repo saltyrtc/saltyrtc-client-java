@@ -19,7 +19,7 @@ The package is available [on Bintray](https://bintray.com/saltyrtc/maven/saltyrt
 Gradle:
 
 ```groovy
-compile 'org.saltyrtc.client:saltyrtc-client:0.6.0'
+compile 'org.saltyrtc.client:saltyrtc-client:0.6.1'
 ```
 
 Maven:
@@ -28,7 +28,7 @@ Maven:
 <dependency>
   <groupId>org.saltyrtc.client</groupId>
   <artifactId>saltyrtc-client</artifactId>
-  <version>0.6.0</version>
+  <version>0.6.1</version>
   <type>pom</type>
 </dependency>
 ```
@@ -51,6 +51,7 @@ to make sure that you always get the exact same versions of your dependencies.
 These are the SHA256 signatures for the published releases of this project:
 
 - v0.6.0: `394f5ce12bada22c483cc86ebc92598743f143b250e49d18e3c2a1292cf5abdc`
+- v0.6.1: `7861660e81377b525313dc136c74e758abde05f154e52309251b761ac5c8fe0e`
 
 
 ## Publishing
@@ -66,13 +67,21 @@ Update version numbers:
 
     vim -p build.gradle README.md CHANGELOG.md
 
+Build:
+
+    ./gradlew build publish
+
+Add signature to README.md:
+
+    sha256sum build/libs/saltyrtc-client-java.jar
+
 Add and commit:
 
     git commit -m "Release v${VERSION}"
 
 Publish the library to Bintray:
 
-    ./gradlew build publish bintrayUpload
+    ./gradlew bintrayUpload
 
 Tag and push:
 

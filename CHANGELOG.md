@@ -12,6 +12,11 @@ Possible log types:
 - `[security]` to invite users to upgrade in case of vulnerabilities.
 
 
+### v0.6.1 (2016-11-03)
+
+- [fixed] Synchronize disconnect method (#41)
+- [fixed] Fix for double-encryption of signaling messages (#42)
+
 ### v0.6.0 (2016-10-27)
 
 - [added] Implement MITM prevention by accepting server keys in SaltyRTCBuilder (#29)
