@@ -9,7 +9,7 @@
 package org.saltyrtc.client.events;
 
 /**
- * The signaling server lost connection to the peer.
+ * The signaling server lost connection to the specified peer.
  */
 public class SignalingConnectionLostEvent implements Event {
     private short receiver;

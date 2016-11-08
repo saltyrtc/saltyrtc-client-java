@@ -479,16 +479,7 @@ public class InitiatorSignaling extends Signaling {
         }
 
         boolean notify = false;
-        if (this.responder != null) { // We're not authenticated
-            if (this.responder.getId() == receiver) {
-                notify = true;
-                this.resetConnection(CloseCode.PROTOCOL_ERROR);
-                // TODO: Maybe keep ws connection open and wait for reconnect
-            } else {
-                this.getLogger().warn("Got send-error message for unknown responder " + receiver);
-            }
-
-        } else { // We're authenticated
+        if (this.responder == null) { // We're not yet authenticated
             // Get responder
             final Responder responder = this.responders.get(receiver);
             if (responder == null) {
@@ -497,6 +488,14 @@ public class InitiatorSignaling extends Signaling {
                 notify = true;
                 // Drop information about responder
                 this.responders.remove(receiver);
+            }
+        } else { // We're authenticated
+            if (this.responder.getId() == receiver) {
+                notify = true;
+                this.resetConnection(CloseCode.PROTOCOL_ERROR);
+                // TODO: Maybe keep ws connection open and wait for reconnect
+            } else {
+                this.getLogger().warn("Got send-error message for unknown responder " + receiver);
             }
         }
 
