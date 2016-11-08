@@ -1063,8 +1063,15 @@ public abstract class Signaling implements SignalingInterface {
         final byte[] id = msg.getId();
         final String idString = NaCl.asHex(id);
 
-        // Determine the receiver of the message
-        final short receiver = UnsignedHelper.readUnsignedByte(ByteBuffer.wrap(id).get(1));
+        // Determine the sender and receiver of the message
+        final ByteBuffer buf = ByteBuffer.wrap(id);
+        final short source = UnsignedHelper.readUnsignedByte(buf.get());
+        final short destination = UnsignedHelper.readUnsignedByte(buf.get());
+
+        // Validate source
+        if (source != this.address) {
+            throw new ProtocolException("Received send-error message for a message not sent by us!");
+        }
 
         // Log info about message
         final Message message = this.history.find(id);
@@ -1074,7 +1081,7 @@ public abstract class Signaling implements SignalingInterface {
             this.getLogger().warn("SendError: Could not send unknown message: " + idString);
         }
 
-        this.handleSendError(receiver);
+        this.handleSendError(destination);
     }
 
     /**
