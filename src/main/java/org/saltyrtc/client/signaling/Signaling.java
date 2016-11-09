@@ -203,21 +203,24 @@ public abstract class Signaling implements SignalingInterface {
      * This operation is asynchronous, once the connection is closed, the
      * `SignalingStateChangedEvent` will be emitted.
      */
-    synchronized void disconnect(Integer reason) {
+    synchronized void disconnect(int reason) {
         this.setState(SignalingState.CLOSING);
 
         // Close WebSocket instance
         if (this.ws != null) {
-            this.getLogger().debug("Disconnecting WebSocket (close code " + reason + ")");
-            if (reason == null) {
-                this.ws.disconnect();
-            } else {
-                this.ws.disconnect(reason);
-            }
-            this.ws = null;
+            this.getLogger().debug("Disconnecting WebSocket (reason: " + reason + ")");
+            this.ws.disconnect(reason);
+        }
+        this.ws = null;
+
+        // Close task connections
+        if (this.task != null) {
+            this.getLogger().debug("Closing task connections (reason: " + reason + ")");
+            this.task.close(reason);
         }
 
-        // TODO: Do we need to close the task dc?
+        // Update state
+        this.setState(SignalingState.CLOSED);
     }
 
     /**
@@ -225,8 +228,6 @@ public abstract class Signaling implements SignalingInterface {
      *
      * This operation is asynchronous, once the connection is closed, the
      * `SignalingStateChangedEvent` will be emitted.
-     *
-     * See `this.resetConnection(int)`
      */
     public void disconnect() {
         this.disconnect(CloseCode.CLOSING_NORMAL);
@@ -234,23 +235,13 @@ public abstract class Signaling implements SignalingInterface {
 
     /**
      * Reset the connection.
-     *
-     * If the reason passed in is `null`, then this will be treated as a quiet
-     * reset - no listeners will be notified.
      */
     public void resetConnection(@Nullable Integer reason) {
-        // Notify listeners
-        if (reason != null) {
-            this.salty.events.close.notifyHandlers(new CloseEvent(reason));
-        }
-
-        // Unregister ws listeners
-        if (this.ws != null) {
-            this.ws.clearListeners();
-        }
-
         // Disconnect
-        this.disconnect(reason);
+        if (this.state != SignalingState.NEW) {
+            final int code = reason != null ? reason : CloseCode.CLOSING_NORMAL;
+            this.disconnect(code);
+        }
 
         // Reset
         this.server = new Server();
@@ -407,7 +398,9 @@ public abstract class Signaling implements SignalingInterface {
                             break;
                     }
                 }
-                if (closeCode != CloseCode.HANDOVER && Signaling.this.state != SignalingState.NEW) {
+                // Note: Don't check for signaling state here, it will already have been resetted.
+                if (closeCode != CloseCode.HANDOVER) {
+                    Signaling.this.salty.events.close.notifyHandlers(new CloseEvent(closeCode));
                     setState(SignalingState.CLOSED);
                 }
             }
