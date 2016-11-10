@@ -30,7 +30,7 @@ public class CombinedSequencePair {
     }
 
     public CombinedSequence getOurs() {
-        return ours;
+        return this.ours;
     }
 
     public boolean hasTheirs() {
@@ -38,7 +38,7 @@ public class CombinedSequencePair {
     }
 
     public Long getTheirs() {
-        return theirs;
+        return this.theirs;
     }
 
     public void setTheirs(Long theirs) {

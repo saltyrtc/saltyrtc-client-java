@@ -1,5 +1,6 @@
 package org.saltyrtc.client.signaling;
 
+import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.signaling.state.ServerHandshakeState;
 
 /**
@@ -12,5 +13,11 @@ public class Server extends Peer {
 
     public Server() {
         super(Server.ID);
+    }
+
+    @NonNull
+    @Override
+    public String getName() {
+        return "Server";
     }
 }

@@ -427,13 +427,19 @@ public class ResponderSignaling extends Signaling {
     }
 
     /**
-     * Validate CSN of the initiator.
+     * Get the responder instance with the specified id.
+     *
+     * In contrast to `getPeer()`, this also returns responders that haven't finished the
+     * client-to-client handshake.
      */
-    protected void validateNoncePeerCsn(SignalingChannelNonce nonce) throws ValidationError {
-        if (nonce.getSource() == SALTYRTC_ADDR_INITIATOR) {
-            this.validateNonceCsn(nonce, this.initiator.getCsnPair(), "initiator");
+    @Nullable
+    Peer getPeerWithId(short id) throws SignalingException {
+        if (id == SALTYRTC_ADDR_SERVER) {
+            return this.server;
+        } else if (id == SALTYRTC_ADDR_INITIATOR) {
+            return this.initiator;
         } else {
-            throw new ValidationError("Invalid source byte, cannot validate CSN");
+            throw new ProtocolException("Invalid peer id: " + id);
         }
     }
 

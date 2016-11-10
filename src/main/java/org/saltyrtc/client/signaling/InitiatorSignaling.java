@@ -124,22 +124,6 @@ public class InitiatorSignaling extends Signaling {
         return (short) id;
     }
 
-    /**
-     * Validate CSN of the responder.
-     */
-    protected void validateNoncePeerCsn(SignalingChannelNonce nonce) throws ValidationError {
-        final short source = nonce.getSource();
-        if (this.isResponderId(source)) {
-            final Responder responder = this.getResponder(source);
-            if (responder == null) {
-                throw new ValidationError("Unknown responder: " + source);
-            }
-            this.validateNonceCsn(nonce, responder.getCsnPair(), "responder (" + source + ")");
-        } else {
-            throw new ValidationError("Invalid source byte, cannot validate CSN");
-        }
-    }
-
     @Override
     protected void sendClientHello() {
         // No-op as initiator.
@@ -505,6 +489,11 @@ public class InitiatorSignaling extends Signaling {
         }
     }
 
+	/**
+     * Get the chosen responder instance.
+     *
+     * This will return null as long as the client-to-client handshake has not been completed.
+     */
     @Override
     @Nullable
     protected Peer getPeer() {
@@ -521,16 +510,26 @@ public class InitiatorSignaling extends Signaling {
     }
 
     /**
-     * Return the responder with the specified id, or null if it could not be found.
+     * Get the responder instance with the specified id.
+     *
+     * In contrast to `getPeer()`, this also returns responders that haven't finished the
+     * client-to-client handshake.
      */
     @Nullable
-    private Responder getResponder(short id) {
-        if (this.getState() == SignalingState.TASK && this.responder != null && this.responder.getId() == id) {
-            return this.responder;
-        } else if (this.responders.containsKey(id)) {
-            return this.responders.get(id);
+    Peer getPeerWithId(short id) throws SignalingException {
+        if (id == SALTYRTC_ADDR_SERVER) {
+            return this.server;
+        } else if (this.isResponderId(id)) {
+            //noinspection ConstantConditions
+            if (this.getState() == SignalingState.TASK && this.responder != null & this.responder.getId() == id) {
+                return this.responder;
+            } else if (this.responders.containsKey(id)) {
+                return this.responders.get(id);
+            }
+            return null;
+        } else {
+            throw new ProtocolException("Invalid peer id: " + id);
         }
-        return null;
     }
 
 }

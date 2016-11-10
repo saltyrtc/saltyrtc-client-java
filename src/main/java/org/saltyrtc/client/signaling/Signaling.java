@@ -789,7 +789,7 @@ public abstract class Signaling implements SignalingInterface {
     /**
      * Validate the nonce.
      */
-    private void validateNonce(SignalingChannelNonce nonce) throws ValidationError {
+    private void validateNonce(SignalingChannelNonce nonce) throws ValidationError, SignalingException {
         this.validateNonceSource(nonce);
         this.validateNonceDestination(nonce);
         this.validateNonceCsn(nonce);
@@ -888,78 +888,52 @@ public abstract class Signaling implements SignalingInterface {
         }
     }
 
-    /**
-     * Validate the CSN in the nonce.
-     *
-     * @param nonce The nonce from the incoming message.
-     */
-    private void validateNonceCsn(SignalingChannelNonce nonce) throws ValidationError {
-        if (nonce.getSource() == SALTYRTC_ADDR_SERVER) {
-            this.validateNonceCsn(nonce, this.server.getCsnPair(), "server");
-        } else {
-            this.validateNoncePeerCsn(nonce);
-        }
-    }
+    @Nullable
+    abstract Peer getPeerWithId(short id) throws SignalingException;
 
     /**
      * Validate the CSN in the nonce.
      *
-     * If it's the first message from that sender, validate the overflow number and store the CSN.
-     *
-     * Otherwise, make sure that the CSN has been increased.
-     *
      * @param nonce The nonce from the incoming message.
-     * @param csnPair The CSN pair for the message sender.
-     * @param peerName Name of the peer (e.g. "server" or "initiator") used in error messages.
      */
-    void validateNonceCsn(SignalingChannelNonce nonce, CombinedSequencePair csnPair, String peerName)
-            throws ValidationError {
-        // If this is the first message from the initiator, validate the overflow number
-        // and store it for future reference.
-        if (!csnPair.hasTheirs()) {
+    private void validateNonceCsn(SignalingChannelNonce nonce) throws ValidationError, SignalingException {
+        final Peer peer = this.getPeerWithId(nonce.getSource());
+        if (peer == null) {
+            // This can happen e.g. when a responder was dropped between validating
+            // the source and the CSN.
+            throw new ProtocolException("Could not find peer " + nonce.getSource());
+        }
+
+        // If this is the first message from that sender,
+        // validate the overflow number and store the CSN.
+        if (!peer.getCsnPair().hasTheirs()) {
             if (nonce.getOverflow() != 0) {
-                throw new ValidationError("First message from " + peerName + " must have set the overflow number to 0");
+                throw new ValidationError("First message from " + peer.getName() + " must have set the overflow number to 0");
             }
-            csnPair.setTheirs(nonce.getCombinedSequence());
+            peer.getCsnPair().setTheirs(nonce.getCombinedSequence());
 
         // Otherwise, make sure that the CSN has been incremented
         } else {
-            final long previous = csnPair.getTheirs();
+            final long previous = peer.getCsnPair().getTheirs();
             final long current = nonce.getCombinedSequence();
             if (current < previous) {
-                throw new ValidationError(peerName + " CSN is lower than last time");
+                throw new ValidationError(peer.getName() + " CSN is lower than last time");
             } else if (current == previous) {
-                throw new ValidationError(peerName + " CSN hasn't been incremented");
+                throw new ValidationError(peer.getName() + " CSN hasn't been incremented");
             } else {
-                csnPair.setTheirs(current);
+                peer.getCsnPair().setTheirs(current);
             }
         }
     }
 
     /**
-     * Validate the peer CSN in the nonce.
-     */
-    abstract void validateNoncePeerCsn(SignalingChannelNonce nonce) throws ValidationError;
-
-    /**
      * Validate the cookie in the nonce.
-     * TODO: Rewrite with new Peer logic
-     * TODO: BUG: Responder can be another responder than the selected one. See js implementation!
      */
-    private void validateNonceCookie(SignalingChannelNonce nonce) throws ValidationError {
-        if (nonce.getSource() == SALTYRTC_ADDR_SERVER) {
-            final CookiePair cookiePair = this.server.getCookiePair();
-            if (cookiePair.hasTheirs()) { // Server cookie might not yet have been set
-                if (!nonce.getCookie().equals(cookiePair.getTheirs())) {
-                    throw new ValidationError("Server cookie changed");
-                }
-            }
-        } else {
-            final Peer peer = this.getPeer();
-            if (peer != null && peer.getCookiePair().hasTheirs()) { // Peer cookie might not yet have been set
-                if (!nonce.getCookie().equals(peer.getCookiePair().getTheirs())) {
-                    throw new ValidationError("Peer cookie changed");
-                }
+    private void validateNonceCookie(SignalingChannelNonce nonce) throws ValidationError, SignalingException {
+        final Peer peer = this.getPeerWithId(nonce.getSource());
+        if (peer != null && peer.getCookiePair().hasTheirs()) {
+            if (!nonce.getCookie().equals(peer.getCookiePair().getTheirs())) {
+                throw new ValidationError(peer.getName() + " cookie changed");
             }
         }
     }
