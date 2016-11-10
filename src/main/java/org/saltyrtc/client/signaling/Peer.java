@@ -85,6 +85,9 @@ public abstract class Peer {
         return this.csnPair;
     }
 
+    @NonNull
+    public abstract String getName();
+
     /**
      * Return the cookie pair.
      */

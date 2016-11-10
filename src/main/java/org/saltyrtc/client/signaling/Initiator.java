@@ -8,6 +8,7 @@
 
 package org.saltyrtc.client.signaling;
 
+import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.signaling.state.InitiatorHandshakeState;
 
 /**
@@ -25,6 +26,12 @@ public class Initiator extends Peer {
         this.permanentKey = permanentKey;
         this.connected = false;
         this.handshakeState = InitiatorHandshakeState.NEW;
+    }
+
+    @NonNull
+    @Override
+    public String getName() {
+        return "Initiator";
     }
 
     public boolean isConnected() {

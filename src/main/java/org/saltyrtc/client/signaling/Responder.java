@@ -8,6 +8,7 @@
 
 package org.saltyrtc.client.signaling;
 
+import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.signaling.state.ResponderHandshakeState;
 
@@ -22,6 +23,12 @@ public class Responder extends Peer {
         super(id);
         this.keyStore = new KeyStore();
         this.handshakeState = ResponderHandshakeState.NEW;
+    }
+
+    @NonNull
+    @Override
+    public String getName() {
+        return "Responder " + this.getId();
     }
 
     public KeyStore getKeyStore() {
