@@ -794,22 +794,20 @@ public abstract class Signaling implements SignalingInterface {
     }
 
     /**
-     * Validate the signaling nonce.
-     *
-     * See https://github.com/saltyrtc/saltyrtc-meta/issues/41
+     * Validate the nonce.
      */
     private void validateNonce(SignalingChannelNonce nonce) throws ValidationError {
-        this.validateSignalingNonceSender(nonce);
-        this.validateSignalingNonceReceiver(nonce);
-        this.validateSignalingNonceCsn(nonce);
-        this.validateSignalingNonceCookie(nonce);
+        this.validateNonceSource(nonce);
+        this.validateNonceDestination(nonce);
+        this.validateNonceCsn(nonce);
+        this.validateNonceCookie(nonce);
     }
 
     /**
      * Validate the sender address in the nonce.
      * TODO: Rewrite or remove with new peer logic
      */
-    private void validateSignalingNonceSender(SignalingChannelNonce nonce) throws ValidationError {
+    private void validateNonceSource(SignalingChannelNonce nonce) throws ValidationError {
         switch (this.getState()) {
             case SERVER_HANDSHAKE:
                 // Messages during server handshake must come from the server.
@@ -841,14 +839,15 @@ public abstract class Signaling implements SignalingInterface {
                 break;
             case TASK:
                 // Messages after the handshake must come from the peer.
-                if (this.getPeer() == null || nonce.getSource() != this.getPeer().getId()) {
-                    // TODO: Ignore instead of throw?
+                final Peer peer = this.getPeer();
+                assert peer != null;
+                if (nonce.getSource() != peer.getId()) {
                     throw new ValidationError("Received message with invalid sender address (" +
-                            nonce.getSource() + " != " + this.getPeer() + ")");
+                            nonce.getSource() + " != " + peer.getId() + ")");
                 }
                 break;
             default:
-                throw new ValidationError("Cannot validate message nonce with signaling state " +
+                throw new ValidationError("Cannot validate message nonce in signaling state " +
                         this.getState());
         }
     }
@@ -856,20 +855,20 @@ public abstract class Signaling implements SignalingInterface {
     /**
      * Validate the receiver address in the nonce.
      */
-    private void validateSignalingNonceReceiver(SignalingChannelNonce nonce) throws ValidationError {
+    private void validateNonceDestination(SignalingChannelNonce nonce) throws ValidationError {
         Short expected = null;
         if (this.getState() == SignalingState.SERVER_HANDSHAKE) {
             switch (this.server.handshakeState) {
-                // Before receiving the server auth-message, the receiver byte is 0x00
+                // Before receiving the server auth message, the receiver byte is 0x00
                 case NEW:
                 case HELLO_SENT:
                     expected = SALTYRTC_ADDR_UNKNOWN;
                     break;
-                // The server auth-message contains the assigned receiver byte for the first time
+                // The server auth message contains the assigned receiver byte for the first time
                 case AUTH_SENT:
                     if (this.role == SignalingRole.Initiator) {
                         expected = SALTYRTC_ADDR_INITIATOR;
-                    } else if (this.role == SignalingRole.Responder) {
+                    } else { // Responder
                         if (!this.isResponderId(nonce.getDestination())) {
                             throw new ValidationError("Received message during server handshake " +
                                     "with invalid receiver address (" + nonce.getDestination() +
@@ -882,6 +881,12 @@ public abstract class Signaling implements SignalingInterface {
                     expected = this.address;
                     break;
             }
+        } else if (this.getState() == SignalingState.PEER_HANDSHAKE ||
+                   this.getState() == SignalingState.TASK) {
+            expected = this.address;
+        } else {
+            throw new ValidationError("Cannot validate message nonce in signaling state " +
+                this.getState());
         }
 
         if (expected != null && nonce.getDestination() != expected) {
@@ -895,11 +900,11 @@ public abstract class Signaling implements SignalingInterface {
      *
      * @param nonce The nonce from the incoming message.
      */
-    private void validateSignalingNonceCsn(SignalingChannelNonce nonce) throws ValidationError {
+    private void validateNonceCsn(SignalingChannelNonce nonce) throws ValidationError {
         if (nonce.getSource() == SALTYRTC_ADDR_SERVER) {
-            this.validateSignalingNonceCsn(nonce, this.server.getCsnPair(), "server");
+            this.validateNonceCsn(nonce, this.server.getCsnPair(), "server");
         } else {
-            this.validateSignalingNoncePeerCsn(nonce);
+            this.validateNoncePeerCsn(nonce);
         }
     }
 
@@ -914,7 +919,7 @@ public abstract class Signaling implements SignalingInterface {
      * @param csnPair The CSN pair for the message sender.
      * @param peerName Name of the peer (e.g. "server" or "initiator") used in error messages.
      */
-    void validateSignalingNonceCsn(SignalingChannelNonce nonce, CombinedSequencePair csnPair, String peerName)
+    void validateNonceCsn(SignalingChannelNonce nonce, CombinedSequencePair csnPair, String peerName)
             throws ValidationError {
         // If this is the first message from the initiator, validate the overflow number
         // and store it for future reference.
@@ -941,13 +946,14 @@ public abstract class Signaling implements SignalingInterface {
     /**
      * Validate the peer CSN in the nonce.
      */
-    abstract void validateSignalingNoncePeerCsn(SignalingChannelNonce nonce) throws ValidationError;
+    abstract void validateNoncePeerCsn(SignalingChannelNonce nonce) throws ValidationError;
 
     /**
      * Validate the cookie in the nonce.
      * TODO: Rewrite with new Peer logic
+     * TODO: BUG: Responder can be another responder than the selected one. See js implementation!
      */
-    private void validateSignalingNonceCookie(SignalingChannelNonce nonce) throws ValidationError {
+    private void validateNonceCookie(SignalingChannelNonce nonce) throws ValidationError {
         if (nonce.getSource() == SALTYRTC_ADDR_SERVER) {
             final CookiePair cookiePair = this.server.getCookiePair();
             if (cookiePair.hasTheirs()) { // Server cookie might not yet have been set

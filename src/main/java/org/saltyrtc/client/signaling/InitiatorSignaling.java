@@ -127,14 +127,14 @@ public class InitiatorSignaling extends Signaling {
     /**
      * Validate CSN of the responder.
      */
-    protected void validateSignalingNoncePeerCsn(SignalingChannelNonce nonce) throws ValidationError {
+    protected void validateNoncePeerCsn(SignalingChannelNonce nonce) throws ValidationError {
         final short source = nonce.getSource();
         if (this.isResponderId(source)) {
             final Responder responder = this.getResponder(source);
             if (responder == null) {
                 throw new ValidationError("Unknown responder: " + source);
             }
-            this.validateSignalingNonceCsn(nonce, responder.getCsnPair(), "responder (" + source + ")");
+            this.validateNonceCsn(nonce, responder.getCsnPair(), "responder (" + source + ")");
         } else {
             throw new ValidationError("Invalid source byte, cannot validate CSN");
         }

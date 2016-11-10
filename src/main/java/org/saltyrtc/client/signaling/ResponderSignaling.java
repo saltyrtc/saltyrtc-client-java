@@ -429,9 +429,9 @@ public class ResponderSignaling extends Signaling {
     /**
      * Validate CSN of the initiator.
      */
-    protected void validateSignalingNoncePeerCsn(SignalingChannelNonce nonce) throws ValidationError {
+    protected void validateNoncePeerCsn(SignalingChannelNonce nonce) throws ValidationError {
         if (nonce.getSource() == SALTYRTC_ADDR_INITIATOR) {
-            this.validateSignalingNonceCsn(nonce, this.initiator.getCsnPair(), "initiator");
+            this.validateNonceCsn(nonce, this.initiator.getCsnPair(), "initiator");
         } else {
             throw new ValidationError("Invalid source byte, cannot validate CSN");
         }
