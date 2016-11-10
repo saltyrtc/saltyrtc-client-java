@@ -12,6 +12,12 @@ Possible log types:
 - `[security]` to invite users to upgrade in case of vulnerabilities.
 
 
+### v0.6.2 (2016-11-10)
+
+- [fixed] Validate source in send-error message
+- [fixed] The `CloseEvent` should now be emitted even if the server closes the connection
+- [fixed] Fix and simplify nonce validation
+
 ### v0.6.1 (2016-11-03)
 
 - [fixed] Synchronize disconnect method (#41)
