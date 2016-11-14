@@ -10,6 +10,7 @@ package org.saltyrtc.client;
 
 import org.saltyrtc.client.exceptions.InvalidBuilderStateException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
+import org.saltyrtc.client.helpers.HexHelper;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.signaling.SignalingRole;
 import org.saltyrtc.client.tasks.Task;
@@ -132,6 +133,15 @@ public class SaltyRTCBuilder {
     }
 
     /**
+     * Set the trusted public key of the peer.
+     *
+     * @param peerTrustedKeyHex The trusted public key of the peer (hex encoded).
+     */
+    public SaltyRTCBuilder withTrustedPeerKey(String peerTrustedKeyHex) {
+        return this.withTrustedPeerKey(HexHelper.hexStringToByteArray(peerTrustedKeyHex));
+    }
+
+    /**
      * Set the public permanent server key.
      *
      * When setting the server key to a known value, the server will be authenticated during the
@@ -145,6 +155,21 @@ public class SaltyRTCBuilder {
     public SaltyRTCBuilder withServerKey(byte[] serverKey) {
         this.serverKey = serverKey;
         return this;
+    }
+
+    /**
+     * Set the public permanent server key.
+     *
+     * When setting the server key to a known value, the server will be authenticated during the
+     * handshake, so that MITM attacks can be prevented. It can be thought of as certificate
+     * pinning.
+     *
+     * If you know the public permanent server key, it is strongly recommended to set this value!
+     *
+     * @param serverKeyHex The public permanent key of the server (hex encoded).
+     */
+    public SaltyRTCBuilder withServerKey(String serverKeyHex) {
+        return this.withServerKey(HexHelper.hexStringToByteArray(serverKeyHex));
     }
 
     /**
@@ -171,6 +196,19 @@ public class SaltyRTCBuilder {
         this.authToken = authToken;
         this.hasInitiatorInfo = true;
         return this;
+    }
+
+    /**
+     * Set initiator connection info transferred via a secure data channel.
+     *
+     * @param initiatorPublicKeyHex The public key of the initiator (hex encoded).
+     * @param authTokenHex The secret auth token (hex encoded).
+     */
+    public SaltyRTCBuilder initiatorInfo(String initiatorPublicKeyHex, String authTokenHex) {
+        return this.initiatorInfo(
+            HexHelper.hexStringToByteArray(initiatorPublicKeyHex),
+            HexHelper.hexStringToByteArray(authTokenHex)
+        );
     }
 
     /**

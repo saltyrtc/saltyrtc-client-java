@@ -586,7 +586,7 @@ public class ConnectionTest {
         final SaltyRTC responder = new SaltyRTCBuilder()
             .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, SSLContextHelper.getSSLContext())
             .withKeyStore(this.responder.getKeyStore())
-            .withServerKey(HexHelper.hexStringToByteArray(Config.SALTYRTC_SERVER_PUBLIC_KEY))
+            .withServerKey(Config.SALTYRTC_SERVER_PUBLIC_KEY)
             .initiatorInfo(RandomHelper.pseudoRandomBytes(32), RandomHelper.pseudoRandomBytes(32))
             .usingTasks(new Task[]{ new DummyTask() })
             .asResponder();
