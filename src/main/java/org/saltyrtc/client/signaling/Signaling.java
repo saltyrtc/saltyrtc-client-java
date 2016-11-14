@@ -211,6 +211,11 @@ public abstract class Signaling implements SignalingInterface {
     synchronized void disconnect(int reason) {
         this.setState(SignalingState.CLOSING);
 
+        // Send close message if necessary
+        if (this.getState() == SignalingState.TASK) {
+            this.sendClose(reason);
+        }
+
         // Close WebSocket instance
         if (this.ws != null) {
             this.getLogger().debug("Disconnecting WebSocket (reason: " + reason + ")");
