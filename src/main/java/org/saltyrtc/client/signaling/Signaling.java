@@ -239,7 +239,7 @@ public abstract class Signaling implements SignalingInterface {
     /**
      * Reset the connection.
      */
-    public void resetConnection(@Nullable Integer reason) {
+    public synchronized void resetConnection(@Nullable Integer reason) {
         // Disconnect
         if (this.state != SignalingState.NEW) {
             final int code = reason != null ? reason : CloseCode.CLOSING_NORMAL;
@@ -307,12 +307,13 @@ public abstract class Signaling implements SignalingInterface {
                     return;
                 }
 
+                SignalingChannelNonce nonce = null;
                 try {
                     // Parse buffer
                     final Box box = new Box(ByteBuffer.wrap(binary), SignalingChannelNonce.TOTAL_LENGTH);
 
                     // Parse and validate nonce
-                    final SignalingChannelNonce nonce = new SignalingChannelNonce(ByteBuffer.wrap(box.getNonce()));
+                    nonce = new SignalingChannelNonce(ByteBuffer.wrap(box.getNonce()));
                     validateNonce(nonce);
 
                     // Dispatch message
@@ -346,12 +347,25 @@ public abstract class Signaling implements SignalingInterface {
                 } catch (SignalingException e) {
                     getLogger().error("Signaling error: " + CloseCode.explain(e.getCloseCode()));
                     e.printStackTrace();
-                    // Send close message if client-to-client handshake has been completed
-                    if (Signaling.this.getState() == SignalingState.TASK) {
-                        Signaling.this.sendClose(e.getCloseCode());
+                    switch (Signaling.this.getState()) {
+                        case NEW:
+                        case WS_CONNECTING:
+                        case SERVER_HANDSHAKE:
+                            // Close connection
+                            Signaling.this.resetConnection(e.getCloseCode());
+                            break;
+                        case PEER_HANDSHAKE:
+                            Signaling.this.handlePeerHandshakeSignalingError(e, nonce.getSource());
+                            break;
+                        case TASK:
+                            Signaling.this.sendClose(e.getCloseCode());
+                            Signaling.this.resetConnection(CloseCode.CLOSING_NORMAL);
+                            break;
+                        case CLOSING:
+                        case CLOSED:
+                            // Ignore
+                            break;
                     }
-                    // Close connection
-                    Signaling.this.resetConnection(e.getCloseCode());
                 }
             }
 
@@ -506,6 +520,11 @@ public abstract class Signaling implements SignalingInterface {
     byte[] buildPacket(Message msg, Peer receiver) throws ProtocolException {
         return this.buildPacket(msg, receiver, true);
     }
+
+    /**
+     * Handle signaling errors during peer handshake.
+     */
+    abstract void handlePeerHandshakeSignalingError(@NonNull SignalingException e, short source);
 
     /**
      * Return the peer instance.

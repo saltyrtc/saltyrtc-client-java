@@ -91,6 +91,13 @@ public class ResponderSignaling extends Signaling {
     }
 
     /**
+     * Handle signaling errors during peer handshake.
+     */
+    void handlePeerHandshakeSignalingError(@NonNull SignalingException e, short source) {
+        this.resetConnection(e.getCloseCode());
+    }
+
+    /**
      * The responder needs to use the initiator public permanent key as connection path.
      */
     @Override

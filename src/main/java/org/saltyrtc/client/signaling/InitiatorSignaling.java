@@ -78,6 +78,22 @@ public class InitiatorSignaling extends Signaling {
     }
 
     /**
+     * Handle signaling errors during peer handshake.
+     */
+    synchronized void handlePeerHandshakeSignalingError(@NonNull SignalingException e, short source) {
+        // Simply drop the responder
+        Responder responder = this.responders.get(source);
+        if (responder != null) {
+            try {
+                this.dropResponder(responder, e.getCloseCode());
+            } catch (SignalingException | ConnectionException ee) {
+                ee.printStackTrace();
+                // Ignore, we're handling these errors already
+            }
+        }
+    }
+
+    /**
      * The initiator needs to use its own public permanent key as connection path.
      */
     @Override
