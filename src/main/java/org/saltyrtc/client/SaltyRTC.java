@@ -11,13 +11,14 @@ package org.saltyrtc.client;
 import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.events.ApplicationDataEvent;
 import org.saltyrtc.client.events.CloseEvent;
-import org.saltyrtc.client.events.SignalingConnectionLostEvent;
 import org.saltyrtc.client.events.EventRegistry;
 import org.saltyrtc.client.events.HandoverEvent;
+import org.saltyrtc.client.events.SignalingConnectionLostEvent;
 import org.saltyrtc.client.events.SignalingStateChangedEvent;
 import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
 import org.saltyrtc.client.keystore.KeyStore;
+import org.saltyrtc.client.messages.c2c.Application;
 import org.saltyrtc.client.signaling.InitiatorSignaling;
 import org.saltyrtc.client.signaling.ResponderSignaling;
 import org.saltyrtc.client.signaling.Signaling;
@@ -125,6 +126,13 @@ public class SaltyRTC {
      */
     public void connect() throws ConnectionException {
         this.signaling.connect();
+    }
+
+    /**
+     * Send an application message to the peer.
+     */
+    public void sendApplicationMessage(Object data) throws ConnectionException {
+        this.signaling.sendApplication(new Application(data));
     }
 
     /**
