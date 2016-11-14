@@ -21,6 +21,8 @@ import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.cookie.Cookie;
 import org.saltyrtc.client.events.ApplicationDataEvent;
 import org.saltyrtc.client.events.CloseEvent;
+import org.saltyrtc.client.events.EventHandler;
+import org.saltyrtc.client.events.HandoverEvent;
 import org.saltyrtc.client.events.SignalingStateChangedEvent;
 import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
@@ -136,6 +138,16 @@ public abstract class Signaling implements SignalingInterface {
         this.tasks = tasks;
         this.server = new Server();
         this.pingInterval = pingInterval;
+
+        // When the handover is complete, notify event handlers and close the WebSocket.
+        this.handoverState.handoverComplete.register(new EventHandler<HandoverState.HandoverComplete>() {
+            @Override
+            public boolean handle(HandoverState.HandoverComplete event) {
+                Signaling.this.salty.events.handover.notifyHandlers(new HandoverEvent());
+                Signaling.this.ws.sendClose(CloseCode.HANDOVER);
+                return false;
+            }
+        });
     }
 
     @NonNull

@@ -1,5 +1,8 @@
 package org.saltyrtc.client.signaling.state;
 
+import org.saltyrtc.client.events.Event;
+import org.saltyrtc.client.events.EventRegistry;
+
 public class HandoverState {
     private boolean local;
     private boolean peer;
@@ -13,7 +16,11 @@ public class HandoverState {
     }
 
     public void setLocal(boolean local) {
+        final boolean wasAll = this.getAll();
         this.local = local;
+        if (!wasAll && this.getAll()) {
+            this.handoverComplete.notifyHandlers(new HandoverComplete());
+        }
     }
 
     public boolean getPeer() {
@@ -21,7 +28,11 @@ public class HandoverState {
     }
 
     public void setPeer(boolean peer) {
+        final boolean wasAll = this.getAll();
         this.peer = peer;
+        if (!wasAll && this.getAll()) {
+            this.handoverComplete.notifyHandlers(new HandoverComplete());
+        }
     }
 
     /**
@@ -42,4 +53,14 @@ public class HandoverState {
         this.local = false;
         this.peer = false;
     }
+
+    /**
+     * Event that indicates that both sides have finished the handover.
+     */
+    public static class HandoverComplete implements Event { }
+
+    /**
+     * Registry for `HandoverComplete` event handlers.
+     */
+    public final EventRegistry<HandoverComplete> handoverComplete = new EventRegistry<>();
 }
