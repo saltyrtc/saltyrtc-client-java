@@ -19,6 +19,7 @@ import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.cookie.Cookie;
+import org.saltyrtc.client.events.ApplicationDataEvent;
 import org.saltyrtc.client.events.CloseEvent;
 import org.saltyrtc.client.events.SignalingStateChangedEvent;
 import org.saltyrtc.client.exceptions.ConnectionException;
@@ -677,7 +678,11 @@ public abstract class Signaling implements SignalingInterface {
             this.getLogger().debug("Received close");
             this.handleClose((Close) message);
         } else if (message instanceof TaskMessage) {
+            this.getLogger().debug("Received task message");
             this.task.onTaskMessage((TaskMessage) message);
+        } else if (message instanceof Application) {
+            this.getLogger().debug("Received application message");
+            this.handleApplication((Application) message);
         } else {
             this.getLogger().error("Received message with invalid type from peer");
         }
@@ -1089,6 +1094,10 @@ public abstract class Signaling implements SignalingInterface {
 
         // Reset signaling
         this.resetConnection(CloseCode.GOING_AWAY);
+    }
+
+    private void handleApplication(Application msg) {
+        this.salty.events.applicationData.notifyHandlers(new ApplicationDataEvent(msg.getData()));
     }
 
 	/**
