@@ -9,6 +9,7 @@
 package org.saltyrtc.client.signaling;
 
 import org.saltyrtc.client.SaltyRTC;
+import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.cookie.Cookie;
 import org.saltyrtc.client.events.SignalingConnectionLostEvent;
@@ -65,9 +66,10 @@ public class InitiatorSignaling extends Signaling {
                               KeyStore permanentKey, SSLContext sslContext,
                               @Nullable byte[] responderTrustedKey,
                               @Nullable byte[] expectedServerKey,
-                              Task[] tasks) {
+                              @NonNull Task[] tasks,
+                              int pingInterval) {
         super(saltyRTC, host, port, permanentKey, sslContext, responderTrustedKey, expectedServerKey,
-              SignalingRole.Initiator, tasks);
+              SignalingRole.Initiator, tasks, pingInterval);
         if (responderTrustedKey == null) {
             this.authToken = new AuthToken();
         }

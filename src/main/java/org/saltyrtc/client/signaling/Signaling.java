@@ -82,6 +82,7 @@ public abstract class Signaling implements SignalingInterface {
     private final int port;
     private final SSLContext sslContext;
     private WebSocket ws;
+    private int pingInterval;
 
     // Connection state
     private SignalingState state = SignalingState.NEW;
@@ -120,7 +121,8 @@ public abstract class Signaling implements SignalingInterface {
                      @Nullable byte[] peerTrustedKey,
                      @Nullable byte[] expectedServerKey,
                      @NonNull SignalingRole role,
-                     @NonNull Task[] tasks) {
+                     @NonNull Task[] tasks,
+                     int pingInterval) {
         this.salty = salty;
         this.host = host;
         this.port = port;
@@ -131,6 +133,7 @@ public abstract class Signaling implements SignalingInterface {
         this.role = role;
         this.tasks = tasks;
         this.server = new Server();
+        this.pingInterval = pingInterval;
     }
 
     @NonNull
@@ -679,7 +682,8 @@ public abstract class Signaling implements SignalingInterface {
      */
     private void sendClientAuth() throws SignalingException, ConnectionException {
         final List<String> subprotocols = Collections.singletonList(Signaling.SALTYRTC_SUBPROTOCOL);
-        final ClientAuth msg = new ClientAuth(this.server.getCookiePair().getTheirs().getBytes(), subprotocols);
+        final ClientAuth msg = new ClientAuth(
+            this.server.getCookiePair().getTheirs().getBytes(),subprotocols, this.pingInterval);
         final byte[] packet = this.buildPacket(msg, this.server);
         this.getLogger().debug("Sending client-auth");
         this.send(packet, msg);

@@ -8,6 +8,7 @@
 
 package org.saltyrtc.client.helpers;
 
+import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.signaling.CloseCode;
 
@@ -74,6 +75,7 @@ public class ValidationHelper {
         return (Boolean) value;
     }
 
+    @NonNull
     public static Integer validateInteger(Object value, int min, int max, String name) throws ValidationError {
         if (!(value instanceof Integer)) {
             throw new ValidationError(name + " must be an Integer");

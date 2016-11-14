@@ -28,11 +28,13 @@ public class SignalingTest {
         final InitiatorSignaling initiator = new InitiatorSignaling(
                 null, Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, new KeyStore(), null,
                 null, null,
-                new Task[] { new DummyTask() });
+                new Task[] { new DummyTask() },
+                0);
         final ResponderSignaling responder = new ResponderSignaling(
                 null, Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, new KeyStore(), null,
                 initiator.getPublicPermanentKey(), initiator.getAuthToken(), null, null,
-                new Task[] { new DummyTask() });
+                new Task[] { new DummyTask() },
+                0);
 
         // Verify WebSocket path
         Method initiatorMeth = InitiatorSignaling.class.getDeclaredMethod("getWebsocketPath");

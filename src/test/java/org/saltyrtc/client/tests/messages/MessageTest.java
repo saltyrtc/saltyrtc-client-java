@@ -80,7 +80,7 @@ public class MessageTest {
     @Test
     public void testClientAuthRoundtrip() throws SerializationError, ValidationError {
         final List<String> subprotocols = asList("v1.saltyrtc.org", "some.other.protocol");
-        final ClientAuth original = new ClientAuth(RandomHelper.pseudoRandomBytes(16), subprotocols);
+        final ClientAuth original = new ClientAuth(RandomHelper.pseudoRandomBytes(16), subprotocols, 3);
         final ClientAuth returned = this.roundTrip(original);
         assertArrayEquals(original.getYourCookie(), returned.getYourCookie());
         assertArrayEquals(original.getSubprotocols().toArray(), returned.getSubprotocols().toArray());

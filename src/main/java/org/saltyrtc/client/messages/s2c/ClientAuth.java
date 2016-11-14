@@ -23,10 +23,12 @@ public class ClientAuth extends Message {
 
     private byte[] yourCookie;
     private List<String> subprotocols;
+    private int pingInterval;
 
-    public ClientAuth(byte[] yourCookie, List<String> subprotocols) {
+    public ClientAuth(byte[] yourCookie, List<String> subprotocols, int pingInterval) {
         this.yourCookie = yourCookie;
         this.subprotocols = subprotocols;
+        this.pingInterval = pingInterval;
     }
 
     public ClientAuth(Map<String, Object> map) throws ValidationError {
@@ -34,6 +36,7 @@ public class ClientAuth extends Message {
         final int COOKIE_LENGTH = 16;
         this.yourCookie = ValidationHelper.validateByteArray(map.get("your_cookie"), COOKIE_LENGTH, "your_cookie");
         this.subprotocols = ValidationHelper.validateTypedList(map.get("subprotocols"), String.class, "subprotocols");
+        this.pingInterval = ValidationHelper.validateInteger(map.get("ping_interval"), 0, Integer.MAX_VALUE, "ping_interval");
     }
 
     public byte[] getYourCookie() {
@@ -44,14 +47,20 @@ public class ClientAuth extends Message {
         return this.subprotocols;
     }
 
+    public int getPingInterval() {
+        return pingInterval;
+    }
+
     @Override
     public void write(MessagePacker packer) throws IOException {
-        packer.packMapHeader(3)
+        packer.packMapHeader(4)
                 .packString("type")
                     .packString("client-auth")
                 .packString("your_cookie")
                     .packBinaryHeader(this.yourCookie.length)
-                    .writePayload(this.yourCookie);
+                    .writePayload(this.yourCookie)
+                .packString("ping_interval")
+                    .packInt(this.pingInterval);
         packer.packString("subprotocols").packArrayHeader(this.subprotocols.size());
         for (String subprotocol : this.subprotocols) {
             packer.packString(subprotocol);

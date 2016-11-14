@@ -36,6 +36,7 @@ public class SaltyRTCBuilder {
     private byte[] peerTrustedKey;
     private byte[] serverKey;
     private Task[] tasks;
+    private int pingInterval = 0;
 
     /**
      * Validate the specified host, throw an IllegalArgumentException if it's invalid.
@@ -147,7 +148,21 @@ public class SaltyRTCBuilder {
     }
 
     /**
+     * Request that the server sends a WebSocket ping every `interval` seconds.
+     *
+     * @param interval A positive integer. Set it to 0 for no ping messages.
+     */
+    public SaltyRTCBuilder withPingInterval(int interval) {
+        if (interval < 0) {
+            throw new IllegalArgumentException("Ping interval may not be negative");
+        }
+        this.pingInterval = interval;
+        return this;
+    }
+
+    /**
      * Set initiator connection info transferred via a secure data channel.
+     *
      * @param initiatorPublicKey The public key of the initiator.
      * @param authToken The secret auth token.
      */
@@ -184,11 +199,11 @@ public class SaltyRTCBuilder {
             return new SaltyRTC(
                 this.keyStore, this.host, this.port, this.sslContext,
                 this.peerTrustedKey, this.serverKey,
-                this.tasks, SignalingRole.Initiator);
+                this.tasks, this.pingInterval, SignalingRole.Initiator);
         } else {
             return new SaltyRTC(
                 this.keyStore, this.host, this.port, this.sslContext,
-                this.serverKey, this.tasks);
+                this.serverKey, this.tasks, this.pingInterval);
         }
     }
 
@@ -205,11 +220,13 @@ public class SaltyRTCBuilder {
         this.requireTasks();
         if (this.hasTrustedPeerKey) {
             return new SaltyRTC(this.keyStore, this.host, this.port, this.sslContext,
-                    this.peerTrustedKey, this.serverKey, this.tasks, SignalingRole.Responder);
+                    this.peerTrustedKey, this.serverKey, this.tasks, this.pingInterval,
+                    SignalingRole.Responder);
         } else {
             this.requireInitiatorInfo();
             return new SaltyRTC(this.keyStore, this.host, this.port, this.sslContext,
-                    this.initiatorPublicKey, this.authToken, this.serverKey, this.tasks);
+                    this.initiatorPublicKey, this.authToken, this.serverKey,
+                    this.tasks, this.pingInterval);
         }
     }
 }
