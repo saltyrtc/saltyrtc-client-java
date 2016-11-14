@@ -47,6 +47,7 @@ public class MessageTypeTest {
                 { InitiatorAuth.class, "auth" },
                 { ResponderAuth.class, "auth" },
                 { Close.class, "close" },
+                { Application.class, "application" },
         });
     }
 
