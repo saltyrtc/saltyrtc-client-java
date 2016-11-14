@@ -12,6 +12,16 @@ Possible log types:
 - `[security]` to invite users to upgrade in case of vulnerabilities.
 
 
+### v0.7.0 (2016-11-14)
+
+- [added] Add support for `ping_interval` (#46)
+- [added] Support sending Application messages (#47)
+- [added] Allow hex strings as keys in `KeyStore` and `SaltyRTCBuilder` (#38)
+- [fixed] Properly handle signaling errors (#36)
+- [fixed] Send close message on disconnect
+- [fixed] Close websocket on handover (#43, #49)
+- [fixed] Drop inactive responders (#33)
+
 ### v0.6.2 (2016-11-10)
 
 - [fixed] Validate source in send-error message
