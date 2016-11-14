@@ -19,6 +19,7 @@ import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.cookie.Cookie;
+import org.saltyrtc.client.events.ApplicationDataEvent;
 import org.saltyrtc.client.events.CloseEvent;
 import org.saltyrtc.client.events.SignalingStateChangedEvent;
 import org.saltyrtc.client.exceptions.ConnectionException;
@@ -37,6 +38,7 @@ import org.saltyrtc.client.keystore.AuthToken;
 import org.saltyrtc.client.keystore.Box;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.messages.Message;
+import org.saltyrtc.client.messages.c2c.Application;
 import org.saltyrtc.client.messages.c2c.Close;
 import org.saltyrtc.client.messages.c2c.TaskMessage;
 import org.saltyrtc.client.messages.s2c.ClientAuth;
@@ -676,7 +678,11 @@ public abstract class Signaling implements SignalingInterface {
             this.getLogger().debug("Received close");
             this.handleClose((Close) message);
         } else if (message instanceof TaskMessage) {
+            this.getLogger().debug("Received task message");
             this.task.onTaskMessage((TaskMessage) message);
+        } else if (message instanceof Application) {
+            this.getLogger().debug("Received application message");
+            this.handleApplication((Application) message);
         } else {
             this.getLogger().error("Received message with invalid type from peer");
         }
@@ -1023,16 +1029,60 @@ public abstract class Signaling implements SignalingInterface {
         }
     }
 
+
+    /**
+     * Send an application message through the signaling channel.
+     */
+    public void sendApplication(Application msg) throws ConnectionException {
+        try {
+            this.sendPostClientHandshakeMessage(msg, "application");
+        } catch (SignalingException e) {
+            e.printStackTrace();
+            Signaling.this.sendClose(e.getCloseCode());
+            Signaling.this.resetConnection(CloseCode.CLOSING_NORMAL);
+        }
+    }
+
     /**
      * Send a task message through the signaling channel.
      */
     public void sendTaskMessage(TaskMessage msg) throws SignalingException, ConnectionException {
+        this.sendPostClientHandshakeMessage(msg, "task");
+    }
+
+    /**
+     * Send messages after the client to client handshake has been completed.
+     *
+     * @throws SignalingException if client to client handshake has not been completed.
+     */
+    private void sendPostClientHandshakeMessage(Message msg, String name)
+            throws SignalingException, ConnectionException {
+
+        // Make sure the c2c handshake has been completed
+        if (this.getState() != SignalingState.TASK) {
+            throw new ProtocolException(
+                "Cannot send " + name + " message in " + this.getState() + " state");
+        }
+
+        // Make sure the message type is valid
+        if (!(msg instanceof Application || msg instanceof TaskMessage)) {
+            throw new ProtocolException("Message type must be Application or TaskMessage");
+        }
+
+        // Get peer
         final Peer receiver = this.getPeer();
         if (receiver == null) {
             throw new SignalingException(CloseCode.INTERNAL_ERROR, "No peer address could be found");
         }
-        final byte[] packet = this.buildPacket(msg, receiver);
-        this.send(packet, msg);
+
+        // Send message
+        this.getLogger().debug("Sending " + name + " message");
+        if (this.handoverState.getLocal()) {
+            this.task.sendSignalingMessage(msg.toBytes());
+        } else {
+            final byte[] packet = this.buildPacket(msg, receiver);
+            this.send(packet, msg);
+        }
     }
 
     private void handleClose(Close msg) {
@@ -1044,6 +1094,10 @@ public abstract class Signaling implements SignalingInterface {
 
         // Reset signaling
         this.resetConnection(CloseCode.GOING_AWAY);
+    }
+
+    private void handleApplication(Application msg) {
+        this.salty.events.applicationData.notifyHandlers(new ApplicationDataEvent(msg.getData()));
     }
 
 	/**

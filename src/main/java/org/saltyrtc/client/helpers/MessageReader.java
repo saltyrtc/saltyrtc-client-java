@@ -15,6 +15,7 @@ import org.msgpack.jackson.dataformat.MessagePackFactory;
 import org.saltyrtc.client.exceptions.SerializationError;
 import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.messages.Message;
+import org.saltyrtc.client.messages.c2c.Application;
 import org.saltyrtc.client.messages.c2c.Close;
 import org.saltyrtc.client.messages.c2c.InitiatorAuth;
 import org.saltyrtc.client.messages.c2c.Key;
@@ -116,6 +117,8 @@ public class MessageReader {
                 throw new ValidationError("Invalid auth message");
             case "close":
                 return new Close(map);
+            case "application":
+                return new Application(map);
             default:
                 if (taskTypes.contains(type)) {
                     return new TaskMessage(type, map);

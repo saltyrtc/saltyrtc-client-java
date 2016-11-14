@@ -9,13 +9,16 @@
 package org.saltyrtc.client.tests.integration;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.SaltyRTCBuilder;
+import org.saltyrtc.client.events.ApplicationDataEvent;
 import org.saltyrtc.client.events.CloseEvent;
 import org.saltyrtc.client.events.EventHandler;
 import org.saltyrtc.client.events.SignalingStateChangedEvent;
+import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.helpers.HexHelper;
 import org.saltyrtc.client.helpers.RandomHelper;
 import org.saltyrtc.client.keystore.KeyStore;
@@ -647,6 +650,93 @@ public class ConnectionTest {
         responder.connect();
         final boolean success = closed.await(2, TimeUnit.SECONDS);
         assertTrue(success);
+    }
+
+    @Test
+    public void testApplicationMessagePingPong() throws Exception {
+        // Create peers
+        final SSLContext sslContext = SSLContextHelper.getSSLContext();
+        final SaltyRTC initiator = new SaltyRTCBuilder()
+            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
+            .withKeyStore(new KeyStore())
+            .usingTasks(new Task[]{ new DummyTask() })
+            .asInitiator();
+        final SaltyRTC responder = new SaltyRTCBuilder()
+            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
+            .withKeyStore(new KeyStore())
+            .usingTasks(new Task[]{ new DummyTask() })
+            .initiatorInfo(initiator.getPublicPermanentKey(), initiator.getAuthToken())
+            .asResponder();
+
+        // Latches to test connection state
+        final CountDownLatch connectedPeers = new CountDownLatch(2);
+        final CountDownLatch messagesReceived = new CountDownLatch(2);
+
+        // Register onConnect handler
+        initiator.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
+            @Override
+            public boolean handle(SignalingStateChangedEvent event) {
+                if (event.getState() == SignalingState.TASK) {
+                    connectedPeers.countDown();
+                }
+                return false;
+            }
+        });
+        responder.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
+            @Override
+            public boolean handle(SignalingStateChangedEvent event) {
+                if (event.getState() == SignalingState.TASK) {
+                    connectedPeers.countDown();
+                }
+                return false;
+            }
+        });
+
+        // Connect server
+        responder.connect();
+        Thread.sleep(1000);
+        initiator.connect();
+
+        // Wait for full handshake
+        final boolean bothConnected = connectedPeers.await(4, TimeUnit.SECONDS);
+        assertTrue(bothConnected);
+
+        // Signaling state should be TASK
+        assertEquals(SignalingState.TASK, initiator.getSignalingState());
+        assertEquals(SignalingState.TASK, responder.getSignalingState());
+
+        // Add application message handlers
+        initiator.events.applicationData.register(new EventHandler<ApplicationDataEvent>() {
+            @Override
+            public boolean handle(ApplicationDataEvent event) {
+                messagesReceived.countDown();
+                return false;
+            }
+        });
+        responder.events.applicationData.register(new EventHandler<ApplicationDataEvent>() {
+            @Override
+            public boolean handle(ApplicationDataEvent event) {
+                messagesReceived.countDown();
+                Assert.assertEquals(event.getData(), "ping");
+                try {
+                    responder.sendApplicationMessage("pong");
+                } catch (ConnectionException e) {
+                    e.printStackTrace();
+                }
+                return false;
+            }
+        });
+
+        // Send ping message
+        initiator.sendApplicationMessage("ping");
+
+        // Wait for ping-pong-messages
+        final boolean bothReceived = messagesReceived.await(2, TimeUnit.SECONDS);
+        assertTrue(bothReceived);
+
+        // Disconnect
+        initiator.disconnect();
+        responder.disconnect();
     }
 
     @After

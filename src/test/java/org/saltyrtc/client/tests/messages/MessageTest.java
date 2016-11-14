@@ -14,6 +14,7 @@ import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.helpers.MessageReader;
 import org.saltyrtc.client.helpers.RandomHelper;
 import org.saltyrtc.client.messages.Message;
+import org.saltyrtc.client.messages.c2c.Application;
 import org.saltyrtc.client.messages.c2c.Close;
 import org.saltyrtc.client.messages.c2c.InitiatorAuth;
 import org.saltyrtc.client.messages.c2c.Key;
@@ -30,6 +31,7 @@ import org.saltyrtc.client.messages.s2c.SendError;
 import org.saltyrtc.client.messages.s2c.ServerHello;
 import org.saltyrtc.client.signaling.CloseCode;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -263,5 +265,43 @@ public class MessageTest {
         final Key auth = new Key(RandomHelper.pseudoRandomBytes(32));
         assertEquals("key", auth.getType());
     }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testApplicationPojo() throws ValidationError, SerializationError {
+        class Pojo {
+            public Integer number;
+            public List<String> list;
+            public Pojo(Integer number, List<String> list) {
+                this.number = number;
+                this.list = list;
+            }
+        }
+
+        List<String> list = new ArrayList<>();
+        list.add("a");
+        list.add("b");
+        Pojo pojo = new Pojo(42, list);
+
+        final Application original = new Application(pojo);
+        final Application returned = roundTrip(original);
+        assertEquals("application", returned.getType());
+
+        Map<String, Object> data = (HashMap<String, Object>) returned.getData();
+        assertEquals(Integer.class, data.get("number").getClass());
+        assertEquals(42, data.get("number"));
+        assertEquals(ArrayList.class, data.get("list").getClass());
+        assertEquals(2, ((ArrayList)data.get("list")).size());
+    }
+
+    @Test
+    public void testGenericApplicationData() throws ValidationError, SerializationError {
+        Integer number = 42;
+        final Application original = new Application(number);
+        final Application returned = roundTrip(original);
+        assertEquals("application", returned.getType());
+        assertEquals(number, returned.getData());
+    }
+
 
 }
