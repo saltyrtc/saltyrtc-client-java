@@ -1,4 +1,4 @@
-package org.saltyrtc.client.signaling;
+package org.saltyrtc.client.signaling.peers;
 
 import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.signaling.state.ServerHandshakeState;

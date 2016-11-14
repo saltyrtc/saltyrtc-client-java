@@ -36,6 +36,8 @@ import org.saltyrtc.client.messages.s2c.NewInitiator;
 import org.saltyrtc.client.messages.s2c.ResponderServerAuth;
 import org.saltyrtc.client.messages.s2c.SendError;
 import org.saltyrtc.client.nonce.SignalingChannelNonce;
+import org.saltyrtc.client.signaling.peers.Initiator;
+import org.saltyrtc.client.signaling.peers.Peer;
 import org.saltyrtc.client.signaling.state.InitiatorHandshakeState;
 import org.saltyrtc.client.signaling.state.ServerHandshakeState;
 import org.saltyrtc.client.signaling.state.SignalingState;
@@ -113,7 +115,7 @@ public class ResponderSignaling extends Signaling {
                 }
                 return this.authToken.encrypt(payload, nonce);
             case "key":
-                return this.permanentKey.encrypt(payload, nonce, this.initiator.permanentKey);
+                return this.permanentKey.encrypt(payload, nonce, this.initiator.getPermanentKey());
             default:
                 byte[] peerSessionKey = this.getPeerSessionKey();
                 if (peerSessionKey == null) {
@@ -424,7 +426,7 @@ public class ResponderSignaling extends Signaling {
     @Override
     @Nullable
     protected byte[] getPeerSessionKey() {
-        return this.initiator.sessionKey;
+        return this.initiator.getSessionKey();
     }
 
     /**

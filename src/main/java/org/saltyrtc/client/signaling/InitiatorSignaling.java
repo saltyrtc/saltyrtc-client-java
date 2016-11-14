@@ -36,6 +36,8 @@ import org.saltyrtc.client.messages.s2c.InitiatorServerAuth;
 import org.saltyrtc.client.messages.s2c.NewResponder;
 import org.saltyrtc.client.messages.s2c.SendError;
 import org.saltyrtc.client.nonce.SignalingChannelNonce;
+import org.saltyrtc.client.signaling.peers.Peer;
+import org.saltyrtc.client.signaling.peers.Responder;
 import org.saltyrtc.client.signaling.state.ResponderHandshakeState;
 import org.saltyrtc.client.signaling.state.ServerHandshakeState;
 import org.saltyrtc.client.signaling.state.SignalingState;
@@ -253,7 +255,7 @@ public class InitiatorSignaling extends Signaling {
                     try {
                         final byte[] peerPublicKey = this.hasTrustedKey()
                                                    ? this.peerTrustedKey
-                                                   : responder.permanentKey;
+                                                   : responder.getPermanentKey();
                         payload = this.permanentKey.decrypt(box, peerPublicKey);
                     } catch (CryptoFailedException e) {
                         this.getLogger().warn("Could not decrypt key message");
@@ -279,7 +281,7 @@ public class InitiatorSignaling extends Signaling {
                     try {
                         // Note: The session key related to the responder is
                         // responder.keyStore, not this.sessionKey!
-                        payload = responder.getKeyStore().decrypt(box, responder.sessionKey);
+                        payload = responder.getKeyStore().decrypt(box, responder.getSessionKey());
                     } catch (CryptoFailedException e) {
                         e.printStackTrace();
                         throw new ProtocolException("Could not decrypt auth message");
@@ -506,7 +508,7 @@ public class InitiatorSignaling extends Signaling {
     @Nullable
     protected byte[] getPeerSessionKey() {
         if (this.responder != null) {
-            return this.responder.sessionKey;
+            return this.responder.getSessionKey();
         }
         return null;
     }
