@@ -18,9 +18,11 @@ import org.saltyrtc.client.signaling.state.ResponderHandshakeState;
 public class Responder extends Peer {
     private final KeyStore keyStore;
     public ResponderHandshakeState handshakeState;
+    private int counter;
 
-    public Responder(short id) {
+    public Responder(short id, int counter) {
         super(id);
+        this.counter = counter;
         this.keyStore = new KeyStore();
         this.handshakeState = ResponderHandshakeState.NEW;
     }
@@ -32,7 +34,10 @@ public class Responder extends Peer {
     }
 
     public KeyStore getKeyStore() {
-        return keyStore;
+        return this.keyStore;
     }
 
+    public int getCounter() {
+        return this.counter;
+    }
 }

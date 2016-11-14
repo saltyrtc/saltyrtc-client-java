@@ -740,7 +740,7 @@ public abstract class Signaling implements SignalingInterface {
      * responder signaling subclasses.
      */
     abstract void handleServerAuth(Message baseMsg, SignalingChannelNonce nonce) throws
-            ProtocolException;
+        SignalingException, ConnectionException;
 
     /**
      * Validate the signed keys sent by the server in the server-auth message.
@@ -881,8 +881,8 @@ public abstract class Signaling implements SignalingInterface {
                 final Peer peer = this.getPeer();
                 assert peer != null;
                 if (nonce.getSource() != peer.getId()) {
-                    throw new ValidationError("Received message with invalid sender address (" +
-                            nonce.getSource() + " != " + peer.getId() + ")");
+                    throw new ValidationError("Received message after handshake with invalid " +
+                        "sender address (" + nonce.getSource() + " != " + peer.getId() + ")");
                 }
                 break;
             default:

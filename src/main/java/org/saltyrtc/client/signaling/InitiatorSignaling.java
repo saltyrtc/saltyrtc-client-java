@@ -55,6 +55,7 @@ public class InitiatorSignaling extends Signaling {
 
     // Keep track of responders connected to the server
     private final Map<Short, Responder> responders = new HashMap<>();
+    private int responderCounter = 0;
 
     // Once the handshake is done, this is the chosen responder
     private Responder responder;
@@ -150,7 +151,8 @@ public class InitiatorSignaling extends Signaling {
     }
 
     @Override
-    protected void handleServerAuth(Message baseMsg, SignalingChannelNonce nonce) throws ProtocolException {
+    protected void handleServerAuth(Message baseMsg, SignalingChannelNonce nonce) throws
+        SignalingException, ConnectionException {
         // Cast to proper subtype
         final InitiatorServerAuth msg;
         try {
@@ -343,7 +345,7 @@ public class InitiatorSignaling extends Signaling {
     /**
      * A new responder wants to connect.
      */
-    private void handleNewResponder(NewResponder msg) throws SignalingException {
+    private void handleNewResponder(NewResponder msg) throws SignalingException, ConnectionException {
         // Validate responder id
         final short id = this.validateResponderId(msg.getId());
 
@@ -354,14 +356,15 @@ public class InitiatorSignaling extends Signaling {
     /**
      * Store a new responder.
      */
-    private void processNewResponder(short responderId) {
+    private void processNewResponder(short responderId) throws ConnectionException,
+        SignalingException {
         // Drop responder if it's already known
         if (this.responders.containsKey(responderId)) {
             this.responders.remove(responderId);
         }
 
         // Create responder instance
-        final Responder responder = new Responder(responderId);
+        final Responder responder = new Responder(responderId, this.responderCounter++);
 
         // If we trust the responder...
         if (this.hasTrustedKey()) {
@@ -374,6 +377,31 @@ public class InitiatorSignaling extends Signaling {
 
         // Store responder
         this.responders.put(responderId, responder);
+
+        // If we almost reached the limit (254 - 2), drop the oldest responder that hasn't sent any valid data so far.
+        if (this.responders.size() > 252) {
+            this.dropOldestInactiveResponder();
+        }
+    }
+
+    /**
+     * Drop the oldest inactive responder.
+     */
+    private void dropOldestInactiveResponder() throws ConnectionException, SignalingException {
+        this.getLogger().warn("Dropping oldest inactive responder");
+        Responder drop = null;
+        for (Responder r : this.responders.values()) {
+            if (r.handshakeState == ResponderHandshakeState.NEW) {
+                if (drop == null) {
+                    drop = r;
+                } else if (r.getCounter() < drop.getCounter()) {
+                    drop = r;
+                }
+            }
+        }
+        if (drop != null) {
+            this.dropResponder(drop, CloseCode.DROPPED_BY_INITIATOR);
+        }
     }
 
     /**
