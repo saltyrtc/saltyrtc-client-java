@@ -154,6 +154,17 @@ public class SaltyRTC {
         public final EventRegistry<ApplicationDataEvent> applicationData = new EventRegistry<>();
         public final EventRegistry<SignalingConnectionLostEvent> signalingConnectionLost = new EventRegistry<>();
         public final EventRegistry<CloseEvent> close = new EventRegistry<>();
+
+        /**
+         * Deregister all event handlers.
+         */
+        public void clearAll() {
+            this.signalingStateChanged.clear();
+            this.handover.clear();
+            this.applicationData.clear();
+            this.signalingConnectionLost.clear();
+            this.close.clear();
+        }
     }
 
     public void setDebug(boolean debug) {
