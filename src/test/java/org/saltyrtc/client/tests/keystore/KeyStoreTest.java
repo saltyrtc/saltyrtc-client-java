@@ -12,6 +12,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
+import org.saltyrtc.client.helpers.HexHelper;
+import org.saltyrtc.client.helpers.RandomHelper;
+import org.saltyrtc.client.helpers.UnsignedHelper;
 import org.saltyrtc.client.keystore.Box;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.vendor.com.neilalexander.jnacl.NaCl;
@@ -90,6 +93,30 @@ public class KeyStoreTest {
         final byte[] otherKey = {42};
         this.random.nextBytes(nonce);
         this.ks.encrypt(in, nonce, otherKey);
+    }
+
+    @Test
+    public void testHexConstructor() {
+        final short[] shorts = { 0x00, 0x01, 0x02, 0xff, 0xff, 0xff, 0xff, 0xff,
+                                 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+                                 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+                                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+        byte[] bytes = new byte[32];
+        for (int i = 0; i < 32; i++) {
+            bytes[i] = UnsignedHelper.getUnsignedByte(shorts[i]);
+        }
+
+        // Make sure hex and bytes are the same
+        final String hex = "000102ffffffffffffffffffffffffffffffffffffffffff0000000000000000";
+        assertArrayEquals(bytes, HexHelper.hexStringToByteArray(hex));
+
+        // Create keystore with both bytes and hex string
+        final KeyStore ks1 = new KeyStore(bytes);
+        final KeyStore ks2 = new KeyStore(hex);
+        assertArrayEquals(ks1.getPublicKey(), ks2.getPublicKey());
+        final KeyStore ks3 = new KeyStore(bytes, RandomHelper.pseudoRandomBytes(32));
+        final KeyStore ks4 = new KeyStore(hex, hex);
+        assertArrayEquals(ks3.getPublicKey(), ks4.getPublicKey());
     }
 
 }

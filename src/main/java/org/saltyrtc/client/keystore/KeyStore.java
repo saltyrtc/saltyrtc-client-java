@@ -10,6 +10,7 @@ package org.saltyrtc.client.keystore;
 
 import org.saltyrtc.client.exceptions.CryptoFailedException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
+import org.saltyrtc.client.helpers.HexHelper;
 import org.saltyrtc.vendor.com.neilalexander.jnacl.NaCl;
 import org.slf4j.Logger;
 
@@ -50,6 +51,14 @@ public class KeyStore {
     }
 
     /**
+     * Create a new key store from an existing secret key.
+     * The public key will automatically be derived.
+     */
+    public KeyStore(String secretKeyHex) {
+        this(HexHelper.hexStringToByteArray(secretKeyHex));
+    }
+
+    /**
      * Create a new key store from an existing keypair.
      */
     public KeyStore(byte[] publicKey, byte[] secretKey) {
@@ -58,6 +67,14 @@ public class KeyStore {
         this.publicKey = publicKey;
         LOG.debug("Secret key: " + NaCl.asHex(this.secretKey));
         LOG.debug("Public key: " + NaCl.asHex(this.publicKey));
+    }
+
+    /**
+     * Create a new key store from an existing keypair.
+     */
+    public KeyStore(String publicKeyHex, String secretKeyHex) {
+        this(HexHelper.hexStringToByteArray(publicKeyHex),
+             HexHelper.hexStringToByteArray(secretKeyHex));
     }
 
     public byte[] getPublicKey() {
