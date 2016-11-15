@@ -12,6 +12,10 @@ Possible log types:
 - `[security]` to invite users to upgrade in case of vulnerabilities.
 
 
+### v0.7.1 (2016-11-15)
+
+- [added] Add clearAll method to event registry (#39)
+
 ### v0.7.0 (2016-11-14)
 
 - [added] Add support for `ping_interval` (#46)
