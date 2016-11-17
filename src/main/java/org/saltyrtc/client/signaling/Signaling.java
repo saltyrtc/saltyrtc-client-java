@@ -1022,7 +1022,7 @@ public abstract class Signaling implements SignalingInterface {
      * The message needs to be passed in too, because encryption after handshake is done in the
      * task.
      */
-    void send(@NonNull byte[] payload, @NonNull Message msg) throws ConnectionException, SignalingException {
+    synchronized void send(@NonNull byte[] payload, @NonNull Message msg) throws ConnectionException, SignalingException {
         // Verify connection state
         final SignalingState state = this.getState();
         if (state != SignalingState.TASK &&
@@ -1033,16 +1033,14 @@ public abstract class Signaling implements SignalingInterface {
         }
 
         // Send data...
-        synchronized (this) {
-            if (!this.handoverState.getLocal()) {
-                // ...through websocket...
-                this.ws.sendBinary(payload);
-            } else {
-                // ...or via task.
-                // Note: By sending a message through the task, the packet with the already sent CSN is dropped.
-                // That's not a problem though, as the CSN will never be used again after handover.
-                this.task.sendSignalingMessage(msg.toBytes());
-            }
+        if (!this.handoverState.getLocal()) {
+            // ...through websocket...
+            this.ws.sendBinary(payload);
+        } else {
+            // ...or via task.
+            // Note: By sending a message through the task, the packet with the already sent CSN is dropped.
+            // That's not a problem though, as the CSN will never be used again after handover.
+            this.task.sendSignalingMessage(msg.toBytes());
         }
     }
 
