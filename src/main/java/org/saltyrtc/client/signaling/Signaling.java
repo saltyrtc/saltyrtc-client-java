@@ -1035,6 +1035,10 @@ public abstract class Signaling implements SignalingInterface {
         // Send data...
         if (!this.handoverState.getLocal()) {
             // ...through websocket...
+            if (this.ws == null) {
+                this.getLogger().error("Trying to send message, but websocket is null");
+                throw new ConnectionException("SaltyRTC instance is not connected");
+            }
             this.ws.sendBinary(payload);
         } else {
             // ...or via task.
