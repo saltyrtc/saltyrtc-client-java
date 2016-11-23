@@ -46,9 +46,9 @@ This project uses [gradle-witness](https://github.com/WhisperSystems/gradle-witn
 to make sure that you always get the exact same versions of your dependencies.
 
 
-## Signatures
+## Hashes
 
-These are the SHA256 signatures for the published releases of this project:
+These are the SHA256 hashes for the published releases of this project:
 
 - v0.7.1: `677d17be2c5ea209275acd872a3874305f8b064ae2aed741bc15aaf764ec0024`
 - v0.7.0: `db3e17e0b8e1ad7ab2ccf2529d292f7afda6ad52b146fe5da396844ad4d0b5c4`
@@ -61,35 +61,49 @@ These are the SHA256 signatures for the published releases of this project:
 
 Set variables:
 
-    export VERSION=X.Y.Z
-    export GPG_KEY=E7ADD9914E260E8B35DFB50665FDE935573ACDA6
-    export BINTRAY_USER=...
-    export BINTRAY_KEY=...
+```shell
+export VERSION=X.Y.Z
+export GPG_KEY=E7ADD9914E260E8B35DFB50665FDE935573ACDA6
+export BINTRAY_USER=...
+export BINTRAY_KEY=...
+```
 
 Update version numbers:
 
-    vim -p build.gradle README.md CHANGELOG.md
+```shell
+vim -p build.gradle README.md CHANGELOG.md
+```
 
 Build:
 
-    ./gradlew build publish
+```shell
+./gradlew build publish
+```
 
 Add signature to README.md:
 
-    sha256sum build/libs/saltyrtc-client-java.jar
+```shell
+sha256sum build/libs/saltyrtc-client-java.jar
+```
 
 Add and commit:
 
-    git commit -m "Release v${VERSION}"
+```shell
+git commit -m "Release v${VERSION}"
+```
 
 Publish the library to Bintray:
 
-    ./gradlew bintrayUpload
+```shell
+./gradlew bintrayUpload
+```
 
 Tag and push:
 
-    git tag -s -u ${GPG_KEY} v${VERSION} -m "Version ${VERSION}"
-    git push && git push --tags
+```shell
+git tag -s -u ${GPG_KEY} v${VERSION} -m "Version ${VERSION}"
+git push && git push --tags
+```
 
 ## License
 
