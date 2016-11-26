@@ -46,9 +46,9 @@ This project uses [gradle-witness](https://github.com/WhisperSystems/gradle-witn
 to make sure that you always get the exact same versions of your dependencies.
 
 
-## Signatures
+## Hashes
 
-These are the SHA256 signatures for the published releases of this project:
+These are the SHA256 hashes for the published releases of this project:
 
 - v0.7.1: `677d17be2c5ea209275acd872a3874305f8b064ae2aed741bc15aaf764ec0024`
 - v0.7.0: `db3e17e0b8e1ad7ab2ccf2529d292f7afda6ad52b146fe5da396844ad4d0b5c4`
@@ -74,7 +74,7 @@ Build:
 
     ./gradlew build publish
 
-Add signature to README.md:
+Add hash to README.md:
 
     sha256sum build/libs/saltyrtc-client-java.jar
 
