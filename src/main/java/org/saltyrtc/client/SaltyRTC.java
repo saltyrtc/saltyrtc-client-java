@@ -17,6 +17,7 @@ import org.saltyrtc.client.events.SignalingConnectionLostEvent;
 import org.saltyrtc.client.events.SignalingStateChangedEvent;
 import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
+import org.saltyrtc.client.exceptions.InvalidStateException;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.messages.c2c.Application;
 import org.saltyrtc.client.signaling.InitiatorSignaling;
@@ -130,8 +131,15 @@ public class SaltyRTC {
 
     /**
      * Send an application message to the peer.
+     *
+     * @throws ConnectionException if sending the message fails due to connectivity issues.
+     * @throws InvalidStateException if the SaltyRTC instance is not currently in the TASK signaling state.
      */
-    public void sendApplicationMessage(Object data) throws ConnectionException {
+    public void sendApplicationMessage(Object data) throws ConnectionException, InvalidStateException {
+        if (this.signaling.getState() != SignalingState.TASK) {
+            throw new InvalidStateException(
+                "Application messages can only be sent in TASK state, not in " + this.signaling.getState().name());
+        }
         this.signaling.sendApplication(new Application(data));
     }
 

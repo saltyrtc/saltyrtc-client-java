@@ -12,6 +12,11 @@ Possible log types:
 - `[security]` to invite users to upgrade in case of vulnerabilities.
 
 
+### UNRELEASED
+
+- [changed] `SaltyRTC.sendApplicationMessage` now throws an
+  `InvalidStateException` if SaltyRTC instance is not in `TASK` state
+
 ### v0.7.1 (2016-11-15)
 
 - [added] Add clearAll method to event registry (#39)

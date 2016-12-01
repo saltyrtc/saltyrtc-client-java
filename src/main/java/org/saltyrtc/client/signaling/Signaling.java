@@ -1051,6 +1051,8 @@ public abstract class Signaling implements SignalingInterface {
 
     /**
      * Send an application message through the signaling channel.
+     *
+     * This function should only be called in TASK state.
      */
     public void sendApplication(Application msg) throws ConnectionException {
         try {
