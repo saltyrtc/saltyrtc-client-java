@@ -33,11 +33,10 @@ Maven:
 </dependency>
 ```
 
+## Usage / Documentation
 
-## Logging
-
-The library uses the slf4j logging API. Configure a logger (e.g. slf4j-simple)
-to see the log output.
+Documentation can be found at
+[http://saltyrtc.org/saltyrtc-client-java/](http://saltyrtc.org/saltyrtc-client-java/).
 
 
 ## Dependency Verification
@@ -68,7 +67,7 @@ Set variables:
 
 Update version numbers:
 
-    vim -p build.gradle README.md CHANGELOG.md
+    vim -p build.gradle README.md CHANGELOG.md docs/docs/installing.md
 
 Build:
 
