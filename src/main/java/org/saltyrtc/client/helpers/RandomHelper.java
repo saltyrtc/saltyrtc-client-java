@@ -15,6 +15,8 @@ public class RandomHelper {
 
     /**
      * Return n random bytes using a PRNG.
+     *
+     * This function should *never* be used for cryptographic purposes.
      */
     public static byte[] pseudoRandomBytes(int count) {
         final byte[] bytes = new byte[count];
