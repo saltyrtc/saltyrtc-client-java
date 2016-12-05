@@ -32,8 +32,6 @@ public interface Task {
      * Used by the signaling class to notify task that the peer handshake is over.
      *
      * This is the point where the task can take over.
-     *
-     * TODO: Could this be combined with init?
      */
     void onPeerHandshakeDone();
 
