@@ -17,6 +17,7 @@ Possible log types:
 - [changed] `SaltyRTC.sendApplicationMessage` now throws an
   `InvalidStateException` if SaltyRTC instance is not in `TASK` state
 - [fixed] Stop logging private key
+- [changed] "Secret key" renamed to "private key" everywhere
 
 ### v0.7.1 (2016-11-15)
 
