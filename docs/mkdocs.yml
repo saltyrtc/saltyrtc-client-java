@@ -4,6 +4,7 @@ site_author: Threema GmbH
 copyright: © 2016 Threema GmbH
 theme: readthedocs
 repo_url: https://github.com/saltyrtc/saltyrtc-client-java
+edit_uri: edit/master/docs/docs/
 markdown_extensions:
   - smarty
   - toc:
