@@ -1,0 +1,16 @@
+site_name: SaltyRTC Client for Java
+site_description: Documentation for saltyrtc-client-java.
+site_author: Threema GmbH
+copyright: © 2016 Threema GmbH
+theme: cinder
+repo_url: https://github.com/saltyrtc/saltyrtc-client-java
+markdown_extensions:
+  - smarty
+  - toc:
+      permalink: False
+pages:
+  - Home: index.md
+  - Guide:
+    - Installing: installing.md
+    - Usage: usage.md
+  - About: about.md

@@ -1,0 +1,3 @@
+mkdocs==0.16.0
+mkdocs-cinder==0.9.4
+Pygments==2.1.3
