@@ -34,7 +34,6 @@ public class KeyStore {
     public KeyStore() {
         LOG.debug("Generating new key pair");
         NaCl.genkeypair(this.publicKey, this.secretKey);
-        LOG.debug("Secret key: " + NaCl.asHex(this.secretKey));
         LOG.debug("Public key: " + NaCl.asHex(this.publicKey));
     }
 
@@ -46,7 +45,6 @@ public class KeyStore {
         LOG.debug("Deriving public key from secret key");
         this.secretKey = secretKey;
         this.publicKey = NaCl.derivePublicKey(secretKey);
-        LOG.debug("Secret key: " + NaCl.asHex(this.secretKey));
         LOG.debug("Public key: " + NaCl.asHex(this.publicKey));
     }
 
@@ -65,7 +63,6 @@ public class KeyStore {
         LOG.debug("Using existing keypair");
         this.secretKey = secretKey;
         this.publicKey = publicKey;
-        LOG.debug("Secret key: " + NaCl.asHex(this.secretKey));
         LOG.debug("Public key: " + NaCl.asHex(this.publicKey));
     }
 
