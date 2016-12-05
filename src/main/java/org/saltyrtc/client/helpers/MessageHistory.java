@@ -63,7 +63,7 @@ public class MessageHistory {
     }
 
     /**
-     * Look up a sent message type by SHA256 hash.
+     * Look up a sent message type by message key.
      *
      * If message is not found, null is returned.
      */
@@ -72,7 +72,7 @@ public class MessageHistory {
     }
 
     /**
-     * Look up a sent message by SHA256 hash hex string.
+     * Look up a sent message by message key hex string.
      */
     public synchronized Message find(String key) {
         return this.history.get(key.toLowerCase());
