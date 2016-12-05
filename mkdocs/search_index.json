@@ -2,12 +2,12 @@
     "docs": [
         {
             "location": "/", 
-            "text": "SaltyRTC Client for Java\n\n\nThis is a SaltyRTC implementation \n for Java 7+.\n\n\nContents\n\n\n\n\nInstalling\n\n\nUsage\n\n\nAbout", 
+            "text": "SaltyRTC Client for Java\n\n\nThis is a SaltyRTC implementation for Java 7+.\n\n\nContents\n\n\n\n\nInstalling\n\n\nUsage\n\n\nAbout", 
             "title": "Home"
         }, 
         {
             "location": "/#saltyrtc-client-for-java", 
-            "text": "This is a SaltyRTC implementation   for Java 7+.  Contents   Installing  Usage  About", 
+            "text": "This is a SaltyRTC implementation for Java 7+.  Contents   Installing  Usage  About", 
             "title": "SaltyRTC Client for Java"
         }, 
         {
