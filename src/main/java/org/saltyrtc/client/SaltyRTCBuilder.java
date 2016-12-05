@@ -8,12 +8,14 @@
 
 package org.saltyrtc.client;
 
+import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.exceptions.InvalidBuilderStateException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
 import org.saltyrtc.client.helpers.HexHelper;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.signaling.SignalingRole;
 import org.saltyrtc.client.tasks.Task;
+import org.saltyrtc.vendor.com.neilalexander.jnacl.NaCl;
 
 import javax.net.ssl.SSLContext;
 
@@ -32,6 +34,7 @@ public class SaltyRTCBuilder {
     private String host;
     private Integer port;
     private SSLContext sslContext;
+    private SaltyRTCServerInfo serverInfo;
     private byte[] initiatorPublicKey;
     private byte[] authToken;
     private byte[] peerTrustedKey;
@@ -104,6 +107,15 @@ public class SaltyRTCBuilder {
         this.host = host;
         this.port = port;
         this.sslContext = sslContext;
+        this.hasConnectionInfo = true;
+        return this;
+    }
+
+    /**
+     * Provide a class that can determine SaltyRTC signalling server connection info.
+     */
+    public SaltyRTCBuilder connectTo(SaltyRTCServerInfo serverInfo) {
+        this.serverInfo = serverInfo;
         this.hasConnectionInfo = true;
         return this;
     }
@@ -224,6 +236,16 @@ public class SaltyRTCBuilder {
     }
 
     /**
+     * If a SaltyRTCServerInfo instance is provided, dynamically determine host and port.
+     */
+    private void processServerInfo(@NonNull SaltyRTCServerInfo serverInfo, byte[] publicKey) {
+        final String hexPublicKey = NaCl.asHex(publicKey);
+        this.host = serverInfo.getHost(hexPublicKey);
+        this.port = serverInfo.getPort(hexPublicKey);
+        this.sslContext = serverInfo.getSSLContext(hexPublicKey);
+    }
+
+    /**
      * Return a SaltyRTC instance configured as initiator.
      *
      * @throws InvalidBuilderStateException Thrown if key or connection info haven't been set yet.
@@ -233,6 +255,11 @@ public class SaltyRTCBuilder {
         this.requireKeyStore();
         this.requireConnectionInfo();
         this.requireTasks();
+
+        if (this.serverInfo != null) {
+            this.processServerInfo(this.serverInfo, this.keyStore.getPublicKey());
+        }
+
         if (this.hasTrustedPeerKey) {
             return new SaltyRTC(
                 this.keyStore, this.host, this.port, this.sslContext,
@@ -256,12 +283,19 @@ public class SaltyRTCBuilder {
         this.requireKeyStore();
         this.requireConnectionInfo();
         this.requireTasks();
+
         if (this.hasTrustedPeerKey) {
+            if (this.serverInfo != null) {
+                this.processServerInfo(this.serverInfo, this.peerTrustedKey);
+            }
             return new SaltyRTC(this.keyStore, this.host, this.port, this.sslContext,
                     this.peerTrustedKey, this.serverKey, this.tasks, this.pingInterval,
                     SignalingRole.Responder);
         } else {
             this.requireInitiatorInfo();
+            if (this.serverInfo != null) {
+                this.processServerInfo(this.serverInfo, this.initiatorPublicKey);
+            }
             return new SaltyRTC(this.keyStore, this.host, this.port, this.sslContext,
                     this.initiatorPublicKey, this.authToken, this.serverKey,
                     this.tasks, this.pingInterval);
