@@ -102,3 +102,8 @@ final SaltyRTC client = new SaltyRTCBuilder()
         .usingTasks(new Task[] { new WebRTCTask() })
         .asInitiator();
 ```
+
+## Logging
+
+The library uses the slf4j logging API. Configure a logger (e.g. slf4j-simple)
+to see the log output.
