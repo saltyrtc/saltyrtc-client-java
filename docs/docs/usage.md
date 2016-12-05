@@ -103,6 +103,43 @@ final SaltyRTC client = new SaltyRTCBuilder()
         .asInitiator();
 ```
 
+## Trusted keys
+
+TODO
+
+## Dynamically determine server connection info
+
+Instead of specifying the SaltyRTC server host, port and SSL context directly,
+you can instead provide an implementation of `SaltyRTCServerInfo` that can
+dynamically determine the connection info based on the public key of the
+initiator.
+
+```java
+final SSLContext sslContext = SSLContext.getDefault();
+final SaltyRTC responder = new SaltyRTCBuilder()
+    .connectTo(new SaltyRTCServerInfo() {
+        @Override
+        public String getHost(String initiatorPublicKey) {
+            if (initiatorPublicKey.startsWith("a")) {
+                return "a.example.org";
+            } else {
+                return "other.example.org";
+            }
+        }
+
+        @Override
+        public int getPort(String initiatorPublicKey) {
+            return Config.SALTYRTC_PORT;
+        }
+
+        @Override
+        public SSLContext getSSLContext(String initiatorPublicKey) {
+            return sslContext;
+        }
+    })
+    // ...
+```
+
 ## Logging
 
 The library uses the slf4j logging API. Configure a logger (e.g. slf4j-simple)

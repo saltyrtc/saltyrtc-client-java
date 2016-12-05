@@ -14,6 +14,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.SaltyRTCBuilder;
+import org.saltyrtc.client.SaltyRTCServerInfo;
 import org.saltyrtc.client.events.ApplicationDataEvent;
 import org.saltyrtc.client.events.CloseEvent;
 import org.saltyrtc.client.events.EventHandler;
@@ -738,6 +739,52 @@ public class ConnectionTest {
         // Disconnect
         initiator.disconnect();
         responder.disconnect();
+    }
+
+    @Test
+    public void testDynamicConnectionInfo() throws Exception {
+        final SSLContext sslContext = SSLContextHelper.getSSLContext();
+        final SaltyRTC responder = new SaltyRTCBuilder()
+            .connectTo(new SaltyRTCServerInfo() {
+                @Override
+                public String getHost(String initiatorPublicKey) {
+                    return Config.SALTYRTC_HOST;
+                }
+
+                @Override
+                public int getPort(String initiatorPublicKey) {
+                    return Config.SALTYRTC_PORT;
+                }
+
+                @Override
+                public SSLContext getSSLContext(String initiatorPublicKey) {
+                    return sslContext;
+                }
+            })
+            .withKeyStore(this.responder.getKeyStore())
+            .withServerKey(Config.SALTYRTC_SERVER_PUBLIC_KEY)
+            .initiatorInfo(RandomHelper.pseudoRandomBytes(32), RandomHelper.pseudoRandomBytes(32))
+            .usingTasks(new Task[]{ new DummyTask() })
+            .asResponder();
+
+        // Look for signaling changes
+        final CountDownLatch closed = new CountDownLatch(1);
+        responder.events.signalingStateChanged.register(
+            new EventHandler<SignalingStateChangedEvent>() {
+                @Override
+                public boolean handle(SignalingStateChangedEvent event) {
+                    if (event.getState() == SignalingState.PEER_HANDSHAKE) {
+                        closed.countDown();
+                    }
+                    return false;
+                }
+            }
+        );
+
+        // Connect server and wait for peer handshake
+        responder.connect();
+        final boolean success = closed.await(2, TimeUnit.SECONDS);
+        assertTrue(success);
     }
 
     @After
