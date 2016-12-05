@@ -40,13 +40,12 @@ Documentation can be found at
 [http://saltyrtc.org/saltyrtc-client-java/](http://saltyrtc.org/saltyrtc-client-java/).
 
 
-## Dependency Verification
+## Security
+
+### Dependency Verification
 
 This project uses [gradle-witness](https://github.com/WhisperSystems/gradle-witness)
 to make sure that you always get the exact same versions of your dependencies.
-
-
-## Hashes
 
 These are the SHA256 hashes for the published releases of this project:
 
@@ -55,6 +54,22 @@ These are the SHA256 hashes for the published releases of this project:
 - v0.6.2: `f7fa5c46c946e08867d5ffe9c819e29047068cf18e2acf72a1182493099ed807`
 - v0.6.1: `7861660e81377b525313dc136c74e758abde05f154e52309251b761ac5c8fe0e`
 - v0.6.0: `394f5ce12bada22c483cc86ebc92598743f143b250e49d18e3c2a1292cf5abdc`
+
+### Responsible Disclosure / Reporting Security Issues
+
+Please report security issues directly to one or both of the following contacts:
+
+- Danilo Bargen
+    - Email: mail@dbrgn.ch
+    - Threema: EBEP4UCA
+    - GPG: [EA456E8BAF0109429583EED83578F667F2F3A5FA][keybase-dbrgn]
+- Lennart Grahl
+    - Email: lennart.grahl@gmail.com
+    - Threema: MSFVEW6C
+    - GPG: [3FDB14868A2B36D638F3C495F98FBED10482ABA6][keybase-lgrahl]
+
+[keybase-dbrgn]: https://keybase.io/dbrgn
+[keybase-lgrahl]: https://keybase.io/lgrahl
 
 
 ## Publishing
@@ -90,6 +105,7 @@ Tag and push:
 
     git tag -s -u ${GPG_KEY} v${VERSION} -m "Version ${VERSION}"
     git push && git push --tags
+
 
 ## License
 
