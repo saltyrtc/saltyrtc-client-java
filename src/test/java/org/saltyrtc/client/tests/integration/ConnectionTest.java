@@ -19,6 +19,7 @@ import org.saltyrtc.client.events.CloseEvent;
 import org.saltyrtc.client.events.EventHandler;
 import org.saltyrtc.client.events.SignalingStateChangedEvent;
 import org.saltyrtc.client.exceptions.ConnectionException;
+import org.saltyrtc.client.exceptions.InvalidStateException;
 import org.saltyrtc.client.helpers.HexHelper;
 import org.saltyrtc.client.helpers.RandomHelper;
 import org.saltyrtc.client.keystore.KeyStore;
@@ -720,7 +721,7 @@ public class ConnectionTest {
                 Assert.assertEquals(event.getData(), "ping");
                 try {
                     responder.sendApplicationMessage("pong");
-                } catch (ConnectionException e) {
+                } catch (ConnectionException | InvalidStateException e) {
                     e.printStackTrace();
                 }
                 return false;
