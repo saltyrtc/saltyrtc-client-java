@@ -12,12 +12,13 @@ Possible log types:
 - `[security]` to invite users to upgrade in case of vulnerabilities.
 
 
-### UNRELEASED
+### v0.8.0 (2016-12-12)
 
 - [changed] `SaltyRTC.sendApplicationMessage` now throws an
   `InvalidStateException` if SaltyRTC instance is not in `TASK` state
 - [fixed] Stop logging private key
 - [changed] "Secret key" renamed to "private key" everywhere
+- [added] Implement dynamic server endpoints (#53)
 
 ### v0.7.1 (2016-11-15)
 

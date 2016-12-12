@@ -5,7 +5,7 @@ The package is available [on Bintray][bintray] and [in JCenter][jcenter].
 **Gradle**
 
 ```groovy
-compile 'org.saltyrtc.client:saltyrtc-client:0.7.1'
+compile 'org.saltyrtc.client:saltyrtc-client:0.8.0'
 ```
 
 **Maven**
@@ -14,7 +14,7 @@ compile 'org.saltyrtc.client:saltyrtc-client:0.7.1'
 <dependency>
   <groupId>org.saltyrtc.client</groupId>
   <artifactId>saltyrtc-client</artifactId>
-  <version>0.7.1</version>
+  <version>0.8.0</version>
   <type>pom</type>
 </dependency>
 ```
