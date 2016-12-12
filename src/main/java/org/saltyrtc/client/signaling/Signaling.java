@@ -374,9 +374,11 @@ public abstract class Signaling implements SignalingInterface {
                             Signaling.this.resetConnection(e.getCloseCode());
                             break;
                         case PEER_HANDSHAKE:
+                            // Handle error depending on role
                             Signaling.this.handlePeerHandshakeSignalingError(e, nonce.getSource());
                             break;
                         case TASK:
+                            // Close websocket connection
                             Signaling.this.sendClose(e.getCloseCode());
                             Signaling.this.resetConnection(CloseCode.CLOSING_NORMAL);
                             break;
