@@ -12,6 +12,10 @@ Possible log types:
 - `[security]` to invite users to upgrade in case of vulnerabilities.
 
 
+### v0.8.1 (2016-12-14)
+
+- [fixed] The previous release was broken, this release should fix it
+
 ### v0.8.0 (2016-12-12)
 
 - [changed] `SaltyRTC.sendApplicationMessage` now throws an
