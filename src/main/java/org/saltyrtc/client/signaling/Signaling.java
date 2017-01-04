@@ -69,14 +69,17 @@ import java.util.Map;
 
 import javax.net.ssl.SSLContext;
 
+/**
+ * Base class for initiator and responder signaling.
+ */
 public abstract class Signaling implements SignalingInterface {
 
-    final static String SALTYRTC_SUBPROTOCOL = "v0.saltyrtc.org";
-    final static short SALTYRTC_WS_CONNECT_TIMEOUT = 2000;
-    final static long SALTYRTC_WS_PING_INTERVAL = 20000;
-    final static short SALTYRTC_ADDR_UNKNOWN = 0x00;
-    final static short SALTYRTC_ADDR_SERVER = 0x00;
-    final static short SALTYRTC_ADDR_INITIATOR = 0x01;
+    static final String SALTYRTC_SUBPROTOCOL = "v0.saltyrtc.org";
+    static final short SALTYRTC_WS_CONNECT_TIMEOUT = 2000;
+    static final long SALTYRTC_WS_PING_INTERVAL = 20000;
+    static final short SALTYRTC_ADDR_UNKNOWN = 0x00;
+    static final short SALTYRTC_ADDR_SERVER = 0x00;
+    static final short SALTYRTC_ADDR_INITIATOR = 0x01;
 
     // Logger
     abstract Logger getLogger();
@@ -1123,12 +1126,12 @@ public abstract class Signaling implements SignalingInterface {
         this.salty.events.applicationData.notifyHandlers(new ApplicationDataEvent(msg.getData()));
     }
 
-	/**
+    /**
      * Handle the case where sending a message to the specified receiver failed.
      */
     abstract void handleSendError(short receiver) throws SignalingException;
 
-	/**
+    /**
      * Handle incoming send-error messages.
      */
     void handleSendError(SendError msg) throws SignalingException {
