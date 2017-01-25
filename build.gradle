@@ -19,7 +19,7 @@ plugins {
 
 apply plugin: 'witness'
 
-def app_version = '0.8.1'
+def app_version = '0.8.2'
 
 targetCompatibility = '1.7'
 sourceCompatibility = '1.7'

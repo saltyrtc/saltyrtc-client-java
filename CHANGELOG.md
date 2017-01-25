@@ -12,6 +12,11 @@ Possible log types:
 - `[security]` to invite users to upgrade in case of vulnerabilities.
 
 
+### v0.8.2 (2017-01-25)
+
+- [fixed] If connection is closing or closed while sending a message,
+  don't throw a ProtocolException
+
 ### v0.8.1 (2016-12-14)
 
 - [fixed] The previous release was broken, this release should fix it
