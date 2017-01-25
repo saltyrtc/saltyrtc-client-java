@@ -1085,9 +1085,16 @@ public abstract class Signaling implements SignalingInterface {
             throws SignalingException, ConnectionException {
 
         // Make sure the c2c handshake has been completed
-        if (this.getState() != SignalingState.TASK) {
-            throw new ProtocolException(
-                "Cannot send " + name + " message in " + this.getState() + " state");
+        switch (this.getState()) {
+            case TASK:
+                break;
+            case CLOSING:
+            case CLOSED:
+                throw new ConnectionException(
+                    "Cannot send " + name + " message, signaling state is " + this.getState());
+            default:
+                throw new ProtocolException(
+                    "Cannot send " + name + " message in " + this.getState() + " state");
         }
 
         // Make sure the message type is valid
