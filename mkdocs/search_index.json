@@ -12,12 +12,12 @@
         }, 
         {
             "location": "/installing/", 
-            "text": "Installing\n\n\nThe package is available \non Bintray\n and \nin JCenter\n.\n\n\nGradle\n\n\ncompile 'org.saltyrtc.client:saltyrtc-client:0.8.1'\n\n\n\n\nMaven\n\n\ndependency\n\n  \ngroupId\norg.saltyrtc.client\n/groupId\n\n  \nartifactId\nsaltyrtc-client\n/artifactId\n\n  \nversion\n0.8.1\n/version\n\n  \ntype\npom\n/type\n\n\n/dependency\n\n\n\n\n\nDependency verification\n\n\nThis project uses \ngradle-witness\n\nto make sure that you always get the exact same versions of your dependencies.\n\n\nThe SHA256 hashes for the published releases of this project can be found in the \nREADME file\n.", 
+            "text": "Installing\n\n\nThe package is available \non Bintray\n and \nin JCenter\n.\n\n\nGradle\n\n\ncompile 'org.saltyrtc.client:saltyrtc-client:0.8.2'\n\n\n\n\nMaven\n\n\ndependency\n\n  \ngroupId\norg.saltyrtc.client\n/groupId\n\n  \nartifactId\nsaltyrtc-client\n/artifactId\n\n  \nversion\n0.8.2\n/version\n\n  \ntype\npom\n/type\n\n\n/dependency\n\n\n\n\n\nDependency verification\n\n\nThis project uses \ngradle-witness\n\nto make sure that you always get the exact same versions of your dependencies.\n\n\nThe SHA256 hashes for the published releases of this project can be found in the \nREADME file\n.", 
             "title": "Installing"
         }, 
         {
             "location": "/installing/#installing", 
-            "text": "The package is available  on Bintray  and  in JCenter .  Gradle  compile 'org.saltyrtc.client:saltyrtc-client:0.8.1'  Maven  dependency \n   groupId org.saltyrtc.client /groupId \n   artifactId saltyrtc-client /artifactId \n   version 0.8.1 /version \n   type pom /type  /dependency", 
+            "text": "The package is available  on Bintray  and  in JCenter .  Gradle  compile 'org.saltyrtc.client:saltyrtc-client:0.8.2'  Maven  dependency \n   groupId org.saltyrtc.client /groupId \n   artifactId saltyrtc-client /artifactId \n   version 0.8.2 /version \n   type pom /type  /dependency", 
             "title": "Installing"
         }, 
         {
