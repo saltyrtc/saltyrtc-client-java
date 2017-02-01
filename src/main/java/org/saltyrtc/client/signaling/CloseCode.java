@@ -67,6 +67,11 @@ public class CloseCode {
     public static final int NO_SHARED_TASK = 3006;
 
     /**
+     * Invalid key.
+     */
+    public static final int INVALID_KEY = 3007;
+
+    /**
      * Valid close codes for drop-responder messages.
      */
     public static final int[] CLOSE_CODES_DROP_RESPONDER = new int[] {
@@ -78,7 +83,7 @@ public class CloseCode {
      */
     public static final int[] CLOSE_CODES_ALL = new int[] {
         GOING_AWAY, NO_SHARED_SUBPROTOCOL, PATH_FULL, PROTOCOL_ERROR, INTERNAL_ERROR,
-        HANDOVER, DROPPED_BY_INITIATOR, INITIATOR_COULD_NOT_DECRYPT, NO_SHARED_TASK
+        HANDOVER, DROPPED_BY_INITIATOR, INITIATOR_COULD_NOT_DECRYPT, NO_SHARED_TASK, INVALID_KEY,
     };
 
     /**
@@ -106,6 +111,8 @@ public class CloseCode {
                 return "Initiator could not decrypt a message";
             case NO_SHARED_TASK:
                 return "No shared task was found";
+            case INVALID_KEY:
+                return "Invalid key";
         }
         return "Unknown";
     }
