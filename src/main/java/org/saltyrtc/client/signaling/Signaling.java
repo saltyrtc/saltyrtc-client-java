@@ -437,6 +437,9 @@ public abstract class Signaling implements SignalingInterface {
                         case CloseCode.NO_SHARED_TASK:
                             getLogger().error("No shared task was found");
                             break;
+                        case CloseCode.INVALID_KEY:
+                            getLogger().error("An invalid public permanent server key was specified");
+                            break;
                     }
                 }
                 // Note: Don't check for signaling state here, it will already have been resetted.
