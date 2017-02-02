@@ -36,7 +36,7 @@ Maven:
 ## Usage / Documentation
 
 Documentation can be found at
-[http://saltyrtc.org/saltyrtc-client-java/](http://saltyrtc.org/saltyrtc-client-java/).
+[https://saltyrtc.github.io/saltyrtc-client-java/](https://saltyrtc.github.io/saltyrtc-client-java/).
 
 
 ## Security
