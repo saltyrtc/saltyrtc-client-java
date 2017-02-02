@@ -62,7 +62,7 @@ public class ClientAuth extends Message {
 
     @Nullable
     public byte[] getYourKey() {
-        return yourKey;
+        return this.yourKey;
     }
 
     @NonNull
