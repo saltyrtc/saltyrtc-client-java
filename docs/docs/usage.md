@@ -20,8 +20,8 @@ builder.connectTo(host, port, sslContext);
 
 ### Key store
 
-The client needs to have its own public/private keypair. Create one with the
-`KeyStore` class:
+The client needs to have its own public/private keypair. Create a new keypair
+with the `KeyStore` class:
 
 ```java
 import org.saltyrtc.client.keystore.KeyStore;
@@ -108,7 +108,24 @@ To see a more practical example, you may also want to take a look at our
 
 ## Trusted keys
 
-TODO
+In order to reconnect to a session using a trusted key, you first need to
+restore your `KeyStore` with the permanent keypair originally used to establish
+the trusted session:
+
+```java
+final KeyStore keyStore = new KeyStore(ourPrivatePermanentKey);
+builder.withKeyStore(keyStore);
+```
+
+The `ourPrivatePermanentKey` can be either a byte array or a hex encoded string.
+
+Then, on the `SaltyRTCBuilder` instance, set the trusted peer key:
+
+```java
+builder.withTrustedPeerKey(peerPublicPermanentKey);
+```
+
+The `peerPublicPermanentKey` can be either a byte array or a hex encoded string.
 
 ## Dynamically determine server connection info
 
