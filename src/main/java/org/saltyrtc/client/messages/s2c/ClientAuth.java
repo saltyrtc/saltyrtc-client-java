@@ -26,7 +26,7 @@ public class ClientAuth extends Message {
     @NonNull
     private byte[] yourCookie;
     @Nullable
-    private byte[] key = null;
+    private byte[] yourKey = null;
     @NonNull
     private List<String> subprotocols;
     @NonNull
@@ -38,20 +38,20 @@ public class ClientAuth extends Message {
         this.pingInterval = pingInterval;
     }
 
-    public ClientAuth(byte[] yourCookie, byte[] key, List<String> subprotocols, int pingInterval) {
+    public ClientAuth(byte[] yourCookie, byte[] yourKey, List<String> subprotocols, int pingInterval) {
         this(yourCookie, subprotocols, pingInterval);
-        this.key = key;
+        this.yourKey = yourKey;
     }
 
     public ClientAuth(Map<String, Object> map) throws ValidationError {
         ValidationHelper.validateType(map.get("type"), TYPE);
         final int COOKIE_LENGTH = 16;
-        final int KEY_LENGTH = 32;
+        final int YOUR_KEY_LENGTH = 32;
         this.yourCookie = ValidationHelper.validateByteArray(map.get("your_cookie"), COOKIE_LENGTH, "your_cookie");
         this.subprotocols = ValidationHelper.validateTypedList(map.get("subprotocols"), String.class, "subprotocols");
         this.pingInterval = ValidationHelper.validateInteger(map.get("ping_interval"), 0, Integer.MAX_VALUE, "ping_interval");
-        if (map.containsKey("key") && map.get("key") != null) {
-            this.key = ValidationHelper.validateByteArray(map.get("key"), KEY_LENGTH, "key");
+        if (map.containsKey("your_key") && map.get("your_key") != null) {
+            this.yourKey = ValidationHelper.validateByteArray(map.get("your_key"), YOUR_KEY_LENGTH, "your_key");
         }
     }
 
@@ -61,8 +61,8 @@ public class ClientAuth extends Message {
     }
 
     @Nullable
-    public byte[] getKey() {
-        return key;
+    public byte[] getYourKey() {
+        return yourKey;
     }
 
     @NonNull
@@ -77,7 +77,7 @@ public class ClientAuth extends Message {
 
     @Override
     public void write(MessagePacker packer) throws IOException {
-        final boolean hasKey = this.key != null;
+        final boolean hasKey = this.yourKey != null;
         packer.packMapHeader(hasKey ? 5 : 4)
               .packString("type")
                   .packString("client-auth")
@@ -85,9 +85,9 @@ public class ClientAuth extends Message {
                   .packBinaryHeader(this.yourCookie.length)
                   .writePayload(this.yourCookie);
         if (hasKey) {
-            packer.packString("key")
-                  .packBinaryHeader(this.key.length)
-                  .writePayload(this.key);
+            packer.packString("your_key")
+                  .packBinaryHeader(this.yourKey.length)
+                  .writePayload(this.yourKey);
         }
         packer.packString("ping_interval")
               .packInt(this.pingInterval);

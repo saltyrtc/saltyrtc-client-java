@@ -85,7 +85,7 @@ public class MessageTest {
         final ClientAuth original = new ClientAuth(RandomHelper.pseudoRandomBytes(16), subprotocols, 3);
         final ClientAuth returned = this.roundTrip(original);
         assertArrayEquals(original.getYourCookie(), returned.getYourCookie());
-        assertArrayEquals(original.getKey(), returned.getKey());
+        assertArrayEquals(original.getYourKey(), returned.getYourKey());
         assertArrayEquals(original.getSubprotocols().toArray(), returned.getSubprotocols().toArray());
         assertEquals(original.getPingInterval(), returned.getPingInterval());
     }
@@ -97,7 +97,7 @@ public class MessageTest {
             RandomHelper.pseudoRandomBytes(32), subprotocols, 3);
         final ClientAuth returned = this.roundTrip(original);
         assertArrayEquals(original.getYourCookie(), returned.getYourCookie());
-        assertArrayEquals(original.getKey(), returned.getKey());
+        assertArrayEquals(original.getYourKey(), returned.getYourKey());
         assertArrayEquals(original.getSubprotocols().toArray(), returned.getSubprotocols().toArray());
         assertEquals(original.getPingInterval(), returned.getPingInterval());
     }
