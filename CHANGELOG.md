@@ -14,8 +14,9 @@ Possible log types:
 
 ### v0.9.x (UNRELEASED)
 
-- [added] Add new close code: 3007 Invalid Key (#79)
-- [added] Add support for multiple server permanent keys (#79)
+- [added] Add new close code: 3007 Invalid Key (#58)
+- [added] Add support for multiple server permanent keys (#58)
+- [changed] Change subprotocol to `v1.saltyrtc.org` (#60)
 
 ### v0.8.2 (2017-01-25)
 
