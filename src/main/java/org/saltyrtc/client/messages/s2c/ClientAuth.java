@@ -83,14 +83,14 @@ public class ClientAuth extends Message {
                   .packString("client-auth")
               .packString("your_cookie")
                   .packBinaryHeader(this.yourCookie.length)
-                  .writePayload(this.yourCookie);
+                  .writePayload(this.yourCookie)
+              .packString("ping_interval")
+                  .packInt(this.pingInterval);
         if (hasKey) {
             packer.packString("your_key")
                   .packBinaryHeader(this.yourKey.length)
                   .writePayload(this.yourKey);
         }
-        packer.packString("ping_interval")
-              .packInt(this.pingInterval);
         packer.packString("subprotocols").packArrayHeader(this.subprotocols.size());
         for (String subprotocol : this.subprotocols) {
             packer.packString(subprotocol);
