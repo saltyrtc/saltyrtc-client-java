@@ -145,5 +145,5 @@ final SaltyRTC responder = new SaltyRTCBuilder()
 
 ## Logging
 
-The library uses the slf4j logging API. Configure a logger (e.g. slf4j-simple)
-to see the log output.
+The library uses the [slf4j](https://www.slf4j.org/) logging API. Configure
+a logger (e.g. slf4j-simple) to see the log output.
