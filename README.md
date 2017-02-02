@@ -9,9 +9,8 @@
 This is a [SaltyRTC](https://github.com/saltyrtc/saltyrtc-meta) v1
 implementation for Java 7+.
 
-The development is still ongoing, the current version is only at alpha-level
-and should not be used for production yet.
-
+**Warning: This is beta software. Use at your own risk. Testing and review is
+welcome!**
 
 ## Installing
 
