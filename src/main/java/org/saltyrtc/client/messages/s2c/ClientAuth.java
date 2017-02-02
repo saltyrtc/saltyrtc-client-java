@@ -80,7 +80,7 @@ public class ClientAuth extends Message {
         final boolean hasKey = this.yourKey != null;
         packer.packMapHeader(hasKey ? 5 : 4)
               .packString("type")
-                  .packString("client-auth")
+                  .packString(TYPE)
               .packString("your_cookie")
                   .packBinaryHeader(this.yourCookie.length)
                   .writePayload(this.yourCookie)
