@@ -72,7 +72,7 @@ public class ClientAuth extends Message {
 
     @NonNull
     public int getPingInterval() {
-        return pingInterval;
+        return this.pingInterval;
     }
 
     @Override
