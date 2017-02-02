@@ -12,6 +12,11 @@ Possible log types:
 - `[security]` to invite users to upgrade in case of vulnerabilities.
 
 
+### v0.9.x (UNRELEASED)
+
+- [added] Add new close code: 3007 Invalid Key (#79)
+- [added] Add support for multiple server permanent keys (#79)
+
 ### v0.8.2 (2017-01-25)
 
 - [fixed] If connection is closing or closed while sending a message,
