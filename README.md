@@ -6,8 +6,8 @@
 [![License](https://img.shields.io/badge/license-MIT%20%2F%20Apache%202.0-blue.svg)](https://github.com/saltyrtc/saltyrtc-client-java)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/535/badge)](https://bestpractices.coreinfrastructure.org/projects/535)
 
-This is a [SaltyRTC](https://github.com/saltyrtc/saltyrtc-meta) implementation
-for Java 7+.
+This is a [SaltyRTC](https://github.com/saltyrtc/saltyrtc-meta) v1
+implementation for Java 7+.
 
 The development is still ongoing, the current version is only at alpha-level
 and should not be used for production yet.
