@@ -53,7 +53,7 @@ builder.withPingInterval(60);
 You must initialize SaltyRTC with a task (TODO: Link to tasks documentation)
 that takes over after the handshake is done.
 
-For example, when using the WebRTC task:
+For example, when using the [WebRTC task](https://github.com/saltyrtc/saltyrtc-task-webrtc-java):
 
 ```java
 import org.saltyrtc.client.tasks.Task;
@@ -102,6 +102,9 @@ final SaltyRTC client = new SaltyRTCBuilder()
         .usingTasks(new Task[] { new WebRTCTask() })
         .asInitiator();
 ```
+
+To see a more practical example, you may also want to take a look at our
+[demo application](https://github.com/saltyrtc/saltyrtc-demo).
 
 ## Trusted keys
 
