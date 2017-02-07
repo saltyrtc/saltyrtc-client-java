@@ -152,8 +152,8 @@ final SaltyRTCBuilder builder = new SaltyRTCBuilder();
 </code></pre>
 
 <h3 id="key-store">Key store</h3>
-<p>The client needs to have its own public/private keypair. Create one with the
-<code>KeyStore</code> class:</p>
+<p>The client needs to have its own public/private keypair. Create a new keypair
+with the <code>KeyStore</code> class:</p>
 <pre><code class="java">import org.saltyrtc.client.keystore.KeyStore;
 
 final KeyStore keyStore = new KeyStore();
@@ -174,7 +174,7 @@ builder.withKeyStore(keyStore);
 <h3 id="task-configuration">Task configuration</h3>
 <p>You must initialize SaltyRTC with a task (TODO: Link to tasks documentation)
 that takes over after the handshake is done.</p>
-<p>For example, when using the WebRTC task:</p>
+<p>For example, when using the <a href="https://github.com/saltyrtc/saltyrtc-task-webrtc-java">WebRTC task</a>:</p>
 <pre><code class="java">import org.saltyrtc.client.tasks.Task;
 import org.saltyrtc.tasks.webrtc.WebRTCTask;
 
@@ -212,8 +212,22 @@ final SaltyRTC client = new SaltyRTCBuilder()
         .asInitiator();
 </code></pre>
 
+<p>To see a more practical example, you may also want to take a look at our
+<a href="https://github.com/saltyrtc/saltyrtc-demo">demo application</a>.</p>
 <h2 id="trusted-keys">Trusted keys</h2>
-<p>TODO</p>
+<p>In order to reconnect to a session using a trusted key, you first need to
+restore your <code>KeyStore</code> with the permanent keypair originally used to establish
+the trusted session:</p>
+<pre><code class="java">final KeyStore keyStore = new KeyStore(ourPrivatePermanentKey);
+builder.withKeyStore(keyStore);
+</code></pre>
+
+<p>The <code>ourPrivatePermanentKey</code> can be either a byte array or a hex encoded string.</p>
+<p>Then, on the <code>SaltyRTCBuilder</code> instance, set the trusted peer key:</p>
+<pre><code class="java">builder.withTrustedPeerKey(peerPublicPermanentKey);
+</code></pre>
+
+<p>The <code>peerPublicPermanentKey</code> can be either a byte array or a hex encoded string.</p>
 <h2 id="dynamically-determine-server-connection-info">Dynamically determine server connection info</h2>
 <p>Instead of specifying the SaltyRTC server host, port and SSL context directly,
 you can instead provide an implementation of <code>SaltyRTCServerInfo</code> that can
@@ -245,8 +259,8 @@ final SaltyRTC responder = new SaltyRTCBuilder()
 </code></pre>
 
 <h2 id="logging">Logging</h2>
-<p>The library uses the slf4j logging API. Configure a logger (e.g. slf4j-simple)
-to see the log output.</p>
+<p>The library uses the <a href="https://www.slf4j.org/">slf4j</a> logging API. Configure
+a logger (e.g. slf4j-simple) to see the log output.</p>
               
             </div>
           </div>
