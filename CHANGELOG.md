@@ -12,11 +12,11 @@ Possible log types:
 - `[security]` to invite users to upgrade in case of vulnerabilities.
 
 
-### v0.9.x (UNRELEASED)
+### v0.9.0 (2017-02-07)
 
+- [changed] Change subprotocol to `v1.saltyrtc.org` (#60)
 - [added] Add new close code: 3007 Invalid Key (#58)
 - [added] Add support for multiple server permanent keys (#58)
-- [changed] Change subprotocol to `v1.saltyrtc.org` (#60)
 
 ### v0.8.2 (2017-01-25)
 
