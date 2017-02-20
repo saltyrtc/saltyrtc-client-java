@@ -12,6 +12,10 @@ Possible log types:
 - `[security]` to invite users to upgrade in case of vulnerabilities.
 
 
+### v0.9.2 (2017-02-20)
+
+- [fixed] Fix problem in build process
+
 ### v0.9.1 (2017-02-20)
 
 - [fixed] Upgrade msgpack-java library to 0.8.12 which includes a fix for an
