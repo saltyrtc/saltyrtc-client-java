@@ -12,6 +12,11 @@ Possible log types:
 - `[security]` to invite users to upgrade in case of vulnerabilities.
 
 
+### UNRELEASED
+
+- [fixed] Upgrade msgpack-java library to 0.8.12 which includes a fix for an
+  IllegalArgumentException that may occur on Android 4
+
 ### v0.9.0 (2017-02-07)
 
 - [changed] Change subprotocol to `v1.saltyrtc.org` (#60)
