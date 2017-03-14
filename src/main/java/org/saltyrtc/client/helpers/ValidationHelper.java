@@ -56,16 +56,26 @@ public class ValidationHelper {
      * so an array is always deserialized as Object[].
      */
     @SuppressWarnings("unchecked")
-    public static <T> List<T> validateTypedList(Object values, Class type, String name) throws ValidationError {
+    public static <T> List<T> validateTypedList(Object values, Class type, String name, boolean allowNull) throws ValidationError {
         if (!(values instanceof List)) {
             throw new ValidationError(name + " must be a list");
         }
         for (Object element : (List) values) {
-            if (!type.isInstance(element)) {
+            if ((element == null && !allowNull) || !type.isInstance(element)) {
                 throw new ValidationError(name + " must be a " + type.getSimpleName() + " list");
             }
         }
         return (List<T>) values;
+    }
+
+    /**
+     * This is suitable for validating MessagePack array format family.
+     *
+     * Note that array types in MessagePack don't have a fixed type,
+     * so an array is always deserialized as Object[].
+     */
+    public static <T> List<T> validateTypedList(Object values, Class type, String name) throws ValidationError {
+        return validateTypedList(values, type, name, false);
     }
 
     public static Boolean validateBoolean(Object value, String name) throws ValidationError {
