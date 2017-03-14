@@ -33,6 +33,20 @@ Maven:
 </dependency>
 ```
 
+## Testing
+
+To try a development version of the library, you can build a local version to
+the maven repository at `/tmp/maven`:
+
+    ./gradlew uploadArchives
+
+Include it in your project like this:
+
+    repositories {
+        ...
+        maven { url "/tmp/maven" }
+    }
+
 ## Usage / Documentation
 
 Documentation can be found at
