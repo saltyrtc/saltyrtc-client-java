@@ -12,6 +12,11 @@ Possible log types:
 - `[security]` to invite users to upgrade in case of vulnerabilities.
 
 
+### v0.9.3 (2017-03-14)
+
+- [added] Add `allowNull` parameter to ValidationHelper.validateTypedList (#61)
+- [changed] Update dependencies
+
 ### v0.9.2 (2017-02-20)
 
 - [fixed] Fix problem in build process
