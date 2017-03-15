@@ -119,6 +119,22 @@ public class ValidationHelperTest {
     }
 
     @Test
+    public void testValidateIntegerListWithNull() throws ValidationError {
+        // Create an object that is a list of integers
+        final List<Object> values = new ArrayList<>();
+        values.add(1); values.add(null); values.add(3);
+        final Object value = values;
+
+        // Convert
+        final List<Integer> validated = ValidationHelper.validateTypedList(value, Integer.class, "IntArray", true);
+
+        // Verify
+        final List<Integer> expected = new ArrayList<>();
+        expected.add(1); expected.add(null); expected.add(3);
+        assertArrayEquals(expected.toArray(), validated.toArray());
+    }
+
+    @Test
     public void testValidateStringList() throws ValidationError {
         // Create an object that is a list of integers
         final List<Object> values = new ArrayList<>();
@@ -152,6 +168,16 @@ public class ValidationHelperTest {
             fail("No ValidationError thrown");
         } catch (ValidationError e) {
             assertEquals("IntArray must be a Integer list", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testValidateIntegerListInnerTypeFailsNull() {
+        try {
+            ValidationHelper.validateTypedList(asList(1, 2, null, 3), Integer.class, "IntArray", false);
+            fail("No ValidationError thrown");
+        } catch (ValidationError e) {
+            assertEquals("IntArray may not contain null values", e.getMessage());
         }
     }
 

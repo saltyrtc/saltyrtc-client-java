@@ -61,7 +61,11 @@ public class ValidationHelper {
             throw new ValidationError(name + " must be a list");
         }
         for (Object element : (List) values) {
-            if ((element == null && !allowNull) || !type.isInstance(element)) {
+            if (element == null) {
+                if (!allowNull) {
+                    throw new ValidationError(name + " may not contain null values");
+                }
+            } else if (!type.isInstance(element)) {
                 throw new ValidationError(name + " must be a " + type.getSimpleName() + " list");
             }
         }
