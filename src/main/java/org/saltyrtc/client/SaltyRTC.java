@@ -131,7 +131,7 @@ public class SaltyRTC {
      * Connect asynchronously to the SaltyRTC server.
      *
      * To get notified when the connection is up and running,
-     * subscribe to the `ConnectedEvent`.
+     * subscribe to the `SignalingStateChangedEvent`.
      *
      * @throws ConnectionException if setting up the WebSocket connection fails.
      */
