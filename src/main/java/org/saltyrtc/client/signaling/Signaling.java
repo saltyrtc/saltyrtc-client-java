@@ -75,7 +75,7 @@ import javax.net.ssl.SSLContext;
 public abstract class Signaling implements SignalingInterface {
 
     static final String SALTYRTC_SUBPROTOCOL = "v1.saltyrtc.org";
-    static final short SALTYRTC_WS_CONNECT_TIMEOUT = 2000;
+    static final short SALTYRTC_WS_CONNECT_TIMEOUT = 10000;
     static final long SALTYRTC_WS_PING_INTERVAL = 20000;
     static final short SALTYRTC_ADDR_UNKNOWN = 0x00;
     static final short SALTYRTC_ADDR_SERVER = 0x00;
