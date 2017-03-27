@@ -71,11 +71,14 @@ import javax.net.ssl.SSLContext;
 
 /**
  * Base class for initiator and responder signaling.
+ *
+ * Note: As end user, you should not instantiate this class directly!
+ * Instead, use the `SaltyRTCBuilder` for more convenience.
  */
 public abstract class Signaling implements SignalingInterface {
 
     static final String SALTYRTC_SUBPROTOCOL = "v1.saltyrtc.org";
-    static final short SALTYRTC_WS_CONNECT_TIMEOUT = 2000;
+    static final short SALTYRTC_WS_CONNECT_TIMEOUT = 10000;
     static final long SALTYRTC_WS_PING_INTERVAL = 20000;
     static final short SALTYRTC_ADDR_UNKNOWN = 0x00;
     static final short SALTYRTC_ADDR_SERVER = 0x00;
@@ -90,6 +93,7 @@ public abstract class Signaling implements SignalingInterface {
     private final SSLContext sslContext;
     private WebSocket ws;
     private int pingInterval;
+    private int wsConnectTimeout;
 
     // Connection state
     private SignalingState state = SignalingState.NEW;
@@ -124,7 +128,9 @@ public abstract class Signaling implements SignalingInterface {
     private final MessageHistory history = new MessageHistory(10);
 
     public Signaling(SaltyRTC salty, String host, int port,
-                     @NonNull KeyStore permanentKey, SSLContext sslContext,
+                     @Nullable SSLContext sslContext,
+                     @Nullable Integer wsConnectTimeout,
+                     @NonNull KeyStore permanentKey,
                      @Nullable byte[] peerTrustedKey,
                      @Nullable byte[] expectedServerKey,
                      @NonNull SignalingRole role,
@@ -133,8 +139,9 @@ public abstract class Signaling implements SignalingInterface {
         this.salty = salty;
         this.host = host;
         this.port = port;
-        this.permanentKey = permanentKey;
         this.sslContext = sslContext;
+        this.wsConnectTimeout = wsConnectTimeout == null ? SALTYRTC_WS_CONNECT_TIMEOUT : wsConnectTimeout;
+        this.permanentKey = permanentKey;
         this.peerTrustedKey = peerTrustedKey;
         this.expectedServerKey = expectedServerKey;
         this.role = role;
@@ -467,7 +474,7 @@ public abstract class Signaling implements SignalingInterface {
 
         // Create WebSocket client instance
         this.ws = new WebSocketFactory()
-                .setConnectionTimeout(SALTYRTC_WS_CONNECT_TIMEOUT)
+                .setConnectionTimeout(this.wsConnectTimeout)
                 .setSSLContext(this.sslContext)
                 .createSocket(uri)
                 .setPingInterval(SALTYRTC_WS_PING_INTERVAL)
