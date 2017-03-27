@@ -185,15 +185,15 @@ public class SaltyRTCBuilder {
     }
 
     /**
-     * Request that the server sends a WebSocket ping every `interval` seconds.
+     * Request that the server sends a WebSocket ping every `intervalSeconds`.
      *
-     * @param interval A positive integer. Set it to 0 for no ping messages.
+     * @param intervalSeconds A positive integer. Set it to 0 for no ping messages.
      */
-    public SaltyRTCBuilder withPingInterval(int interval) {
-        if (interval < 0) {
-            throw new IllegalArgumentException("Ping interval may not be negative");
+    public SaltyRTCBuilder withPingInterval(int intervalSeconds) {
+        if (intervalSeconds < 0) {
+            throw new IllegalArgumentException("Ping intervalSeconds may not be negative");
         }
-        this.pingInterval = interval;
+        this.pingInterval = intervalSeconds;
         return this;
     }
 
