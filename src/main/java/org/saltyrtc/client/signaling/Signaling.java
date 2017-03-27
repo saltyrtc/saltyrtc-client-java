@@ -94,6 +94,7 @@ public abstract class Signaling implements SignalingInterface {
     private WebSocket ws;
     private int pingInterval;
     private int wsConnectTimeout;
+    private int wsConnectAttempt = 0;
 
     // Connection state
     private SignalingState state = SignalingState.NEW;
@@ -210,7 +211,9 @@ public abstract class Signaling implements SignalingInterface {
     /**
      * Connect asynchronously to the SaltyRTC server.
      *
-     * To get notified when the connection is up and running, subscribe to the `ConnectedEvent`.
+     * To get notified when the connection is up and running, subscribe to the `SignalingStateChangedEvent`.
+     *
+     * @throws ConnectionException if setting up the WebSocket connection fails.
      */
     public void connect() throws ConnectionException {
         this.getLogger().info("Connecting to SaltyRTC server at "
@@ -219,7 +222,7 @@ public abstract class Signaling implements SignalingInterface {
         try {
             this.initWebsocket();
         } catch (IOException e) {
-            throw new ConnectionException("Connecting to WebSocket failed.", e);
+            throw new ConnectionException("Setting up WebSocket failed.", e);
         }
         this.connectWebsocket();
     }
@@ -311,8 +314,16 @@ public abstract class Signaling implements SignalingInterface {
             @Override
             @SuppressWarnings("UnqualifiedMethodAccess")
             public void onConnectError(WebSocket websocket, WebSocketException ex) throws Exception {
-                getLogger().error("Could not connect to websocket: " + ex.getMessage());
-                setState(SignalingState.ERROR);
+                getLogger().error("Could not connect to websocket (" + ex.getError().toString() + "): " + ex.getMessage());
+                if (Signaling.this.wsConnectAttempt == 1) {
+                    getLogger().info("Retrying to reconnect once...");
+                    Signaling.this.wsConnectAttempt += 1;
+                    Signaling.this.setState(SignalingState.WS_CONNECTING);
+                    Signaling.this.ws.recreate(Signaling.this.wsConnectTimeout).connectAsynchronously();
+                } else {
+                    getLogger().info("Giving up.");
+                    setState(SignalingState.ERROR);
+                }
             }
 
             @Override
@@ -456,11 +467,16 @@ public abstract class Signaling implements SignalingInterface {
                 }
             }
 
+            /**
+             * WebSocketListener has some onXxxError() methods such as onFrameError() and onSendError(). Among such
+             * methods, onError() is a special one. It is always called before any other onXxxError() is called.
+             * For example, in the implementation of run() method of ReadingThread, Throwable is caught and onError()
+             * and onUnexpectedError() are called in this order. The following is the implementation.
+             */
             @Override
             @SuppressWarnings("UnqualifiedMethodAccess")
             public void onError(WebSocket websocket, WebSocketException cause) throws Exception {
-                getLogger().error("A WebSocket connect error occured: " + cause.getMessage(), cause);
-                // TODO: Do we need to handle these?
+                getLogger().warn("A WebSocket error occured: " + cause.getMessage(), cause);
             }
 
             @Override
@@ -480,7 +496,6 @@ public abstract class Signaling implements SignalingInterface {
                 .setPingInterval(SALTYRTC_WS_PING_INTERVAL)
                 .addProtocol(SALTYRTC_SUBPROTOCOL)
                 .addListener(listener);
-
     }
 
     /**
@@ -488,6 +503,7 @@ public abstract class Signaling implements SignalingInterface {
      */
     private void connectWebsocket() {
         this.setState(SignalingState.WS_CONNECTING);
+        this.wsConnectAttempt = 1;
         this.ws.connectAsynchronously();
     }
 
