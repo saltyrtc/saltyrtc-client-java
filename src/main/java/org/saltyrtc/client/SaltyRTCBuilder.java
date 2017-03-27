@@ -33,6 +33,7 @@ public class SaltyRTCBuilder {
     private KeyStore keyStore;
     private String host;
     private Integer port;
+    private Integer wsConnectTimeout;
     private SSLContext sslContext;
     private SaltyRTCServerInfo serverInfo;
     private byte[] initiatorPublicKey;
@@ -191,9 +192,22 @@ public class SaltyRTCBuilder {
      */
     public SaltyRTCBuilder withPingInterval(int intervalSeconds) {
         if (intervalSeconds < 0) {
-            throw new IllegalArgumentException("Ping intervalSeconds may not be negative");
+            throw new IllegalArgumentException("Ping interval may not be negative");
         }
         this.pingInterval = intervalSeconds;
+        return this;
+    }
+
+    /**
+     * Override the default WebSocket connect timeout.
+     *
+     * @param timeoutSeconds A positive integer.
+     */
+    public SaltyRTCBuilder withWebsocketConnectTimeout(int timeoutSeconds) {
+        if (timeoutSeconds < 0) {
+            throw new IllegalArgumentException("Websocket connect timeout may not be negative");
+        }
+        this.wsConnectTimeout = timeoutSeconds;
         return this;
     }
 
@@ -262,12 +276,12 @@ public class SaltyRTCBuilder {
 
         if (this.hasTrustedPeerKey) {
             return new SaltyRTC(
-                this.keyStore, this.host, this.port, this.sslContext,
+                this.keyStore, this.host, this.port, this.sslContext, this.wsConnectTimeout,
                 this.peerTrustedKey, this.serverKey,
                 this.tasks, this.pingInterval, SignalingRole.Initiator);
         } else {
             return new SaltyRTC(
-                this.keyStore, this.host, this.port, this.sslContext,
+                this.keyStore, this.host, this.port, this.sslContext, this.wsConnectTimeout,
                 this.serverKey, this.tasks, this.pingInterval);
         }
     }
@@ -288,7 +302,7 @@ public class SaltyRTCBuilder {
             if (this.serverInfo != null) {
                 this.processServerInfo(this.serverInfo, this.peerTrustedKey);
             }
-            return new SaltyRTC(this.keyStore, this.host, this.port, this.sslContext,
+            return new SaltyRTC(this.keyStore, this.host, this.port, this.sslContext, this.wsConnectTimeout,
                     this.peerTrustedKey, this.serverKey, this.tasks, this.pingInterval,
                     SignalingRole.Responder);
         } else {
@@ -296,7 +310,7 @@ public class SaltyRTCBuilder {
             if (this.serverInfo != null) {
                 this.processServerInfo(this.serverInfo, this.initiatorPublicKey);
             }
-            return new SaltyRTC(this.keyStore, this.host, this.port, this.sslContext,
+            return new SaltyRTC(this.keyStore, this.host, this.port, this.sslContext, this.wsConnectTimeout,
                     this.initiatorPublicKey, this.authToken, this.serverKey,
                     this.tasks, this.pingInterval);
         }

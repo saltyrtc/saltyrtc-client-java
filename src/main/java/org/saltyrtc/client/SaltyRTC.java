@@ -32,6 +32,9 @@ import javax.net.ssl.SSLContext;
 
 /**
  * The main class used to create a P2P connection through a SaltyRTC signaling server.
+ *
+ * Note: As end user, you should not instantiate this class directly!
+ * Instead, use the `SaltyRTCBuilder` for more convenience.
  */
 public class SaltyRTC {
 
@@ -49,40 +52,47 @@ public class SaltyRTC {
 
     // Internal constructor used by SaltyRTCBuilder.
     // Initialize as initiator without trusted key.
-    SaltyRTC(KeyStore permanentKey, String host, int port, SSLContext sslContext,
-             @Nullable byte[] serverKey, Task[] tasks, int pingInterval)
+    SaltyRTC(KeyStore permanentKey, String host, int port,
+             @Nullable SSLContext sslContext,
+             @Nullable Integer wsConnectTimeout,
+             @Nullable byte[] serverKey,
+             Task[] tasks, int pingInterval)
              throws InvalidKeyException {
         this.signaling = new InitiatorSignaling(
-            this, host, port, permanentKey, sslContext,
+            this, host, port, sslContext, wsConnectTimeout, permanentKey,
             null, serverKey, tasks, pingInterval);
     }
 
     // Internal constructor used by SaltyRTCBuilder.
     // Initialize as responder without trusted key.
-    SaltyRTC(KeyStore permanentKey, String host, int port, SSLContext sslContext,
+    SaltyRTC(KeyStore permanentKey, String host, int port,
+             @Nullable SSLContext sslContext,
+             @Nullable Integer wsConnectTimeout,
              byte[] initiatorPublicKey, byte[] authToken,
              @Nullable byte[] serverKey, Task[] tasks, int pingInterval)
              throws InvalidKeyException {
         this.signaling = new ResponderSignaling(
-            this, host, port, permanentKey, sslContext,
+            this, host, port, sslContext, wsConnectTimeout, permanentKey,
             initiatorPublicKey, authToken, null, serverKey, tasks, pingInterval);
     }
 
     // Internal constructor used by SaltyRTCBuilder.
     // Initialize as initiator or responder with trusted key.
-    SaltyRTC(KeyStore permanentKey, String host, int port, SSLContext sslContext,
+    SaltyRTC(KeyStore permanentKey, String host, int port,
+             @Nullable SSLContext sslContext,
+             @Nullable Integer wsConnectTimeout,
              byte[] peerTrustedKey, @Nullable byte[] serverKey, Task[] tasks, int pingInterval,
              SignalingRole role)
              throws InvalidKeyException {
         switch (role) {
             case Initiator:
                 this.signaling = new InitiatorSignaling(
-                    this, host, port, permanentKey, sslContext,
+                    this, host, port, sslContext, wsConnectTimeout, permanentKey,
                     peerTrustedKey, serverKey, tasks, pingInterval);
                 break;
             case Responder:
                 this.signaling = new ResponderSignaling(
-                    this, host, port, permanentKey, sslContext,
+                    this, host, port, sslContext, wsConnectTimeout, permanentKey,
                     null, null, peerTrustedKey, serverKey, tasks, pingInterval);
                 break;
             default:
