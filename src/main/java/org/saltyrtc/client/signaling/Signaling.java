@@ -545,7 +545,6 @@ public abstract class Signaling implements SignalingInterface {
             if (receiver.getId() == SALTYRTC_ADDR_SERVER) {
                 box = this.encryptHandshakeDataForServer(payload, nonceBytes);
             } else if (receiver.getId() == SALTYRTC_ADDR_INITIATOR || this.isResponderId(receiver.getId())) {
-                // TODO: Do we re-use the same cookie everywhere?
                 box = this.encryptHandshakeDataForPeer(receiver.getId(), msg.getType(), payload, nonceBytes);
             } else {
                 throw new ProtocolException("Bad receiver byte: " + receiver);
@@ -669,7 +668,6 @@ public abstract class Signaling implements SignalingInterface {
         if (nonce.getSource() == SALTYRTC_ADDR_SERVER) {
             this.onSignalingServerMessage(box);
         } else {
-            // TODO: Do we need to validate the sender id or does that happen deeper down?
             final byte[] decrypted;
             try {
                 decrypted = this.decryptFromPeer(box);

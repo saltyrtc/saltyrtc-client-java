@@ -138,9 +138,10 @@ public class InitiatorSignaling extends Signaling {
      * Cast it to a short otherwise.
      */
     private short validateResponderId(int id) throws ProtocolException {
-        // TODO: Do we need to check whether it's in the valid responder range too?
         if (id < 0) {
-            throw new ProtocolException("Responder id may not be smaller than 0");
+            throw new ProtocolException("Responder id may not be negative");
+        } else if (id < 0x02) {
+            throw new ProtocolException("Responder id may not be smaller than 2");
         } else if (id > 0xff) {
             throw new ProtocolException("Responder id may not be larger than 255");
         }
@@ -358,8 +359,7 @@ public class InitiatorSignaling extends Signaling {
     /**
      * Store a new responder.
      */
-    private void processNewResponder(short responderId) throws ConnectionException,
-        SignalingException {
+    private void processNewResponder(short responderId) throws ConnectionException, SignalingException {
         // Drop responder if it's already known
         if (this.responders.containsKey(responderId)) {
             this.responders.remove(responderId);
@@ -527,7 +527,6 @@ public class InitiatorSignaling extends Signaling {
             if (this.responder.getId() == receiver) {
                 notify = true;
                 this.resetConnection(CloseCode.PROTOCOL_ERROR);
-                // TODO: Maybe keep ws connection open and wait for reconnect
             } else {
                 this.getLogger().warn("Got send-error message for unknown responder " + receiver);
             }

@@ -423,7 +423,6 @@ public class ResponderSignaling extends Signaling {
 
         // Reset connection
         this.resetConnection(CloseCode.PROTOCOL_ERROR);
-        // TODO: Maybe keep ws connection open and wait for reconnect
     }
 
     @Override
