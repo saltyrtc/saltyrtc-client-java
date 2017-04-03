@@ -19,7 +19,7 @@ The package is available [on Bintray](https://bintray.com/saltyrtc/maven/saltyrt
 Gradle:
 
 ```groovy
-compile 'org.saltyrtc.client:saltyrtc-client:0.9.3'
+compile 'org.saltyrtc.client:saltyrtc-client:0.10.0'
 ```
 
 Maven:
@@ -28,7 +28,7 @@ Maven:
 <dependency>
   <groupId>org.saltyrtc.client</groupId>
   <artifactId>saltyrtc-client</artifactId>
-  <version>0.9.3</version>
+  <version>0.10.0</version>
   <type>pom</type>
 </dependency>
 ```
@@ -62,6 +62,7 @@ to make sure that you always get the exact same versions of your dependencies.
 
 These are the SHA256 hashes for the published releases of this project:
 
+- v0.10.0: `6cdd5ee1562fce06fd14f931b2222f15d5e5580021c4fd22643e6218fa78e69b`
 - v0.9.3: `6a17b4adce4c52987a058b2ae95e57b57bed94ad8a28b6324243b3da72167bf0`
 - v0.9.2: `ed16493362af0077e703d74068d74f82dca9a69d9f741bc4613c1215acfb4c15`
 - v0.9.1: `13c74b79cb03e3115b19d2f79eff7523e6f03f0b122c12eec6c0a58499cb67ae`

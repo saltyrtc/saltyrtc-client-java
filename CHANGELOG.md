@@ -12,6 +12,12 @@ Possible log types:
 - `[security]` to invite users to upgrade in case of vulnerabilities.
 
 
+### v0.10.0 (2017-04-03)
+
+- [changed] Increase default WebSocket connection timeout to 10 seconds (#63)
+- [added] Make WebSocket connect timeout configurable (#63)
+- [added] When connecting to WebSocket fails, retry once (#63)
+
 ### v0.9.3 (2017-03-14)
 
 - [added] Add `allowNull` parameter to ValidationHelper.validateTypedList (#61)
