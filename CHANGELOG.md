@@ -12,6 +12,10 @@ Possible log types:
 - `[security]` to invite users to upgrade in case of vulnerabilities.
 
 
+### v0.10.1 (2017-04-04)
+
+- [fixed] Fix bug in ValidationHelper
+
 ### v0.10.0 (2017-04-03)
 
 - [changed] Increase default WebSocket connection timeout to 10 seconds (#63)
