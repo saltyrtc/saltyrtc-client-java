@@ -201,13 +201,13 @@ public class SaltyRTCBuilder {
     /**
      * Override the default WebSocket connect timeout.
      *
-     * @param timeoutSeconds A positive integer.
+     * @param timeoutMs The WebSocket connect timeout in milliseconds.
      */
-    public SaltyRTCBuilder withWebsocketConnectTimeout(int timeoutSeconds) {
-        if (timeoutSeconds < 0) {
+    public SaltyRTCBuilder withWebsocketConnectTimeout(int timeoutMs) {
+        if (timeoutMs < 0) {
             throw new IllegalArgumentException("Websocket connect timeout may not be negative");
         }
-        this.wsConnectTimeout = timeoutSeconds;
+        this.wsConnectTimeout = timeoutMs;
         return this;
     }
 

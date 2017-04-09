@@ -75,7 +75,7 @@ public class SignalingTest {
     }
 
     /**
-     * By default, WebSocket connect timeout should be set to 10 seconds.
+     * WebSocket connect timeout should be configurable.
      */
     @Test
     public void testSaltyRTCBuilderWithTimeout() throws Exception {
