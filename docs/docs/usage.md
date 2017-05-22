@@ -1,5 +1,10 @@
 # Usage
 
+This chapter gives a short introduction on how to use the SaltyRTC JavaScript client.
+
+To see a more practical example, you may also want to take a look at our [demo
+application](https://github.com/saltyrtc/saltyrtc-demo).
+
 ## The SaltyRTCBuilder
 
 To initialize a `SaltyRTC` instance, you can use the `SaltyRTCBuilder`.
