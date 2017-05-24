@@ -47,6 +47,14 @@ builder.withServerKey(serverPublicPermanentKey);
 
 The `serverPublicPermanentKey` can be either a byte array or a hex encoded string.
 
+### Websocket connect timeout
+
+Optionally, you can specify the Websocket connection timeout in milliseconds:
+
+```java
+builder.withWebsocketConnectTimeout(5000);
+```
+
 ### Websocket ping interval
 
 Optionally, you can specify a Websocket ping interval in seconds:
@@ -105,6 +113,7 @@ final SaltyRTC client = new SaltyRTCBuilder()
         .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
         .withKeyStore(new KeyStore())
         .withPingInterval(60)
+        .withWebsocketConnectTimeout(5000)
         .withServerKey(Config.SALTYRTC_SERVER_PUBLIC_KEY)
         .usingTasks(new Task[] { new WebRTCTask() })
         .asInitiator();
