@@ -82,6 +82,14 @@ public class KeyStore {
         return privateKey;
     }
 
+    public String getPublicKeyHex() {
+        return HexHelper.byteArrayToHexString(this.getPublicKey());
+    }
+
+    public String getPrivateKeyHex() {
+        return HexHelper.byteArrayToHexString(this.getPrivateKey());
+    }
+
     /**
      * Encrypt data for the peer. Return Box.
      *
