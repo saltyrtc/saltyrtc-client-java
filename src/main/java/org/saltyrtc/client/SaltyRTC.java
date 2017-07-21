@@ -55,12 +55,14 @@ public class SaltyRTC {
     SaltyRTC(KeyStore permanentKey, String host, int port,
              @Nullable SSLContext sslContext,
              @Nullable Integer wsConnectTimeout,
+             @Nullable Integer wsConnectAttemptsMax,
+             @Nullable Boolean wsConnectLinearBackoff,
              @Nullable byte[] serverKey,
              Task[] tasks, int pingInterval)
              throws InvalidKeyException {
         this.signaling = new InitiatorSignaling(
-            this, host, port, sslContext, wsConnectTimeout, permanentKey,
-            null, serverKey, tasks, pingInterval);
+            this, host, port, sslContext, wsConnectTimeout, wsConnectAttemptsMax, wsConnectLinearBackoff,
+            permanentKey, null, serverKey, tasks, pingInterval);
     }
 
     // Internal constructor used by SaltyRTCBuilder.
@@ -68,12 +70,14 @@ public class SaltyRTC {
     SaltyRTC(KeyStore permanentKey, String host, int port,
              @Nullable SSLContext sslContext,
              @Nullable Integer wsConnectTimeout,
+             @Nullable Integer wsConnectAttemptsMax,
+             @Nullable Boolean wsConnectLinearBackoff,
              byte[] initiatorPublicKey, byte[] authToken,
              @Nullable byte[] serverKey, Task[] tasks, int pingInterval)
              throws InvalidKeyException {
         this.signaling = new ResponderSignaling(
-            this, host, port, sslContext, wsConnectTimeout, permanentKey,
-            initiatorPublicKey, authToken, null, serverKey, tasks, pingInterval);
+            this, host, port, sslContext, wsConnectTimeout, wsConnectAttemptsMax, wsConnectLinearBackoff,
+            permanentKey, initiatorPublicKey, authToken, null, serverKey, tasks, pingInterval);
     }
 
     // Internal constructor used by SaltyRTCBuilder.
@@ -81,19 +85,21 @@ public class SaltyRTC {
     SaltyRTC(KeyStore permanentKey, String host, int port,
              @Nullable SSLContext sslContext,
              @Nullable Integer wsConnectTimeout,
+             @Nullable Integer wsConnectAttemptsMax,
+             @Nullable Boolean wsConnectLinearBackoff,
              byte[] peerTrustedKey, @Nullable byte[] serverKey, Task[] tasks, int pingInterval,
              SignalingRole role)
              throws InvalidKeyException {
         switch (role) {
             case Initiator:
                 this.signaling = new InitiatorSignaling(
-                    this, host, port, sslContext, wsConnectTimeout, permanentKey,
-                    peerTrustedKey, serverKey, tasks, pingInterval);
+                    this, host, port, sslContext, wsConnectTimeout, wsConnectAttemptsMax, wsConnectLinearBackoff,
+                    permanentKey, peerTrustedKey, serverKey, tasks, pingInterval);
                 break;
             case Responder:
                 this.signaling = new ResponderSignaling(
-                    this, host, port, sslContext, wsConnectTimeout, permanentKey,
-                    null, null, peerTrustedKey, serverKey, tasks, pingInterval);
+                    this, host, port, sslContext, wsConnectTimeout, wsConnectAttemptsMax, wsConnectLinearBackoff,
+                    permanentKey, null, null, peerTrustedKey, serverKey, tasks, pingInterval);
                 break;
             default:
                 throw new IllegalArgumentException("Invalid role: " + role);

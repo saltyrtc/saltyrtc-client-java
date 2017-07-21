@@ -34,6 +34,8 @@ public class SaltyRTCBuilder {
     private String host;
     private Integer port;
     private Integer wsConnectTimeout;
+    private Integer wsConnectAttemptsMax;
+    private Boolean wsConnectLinearBackoff;
     private SSLContext sslContext;
     private SaltyRTCServerInfo serverInfo;
     private byte[] initiatorPublicKey;
@@ -212,6 +214,31 @@ public class SaltyRTCBuilder {
     }
 
     /**
+     * Override the default maximum WebSocket connect attempts.
+     *
+     * @param attemptsMax The maximum amount of connection attempts. Set to 0 if the connection
+     *                    attempt should be retried infinitely.
+     */
+    public SaltyRTCBuilder withWebSocketConnectAttemptsMax(int attemptsMax) {
+        if (attemptsMax < 0) {
+            throw new IllegalArgumentException("Maximum attempts number may not be negative");
+        }
+        this.wsConnectAttemptsMax = attemptsMax;
+        return this;
+    }
+
+    /**
+     * Override the default retry behaviour in case of a WebSocket connect timeout.
+     *
+     * @param on Switch linear backoff of the timeout in milliseconds for connection attempts on or
+     *           off.
+     */
+    public SaltyRTCBuilder withWebSocketConnectRetryLinearBackoff(boolean on) {
+        this.wsConnectLinearBackoff = on;
+        return this;
+    }
+
+    /**
      * Set initiator connection info transferred via a secure data channel.
      *
      * @param initiatorPublicKey The public key of the initiator.
@@ -276,13 +303,13 @@ public class SaltyRTCBuilder {
 
         if (this.hasTrustedPeerKey) {
             return new SaltyRTC(
-                this.keyStore, this.host, this.port, this.sslContext, this.wsConnectTimeout,
-                this.peerTrustedKey, this.serverKey,
+                this.keyStore, this.host, this.port, this.sslContext, this.wsConnectTimeout, this.wsConnectAttemptsMax,
+                this.wsConnectLinearBackoff, this.peerTrustedKey, this.serverKey,
                 this.tasks, this.pingInterval, SignalingRole.Initiator);
         } else {
             return new SaltyRTC(
-                this.keyStore, this.host, this.port, this.sslContext, this.wsConnectTimeout,
-                this.serverKey, this.tasks, this.pingInterval);
+                this.keyStore, this.host, this.port, this.sslContext, this.wsConnectTimeout, this.wsConnectAttemptsMax,
+                this.wsConnectLinearBackoff, this.serverKey, this.tasks, this.pingInterval);
         }
     }
 
@@ -303,16 +330,16 @@ public class SaltyRTCBuilder {
                 this.processServerInfo(this.serverInfo, this.peerTrustedKey);
             }
             return new SaltyRTC(this.keyStore, this.host, this.port, this.sslContext, this.wsConnectTimeout,
-                    this.peerTrustedKey, this.serverKey, this.tasks, this.pingInterval,
-                    SignalingRole.Responder);
+                this.wsConnectAttemptsMax, this.wsConnectLinearBackoff, this.peerTrustedKey, this.serverKey,
+                this.tasks, this.pingInterval, SignalingRole.Responder);
         } else {
             this.requireInitiatorInfo();
             if (this.serverInfo != null) {
                 this.processServerInfo(this.serverInfo, this.initiatorPublicKey);
             }
             return new SaltyRTC(this.keyStore, this.host, this.port, this.sslContext, this.wsConnectTimeout,
-                    this.initiatorPublicKey, this.authToken, this.serverKey,
-                    this.tasks, this.pingInterval);
+                this.wsConnectAttemptsMax, this.wsConnectLinearBackoff, this.initiatorPublicKey, this.authToken,
+                this.serverKey, this.tasks, this.pingInterval);
         }
     }
 }

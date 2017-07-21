@@ -78,7 +78,9 @@ import javax.net.ssl.SSLContext;
 public abstract class Signaling implements SignalingInterface {
 
     static final String SALTYRTC_SUBPROTOCOL = "v1.saltyrtc.org";
-    static final short SALTYRTC_WS_CONNECT_TIMEOUT = 10000;
+    static final short SALTYRTC_WS_CONNECT_TIMEOUT = 3000;
+    static final short SALTYRTC_WS_CONNECT_ATTEMPTS_MAX = 20;
+    static final boolean SALTYRTC_WS_CONNECT_LINEAR_BACKOFF = true;
     static final long SALTYRTC_WS_PING_INTERVAL = 20000;
     static final short SALTYRTC_ADDR_UNKNOWN = 0x00;
     static final short SALTYRTC_ADDR_SERVER = 0x00;
@@ -93,6 +95,9 @@ public abstract class Signaling implements SignalingInterface {
     private final SSLContext sslContext;
     private WebSocket ws;
     private int pingInterval;
+    private int wsConnectTimeoutInitial;
+    private int wsConnectAttemptsMax;
+    private boolean wsConnectLinearBackoff;
     private int wsConnectTimeout;
     private int wsConnectAttempt = 0;
 
@@ -131,6 +136,8 @@ public abstract class Signaling implements SignalingInterface {
     public Signaling(SaltyRTC salty, String host, int port,
                      @Nullable SSLContext sslContext,
                      @Nullable Integer wsConnectTimeout,
+                     @Nullable Integer wsConnectAttemptsMax,
+                     @Nullable Boolean wsConnectLinearBackoff,
                      @NonNull KeyStore permanentKey,
                      @Nullable byte[] peerTrustedKey,
                      @Nullable byte[] expectedServerKey,
@@ -141,7 +148,9 @@ public abstract class Signaling implements SignalingInterface {
         this.host = host;
         this.port = port;
         this.sslContext = sslContext;
-        this.wsConnectTimeout = wsConnectTimeout == null ? SALTYRTC_WS_CONNECT_TIMEOUT : wsConnectTimeout;
+        this.wsConnectTimeoutInitial = wsConnectTimeout == null ? SALTYRTC_WS_CONNECT_TIMEOUT : wsConnectTimeout;
+        this.wsConnectAttemptsMax = wsConnectAttemptsMax == null ? SALTYRTC_WS_CONNECT_ATTEMPTS_MAX : wsConnectAttemptsMax;
+        this.wsConnectLinearBackoff = wsConnectLinearBackoff == null ? SALTYRTC_WS_CONNECT_LINEAR_BACKOFF : wsConnectLinearBackoff;
         this.permanentKey = permanentKey;
         this.peerTrustedKey = peerTrustedKey;
         this.expectedServerKey = expectedServerKey;
@@ -315,9 +324,22 @@ public abstract class Signaling implements SignalingInterface {
             @SuppressWarnings("UnqualifiedMethodAccess")
             public void onConnectError(WebSocket websocket, WebSocketException ex) throws Exception {
                 getLogger().error("Could not connect to websocket (" + ex.getError().toString() + "): " + ex.getMessage());
-                if (Signaling.this.wsConnectAttempt == 1) {
-                    getLogger().info("Retrying to reconnect once...");
+                if (Signaling.this.wsConnectAttemptsMax <= 0 || Signaling.this.wsConnectAttempt < Signaling.this.wsConnectAttemptsMax) {
+                    if (Signaling.this.wsConnectLinearBackoff) {
+                        Signaling.this.wsConnectTimeout += Signaling.this.wsConnectTimeoutInitial;
+                    }
                     Signaling.this.wsConnectAttempt += 1;
+
+                    // Log retry attempt
+                    String retryConstraint;
+                    if (Signaling.this.wsConnectAttemptsMax <= 0) {
+                        retryConstraint = "infinitely";
+                    } else {
+                        retryConstraint = Signaling.this.wsConnectAttempt + "/" + Signaling.this.wsConnectAttemptsMax;
+                    }
+                    getLogger().info("Retrying to reconnect (" + retryConstraint + ")...");
+
+                    // Retry WS connection
                     Signaling.this.setState(SignalingState.WS_CONNECTING);
                     Signaling.this.ws.recreate(Signaling.this.wsConnectTimeout).connectAsynchronously();
                 } else {
@@ -488,6 +510,9 @@ public abstract class Signaling implements SignalingInterface {
             }
         };
 
+        // Reset timeout
+        this.wsConnectTimeout = this.wsConnectTimeoutInitial;
+
         // Create WebSocket client instance
         this.ws = new WebSocketFactory()
                 .setConnectionTimeout(this.wsConnectTimeout)
@@ -503,7 +528,7 @@ public abstract class Signaling implements SignalingInterface {
      */
     private void connectWebsocket() {
         this.setState(SignalingState.WS_CONNECTING);
-        this.wsConnectAttempt = 1;
+        this.wsConnectAttempt = 0;
         this.ws.connectAsynchronously();
     }
 

@@ -30,13 +30,13 @@ public class SignalingTest {
     public void testWsPath() throws Exception {
         // Create signaling instances for initiator and responder
         final InitiatorSignaling initiator = new InitiatorSignaling(
-                null, Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, null, null,
+                null, Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, null, null, null, null,
                 new KeyStore(), null, null,
                 new Task[] { new DummyTask() },
                 0);
         final ResponderSignaling responder = new ResponderSignaling(
-                null, Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, null, null, new KeyStore(),
-                initiator.getPublicPermanentKey(), initiator.getAuthToken(), null, null,
+                null, Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, null, null, null, null,
+                new KeyStore(), initiator.getPublicPermanentKey(), initiator.getAuthToken(), null, null,
                 new Task[] { new DummyTask() },
                 0);
 
@@ -68,10 +68,10 @@ public class SignalingTest {
         Signaling sig = (Signaling) fSignaling.get(salty);
 
         // Make wsConnectTimeout field accessible
-        Field fTimeout = sig.getClass().getSuperclass().getDeclaredField("wsConnectTimeout");
+        Field fTimeout = sig.getClass().getSuperclass().getDeclaredField("wsConnectTimeoutInitial");
         fTimeout.setAccessible(true);
         int timeout = (int) fTimeout.get(sig);
-        assertEquals(timeout, 10000);
+        assertEquals(timeout, 3000);
     }
 
     /**
@@ -91,11 +91,59 @@ public class SignalingTest {
         fSignaling.setAccessible(true);
         Signaling sig = (Signaling) fSignaling.get(salty);
 
-        // Make wsConnectTimeout field accessible
-        Field fTimeout = sig.getClass().getSuperclass().getDeclaredField("wsConnectTimeout");
+        // Make wsConnectTimeoutInitial field accessible
+        Field fTimeout = sig.getClass().getSuperclass().getDeclaredField("wsConnectTimeoutInitial");
         fTimeout.setAccessible(true);
         int timeout = (int) fTimeout.get(sig);
         assertEquals(timeout, 1234);
+    }
+
+    /**
+     * WebSocket maximum connection attempts should be configurable.
+     */
+    @Test
+    public void testSaltyRTCBuilderWithConnectAttemptsMax() throws Exception {
+        final SaltyRTC salty = new SaltyRTCBuilder()
+            .withKeyStore(new KeyStore())
+            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, null)
+            .withWebSocketConnectAttemptsMax(1337)
+            .usingTasks(new Task[] { new DummyTask() })
+            .asInitiator();
+
+        // Make signaling field accessible
+        Field fSignaling = salty.getClass().getDeclaredField("signaling");
+        fSignaling.setAccessible(true);
+        Signaling sig = (Signaling) fSignaling.get(salty);
+
+        // Make wsConnectAttemptsMax field accessible
+        Field fAttemptsMax = sig.getClass().getSuperclass().getDeclaredField("wsConnectAttemptsMax");
+        fAttemptsMax.setAccessible(true);
+        int attemptsMax = (int) fAttemptsMax.get(sig);
+        assertEquals(attemptsMax, 1337);
+    }
+
+    /**
+     * WebSocket linear backoff (for retrying) should be configurable.
+     */
+    @Test
+    public void testSaltyRTCBuilderWithLinearBackoff() throws Exception {
+        final SaltyRTC salty = new SaltyRTCBuilder()
+            .withKeyStore(new KeyStore())
+            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, null)
+            .withWebSocketConnectRetryLinearBackoff(false)
+            .usingTasks(new Task[] { new DummyTask() })
+            .asInitiator();
+
+        // Make signaling field accessible
+        Field fSignaling = salty.getClass().getDeclaredField("signaling");
+        fSignaling.setAccessible(true);
+        Signaling sig = (Signaling) fSignaling.get(salty);
+
+        // Make wsConnectLinearBackoff field accessible
+        Field fLinearBackoff = sig.getClass().getSuperclass().getDeclaredField("wsConnectLinearBackoff");
+        fLinearBackoff.setAccessible(true);
+        boolean linearBackoff = (boolean) fLinearBackoff.get(sig);
+        assertEquals(linearBackoff, false);
     }
 
 }
