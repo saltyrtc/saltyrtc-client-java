@@ -325,6 +325,7 @@ public abstract class Signaling implements SignalingInterface {
             public void onConnectError(WebSocket websocket, WebSocketException ex) throws Exception {
                 getLogger().error("Could not connect to websocket (" + ex.getError().toString() + "): " + ex.getMessage());
                 if (Signaling.this.wsConnectAttemptsMax <= 0 || Signaling.this.wsConnectAttempt < Signaling.this.wsConnectAttemptsMax) {
+                    // Increase #attempts (and timeout if needed)
                     if (Signaling.this.wsConnectLinearBackoff) {
                         Signaling.this.wsConnectTimeout += Signaling.this.wsConnectTimeoutInitial;
                     }
@@ -528,7 +529,7 @@ public abstract class Signaling implements SignalingInterface {
      */
     private void connectWebsocket() {
         this.setState(SignalingState.WS_CONNECTING);
-        this.wsConnectAttempt = 0;
+        this.wsConnectAttempt = 1;
         this.ws.connectAsynchronously();
     }
 
