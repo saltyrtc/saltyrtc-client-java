@@ -1,4 +1,5 @@
 sudo: required
+group: deprecated-2017Q3
 dist: trusty
 language: java
 matrix:
@@ -9,7 +10,7 @@ matrix:
         EXECUTE_BUILD_DOCS=true
     - jdk: oraclejdk8
 before_cache:
-  - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
+  - rm -f  $HOME/.grade/caches/modules-2/modules-2.lock
   - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
 cache:
   directories:
