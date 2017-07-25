@@ -94,10 +94,10 @@ public abstract class Signaling implements SignalingInterface {
     private final int port;
     private final SSLContext sslContext;
     private WebSocket ws;
-    private int pingInterval;
-    private int wsConnectTimeoutInitial;
-    private int wsConnectAttemptsMax;
-    private boolean wsConnectLinearBackoff;
+    final private int pingInterval;
+    final private int wsConnectTimeoutInitial;
+    final private int wsConnectAttemptsMax;
+    final private boolean wsConnectLinearBackoff;
     private int wsConnectTimeout;
     private int wsConnectAttempt = 0;
 
@@ -332,7 +332,7 @@ public abstract class Signaling implements SignalingInterface {
                     Signaling.this.wsConnectAttempt += 1;
 
                     // Log retry attempt
-                    String retryConstraint;
+                    final String retryConstraint;
                     if (Signaling.this.wsConnectAttemptsMax <= 0) {
                         retryConstraint = "infinitely";
                     } else {
