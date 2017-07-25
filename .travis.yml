@@ -1,4 +1,5 @@
 sudo: required
+group: deprecated-2017Q3
 dist: trusty
 language: java
 matrix:
