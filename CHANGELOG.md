@@ -12,6 +12,11 @@ Possible log types:
 - `[security]` to invite users to upgrade in case of vulnerabilities.
 
 
+### v0.11.0 (2017-07-26)
+
+- [added] Configurable WS connection retry attempts and linear backoff (#72)
+- [added] Helper function for Byte array to hex string conversion
+
 ### v0.10.1 (2017-04-04)
 
 - [fixed] Fix bug in ValidationHelper
