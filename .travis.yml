@@ -1,10 +1,8 @@
 sudo: required
-group: deprecated-2017Q3
 dist: trusty
 language: java
 matrix:
   include:
-    #- jdk: openjdk7 # disable until https://github.com/travis-ci/travis-ci/issues/5227 is fixed
     - jdk: oraclejdk7
       env:
         EXECUTE_BUILD_DOCS=true
