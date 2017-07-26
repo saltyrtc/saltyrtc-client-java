@@ -24,4 +24,16 @@ public class HexHelper {
         return data;
     }
 
+    /**
+     * Convert a byte array to a hex string.
+     * https://stackoverflow.com/a/15429408
+     */
+    public static String byteArrayToHexString(byte[] b) {
+        final StringBuilder data = new StringBuilder();
+        for (byte value: b) {
+            data.append(String.format("%02x", value));
+        }
+        return data.toString();
+    }
+
 }

@@ -119,4 +119,13 @@ public class KeyStoreTest {
         assertArrayEquals(ks3.getPublicKey(), ks4.getPublicKey());
     }
 
+    @Test
+    public void testHexKeys() {
+        final String skHex = "000102ffffffffffffffffffffffffffffffffffffffffff0000000000000000";
+        final String pkHex = "80fff5050d2822b5ca66d0525ed98f55fc24b3e152d20153848d409905fb9023";
+        this.ks = new KeyStore(skHex);
+        assertEquals(this.ks.getPrivateKeyHex(), skHex);
+        assertEquals(this.ks.getPublicKeyHex(), pkHex);
+    }
+
 }
