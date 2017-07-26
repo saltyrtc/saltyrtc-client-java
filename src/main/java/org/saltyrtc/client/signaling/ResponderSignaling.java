@@ -66,6 +66,8 @@ public class ResponderSignaling extends Signaling {
     public ResponderSignaling(SaltyRTC saltyRTC, String host, int port,
                               @Nullable SSLContext sslContext,
                               @Nullable Integer wsConnectTimeout,
+                              @Nullable Integer wsConnectAttemptsMax,
+                              @Nullable Boolean wsConnectLinearBackoff,
                               @NonNull KeyStore permanentKey,
                               @Nullable byte[] initiatorPublicKey, @Nullable byte[] authToken,
                               @Nullable byte[] initiatorTrustedKey,
@@ -73,8 +75,8 @@ public class ResponderSignaling extends Signaling {
                               @NonNull Task[] tasks,
                               int pingInterval)
                               throws InvalidKeyException {
-        super(saltyRTC, host, port, sslContext, wsConnectTimeout, permanentKey, initiatorTrustedKey, expectedServerKey,
-              SignalingRole.Responder, tasks, pingInterval);
+        super(saltyRTC, host, port, sslContext, wsConnectTimeout, wsConnectAttemptsMax, wsConnectLinearBackoff,
+              permanentKey, initiatorTrustedKey, expectedServerKey, SignalingRole.Responder, tasks, pingInterval);
         if (initiatorTrustedKey != null) {
             if (initiatorPublicKey != null || authToken != null) {
                 throw new IllegalArgumentException(

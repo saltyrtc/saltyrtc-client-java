@@ -68,13 +68,15 @@ public class InitiatorSignaling extends Signaling {
     public InitiatorSignaling(SaltyRTC saltyRTC, String host, int port,
                               @Nullable SSLContext sslContext,
                               @Nullable Integer wsConnectTimeout,
+                              @Nullable Integer wsConnectAttemptsMax,
+                              @Nullable Boolean wsConnectLinearBackoff,
                               @NonNull KeyStore permanentKey,
                               @Nullable byte[] responderTrustedKey,
                               @Nullable byte[] expectedServerKey,
                               @NonNull Task[] tasks,
                               int pingInterval) {
-        super(saltyRTC, host, port, sslContext, wsConnectTimeout, permanentKey, responderTrustedKey, expectedServerKey,
-              SignalingRole.Initiator, tasks, pingInterval);
+        super(saltyRTC, host, port, sslContext, wsConnectTimeout, wsConnectAttemptsMax, wsConnectLinearBackoff,
+              permanentKey, responderTrustedKey, expectedServerKey, SignalingRole.Initiator, tasks, pingInterval);
         if (responderTrustedKey == null) {
             this.authToken = new AuthToken();
         }
