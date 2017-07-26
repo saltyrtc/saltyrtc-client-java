@@ -3,7 +3,7 @@ dist: trusty
 language: java
 matrix:
   include:
-    - jdk: oraclejdk7
+    - jdk: openjdk8
       env:
         EXECUTE_BUILD_DOCS=true
     - jdk: oraclejdk8
