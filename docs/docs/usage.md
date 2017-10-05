@@ -143,6 +143,40 @@ builder.withTrustedPeerKey(peerPublicPermanentKey);
 
 The `peerPublicPermanentKey` can be either a byte array or a hex encoded string.
 
+## Event handlers
+
+The SaltyRTC Client for Java emits a number of events during its lifecycle.
+For all events, event handlers can be registered. Please take a look at
+[the reference](reference/) for a list of all possible events.
+
+Example for registering an event handler:
+
+```java
+client.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
+    @Override
+    public boolean handle(SignalingStateChangedEvent event) {
+        System.out.println("Signaling state changed to " + event.getState().name());
+        return false; // Don't deregister this event handler
+    }
+};
+```
+
+Every event class in `client.events` is an `EventRegistry`. For every event,
+multiple event handlers can be registered and -- when desired --
+deregistered.
+
+To deregister event handlers, you have three options:
+
+* Use the `event.unregister(instance)` method to deregister a specific
+  event handler instance.
+* Return `true` from with in an event handler to remove itself from the
+  event registry.
+* Use the `event.EVENT_NAME.clear()` method to remove all event handlers
+  for that event.
+
+To remove all handlers for all events, use the `client.events.clearAll()`
+method.
+
 ## Dynamically determine server connection info
 
 Instead of specifying the SaltyRTC server host, port and SSL context directly,
