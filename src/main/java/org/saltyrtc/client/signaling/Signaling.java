@@ -239,8 +239,9 @@ public abstract class Signaling implements SignalingInterface {
     /**
      * Disconnect from the SaltyRTC server.
      *
-     * This operation is asynchronous, once the connection is closed, the
-     * `SignalingStateChangedEvent` will be emitted.
+     * This is a synchronous operation. The event handlers for the `SignalingStateChangedEvent`
+     * will also be called synchronously with the states `CLOSING` and `CLOSED`. Therefore make sure not to call
+     * this method again from within your `SignalingStateChangedEvent` event handlers, or deadlocks may occur!
      */
     synchronized void disconnect(int reason) {
         this.setState(SignalingState.CLOSING);
@@ -270,8 +271,9 @@ public abstract class Signaling implements SignalingInterface {
     /**
      * Disconnect from the SaltyRTC server.
      *
-     * This operation is asynchronous, once the connection is closed, the
-     * `SignalingStateChangedEvent` will be emitted.
+     * This is a synchronous operation. The event handlers for the `SignalingStateChangedEvent`
+     * will also be called synchronously with the states `CLOSING` and `CLOSED`. Therefore make sure not to call
+     * this method again from within your `SignalingStateChangedEvent` event handlers, or deadlocks may occur!
      */
     public void disconnect() {
         this.disconnect(CloseCode.CLOSING_NORMAL);
