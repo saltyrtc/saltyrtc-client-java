@@ -36,7 +36,7 @@ public class SignalingChannelNonce extends Nonce {
      * Note that due to the lack of unsigned data types in Java, we'll use
      * larger signed types. That means that the user must check that the values
      * are in the correct range. If the arguments are out of range, an
-     * unsigned `IllegalArgumentException` is thrown.
+     * unchecked `IllegalArgumentException` is thrown.
      *
      * See also: http://stackoverflow.com/a/397997/284318.
      */
