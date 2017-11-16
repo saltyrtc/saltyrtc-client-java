@@ -1,0 +1,63 @@
+version: 2
+
+references:
+  test-steps: &test-steps
+
+    # Checkout code
+    - checkout
+
+    # Start SaltyRTC server
+    - run: saltyrtc-server-launcher > /saltyrtc/server.pid && sleep 2
+
+    # Handle dependencies
+    - restore_cache:
+        keys:
+          - v1-dependencies-{{ checksum "build.gradle" }}
+          - v1-dependencies-
+    - run: ./gradlew dependencies
+    - save_cache:
+        paths:
+          - ~/.m2
+          - ~/.gradle
+        key: v1-dependencies-{{ checksum "build.gradle" }}
+
+    # Enable debug in integration tests
+    - run: sed -i 's/DEBUG = false/DEBUG = true/' src/test/java/org/saltyrtc/client/tests/integration/ConnectionTest.java
+
+    # Create JKS keystore
+    - run: keytool -import -trustcacerts -alias root -file /saltyrtc/certs/saltyrtc.crt -keystore saltyrtc.jks -storetype JKS -storepass saltyrtc -noprompt
+
+    # Run tests
+    - run: ./gradlew test
+
+    # Stop SaltyRTC server
+    - run: kill -INT $(cat /saltyrtc/server.pid)
+
+jobs:
+  test-openjdk8:
+    docker:
+      - image: saltyrtc/circleci-image:openjdk8
+    steps: *test-steps
+  deploy-docs:
+    docker:
+      - image: python:3.5
+    steps:
+      - checkout
+      - run: |
+      -   if [ $CI_PULL_REQUEST ]; then
+      -     echo "Skipping docs (this is a pull request)"
+      -   else
+      -     bash docs/deploy-docs.sh
+      -   fi
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - test-openjdk8
+      - deploy-docs:
+          requires:
+            - test-openjdk8
+          filters:
+            branches:
+              only: master
