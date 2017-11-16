@@ -12,6 +12,11 @@ Possible log types:
 - `[security]` to invite users to upgrade in case of vulnerabilities.
 
 
+### v0.11.1 (2017-11-16)
+
+- [fixed] Fix potential race condition in websocket message handling (#76)
+- [added] Improve documentation for events (#74)
+
 ### v0.11.0 (2017-07-26)
 
 - [added] Configurable WS connection retry attempts and linear backoff (#72)
