@@ -317,8 +317,12 @@ public abstract class Signaling implements SignalingInterface {
             @SuppressWarnings("UnqualifiedMethodAccess")
             public void onConnected(WebSocket websocket, Map<String, List<String>> headers) throws Exception {
                 synchronized (this) {
-                    getLogger().info("WebSocket connection open");
-                    setState(SignalingState.SERVER_HANDSHAKE);
+                    if (getState() == SignalingState.WS_CONNECTING) {
+                        getLogger().warn("WebSocket connection open");
+                        setState(SignalingState.SERVER_HANDSHAKE);
+                    } else {
+                        getLogger().warn("Got onConnected event, but WebSocket connection already open");
+                    }
                 }
             }
 
@@ -363,6 +367,12 @@ public abstract class Signaling implements SignalingInterface {
             @SuppressWarnings("UnqualifiedMethodAccess")
             public synchronized void onBinaryMessage(WebSocket websocket, byte[] binary) {
                 getLogger().debug("New binary message (" + binary.length + " bytes)");
+
+                // Update state if necessary
+                if (getState() == SignalingState.WS_CONNECTING) {
+                    getLogger().info("WebSocket connection open");
+                    setState(SignalingState.SERVER_HANDSHAKE);
+                }
 
                 // Check peer handover state
                 if (Signaling.this.handoverState.getPeer()) {
