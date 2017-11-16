@@ -44,11 +44,11 @@ jobs:
     steps:
       - checkout
       - run: |
-      -   if [ $CI_PULL_REQUEST ]; then
-      -     echo "Skipping docs (this is a pull request)"
-      -   else
-      -     bash docs/deploy-docs.sh
-      -   fi
+          if [ $CI_PULL_REQUEST ]; then
+            echo "Skipping docs (this is a pull request)"
+          else
+            bash docs/deploy-docs.sh
+          fi
 
 workflows:
   version: 2
