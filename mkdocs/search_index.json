@@ -1,108 +1,158 @@
 {
     "docs": [
         {
-            "location": "/", 
-            "text": "SaltyRTC Client for Java\n\n\nThis is a SaltyRTC implementation for Java 7+.\n\n\nContents\n\n\n\n\nInstalling\n\n\nUsage\n\n\nAbout", 
+            "location": "/",
+            "text": "SaltyRTC Client for Java\n\n\nThis is a SaltyRTC implementation for Java 7+.\n\n\nContents\n\n\n\n\nInstalling\n\n\nUsage\n\n\nAbout",
             "title": "Home"
-        }, 
+        },
         {
-            "location": "/#saltyrtc-client-for-java", 
-            "text": "This is a SaltyRTC implementation for Java 7+.  Contents   Installing  Usage  About", 
+            "location": "/#saltyrtc-client-for-java",
+            "text": "This is a SaltyRTC implementation for Java 7+.  Contents   Installing  Usage  About",
             "title": "SaltyRTC Client for Java"
-        }, 
+        },
         {
-            "location": "/installing/", 
-            "text": "Installing\n\n\nThe package is available \non Bintray\n and \nin JCenter\n.\n\n\nGradle\n\n\ncompile 'org.saltyrtc.client:saltyrtc-client:0.10.1'\n\n\n\n\nMaven\n\n\ndependency\n\n  \ngroupId\norg.saltyrtc.client\n/groupId\n\n  \nartifactId\nsaltyrtc-client\n/artifactId\n\n  \nversion\n0.10.1\n/version\n\n  \ntype\npom\n/type\n\n\n/dependency\n\n\n\n\n\nDependency verification\n\n\nThis project uses \ngradle-witness\n\nto make sure that you always get the exact same versions of your dependencies.\n\n\nThe SHA256 hashes for the published releases of this project can be found in the \nREADME file\n.", 
+            "location": "/installing/",
+            "text": "Installing\n\n\nThe package is available \non Bintray\n and \nin JCenter\n.\n\n\nGradle\n\n\ncompile 'org.saltyrtc.client:saltyrtc-client:0.11.0'\n\n\n\n\nMaven\n\n\n<dependency>\n  <groupId>org.saltyrtc.client</groupId>\n  <artifactId>saltyrtc-client</artifactId>\n  <version>0.11.0</version>\n  <type>pom</type>\n</dependency>\n\n\n\n\nDependency verification\n\n\nThis project uses \ngradle-witness\n\nto make sure that you always get the exact same versions of your dependencies.\n\n\nThe SHA256 hashes for the published releases of this project can be found in the \nREADME file\n.",
             "title": "Installing"
-        }, 
+        },
         {
-            "location": "/installing/#installing", 
-            "text": "The package is available  on Bintray  and  in JCenter .  Gradle  compile 'org.saltyrtc.client:saltyrtc-client:0.10.1'  Maven  dependency \n   groupId org.saltyrtc.client /groupId \n   artifactId saltyrtc-client /artifactId \n   version 0.10.1 /version \n   type pom /type  /dependency", 
+            "location": "/installing/#installing",
+            "text": "The package is available  on Bintray  and  in JCenter .  Gradle  compile 'org.saltyrtc.client:saltyrtc-client:0.11.0'  Maven  <dependency>\n  <groupId>org.saltyrtc.client</groupId>\n  <artifactId>saltyrtc-client</artifactId>\n  <version>0.11.0</version>\n  <type>pom</type>\n</dependency>",
             "title": "Installing"
-        }, 
+        },
         {
-            "location": "/installing/#dependency-verification", 
-            "text": "This project uses  gradle-witness \nto make sure that you always get the exact same versions of your dependencies.  The SHA256 hashes for the published releases of this project can be found in the  README file .", 
+            "location": "/installing/#dependency-verification",
+            "text": "This project uses  gradle-witness \nto make sure that you always get the exact same versions of your dependencies.  The SHA256 hashes for the published releases of this project can be found in the  README file .",
             "title": "Dependency verification"
-        }, 
+        },
         {
-            "location": "/usage/", 
-            "text": "Usage\n\n\nThe SaltyRTCBuilder\n\n\nTo initialize a \nSaltyRTC\n instance, you can use the \nSaltyRTCBuilder\n.\n\n\nimport org.saltyrtc.client.SaltyRTCBuilder;\n\nfinal SaltyRTCBuilder builder = new SaltyRTCBuilder();\n\n\n\n\nConnection info\n\n\nThen you need to provide connection info:\n\n\nbuilder.connectTo(host, port, sslContext);\n\n\n\n\nKey store\n\n\nThe client needs to have its own public/private keypair. Create a new keypair\nwith the \nKeyStore\n class:\n\n\nimport org.saltyrtc.client.keystore.KeyStore;\n\nfinal KeyStore keyStore = new KeyStore();\nbuilder.withKeyStore(keyStore);\n\n\n\n\nServer key pinning\n\n\nIf you want to use server key pinning, specify the server public permanent key:\n\n\nbuilder.withServerKey(serverPublicPermanentKey);\n\n\n\n\nThe \nserverPublicPermanentKey\n can be either a byte array or a hex encoded string.\n\n\nWebsocket ping interval\n\n\nOptionally, you can specify a Websocket ping interval in seconds:\n\n\nbuilder.withPingInterval(60);\n\n\n\n\nTask configuration\n\n\nYou must initialize SaltyRTC with a task (TODO: Link to tasks documentation)\nthat takes over after the handshake is done.\n\n\nFor example, when using the \nWebRTC task\n:\n\n\nimport org.saltyrtc.client.tasks.Task;\nimport org.saltyrtc.tasks.webrtc.WebRTCTask;\n\nbuilder.usingTasks(new Task[] { new WebRTCTask() });\n\n\n\n\nConnecting as Initiator\n\n\nIf you want to connect to the server as initiator, you can use the \n.asInitiator()\n method:\n\n\nfinal SaltyRTC client = builder.asInitiator();\n\n\n\n\nConnecting as Responder\n\n\nIf you want to connect as responder, you need to provide the initiator information first.\n\n\nbuilder.initiatorInfo(initiatorPublicPermanentKey, initiatorAuthToken);\nfinal SaltyRTC client = builder.asResponder();\n\n\n\n\nThe initiator public permanent key as well as the initiator auth token can be\neither byte arrays or hex encoded strings.\n\n\nFull example\n\n\nAll methods on the \nSaltyRTCBuilder\n support chaining. Here\ns a full example of an initiator configuration:\n\n\nimport javax.net.ssl.SSLContext;\nimport org.saltyrtc.client.SaltyRTC;\nimport org.saltyrtc.client.SaltyRTCBuilder;\nimport org.saltyrtc.client.keystore.KeyStore;\nimport org.saltyrtc.tasks.webrtc.WebRTCTask;\n\nfinal SSLContext sslContext = SSLContext.getDefault();\nfinal SaltyRTC client = new SaltyRTCBuilder()\n        .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)\n        .withKeyStore(new KeyStore())\n        .withPingInterval(60)\n        .withServerKey(Config.SALTYRTC_SERVER_PUBLIC_KEY)\n        .usingTasks(new Task[] { new WebRTCTask() })\n        .asInitiator();\n\n\n\n\nTo see a more practical example, you may also want to take a look at our\n\ndemo application\n.\n\n\nTrusted keys\n\n\nIn order to reconnect to a session using a trusted key, you first need to\nrestore your \nKeyStore\n with the permanent keypair originally used to establish\nthe trusted session:\n\n\nfinal KeyStore keyStore = new KeyStore(ourPrivatePermanentKey);\nbuilder.withKeyStore(keyStore);\n\n\n\n\nThe \nourPrivatePermanentKey\n can be either a byte array or a hex encoded string.\n\n\nThen, on the \nSaltyRTCBuilder\n instance, set the trusted peer key:\n\n\nbuilder.withTrustedPeerKey(peerPublicPermanentKey);\n\n\n\n\nThe \npeerPublicPermanentKey\n can be either a byte array or a hex encoded string.\n\n\nDynamically determine server connection info\n\n\nInstead of specifying the SaltyRTC server host, port and SSL context directly,\nyou can instead provide an implementation of \nSaltyRTCServerInfo\n that can\ndynamically determine the connection info based on the public key of the\ninitiator.\n\n\nfinal SSLContext sslContext = SSLContext.getDefault();\nfinal SaltyRTC responder = new SaltyRTCBuilder()\n    .connectTo(new SaltyRTCServerInfo() {\n        @Override\n        public String getHost(String initiatorPublicKey) {\n            if (initiatorPublicKey.startsWith(\na\n)) {\n                return \na.example.org\n;\n            } else {\n                return \nother.example.org\n;\n            }\n        }\n\n        @Override\n        public int getPort(String initiatorPublicKey) {\n            return Config.SALTYRTC_PORT;\n        }\n\n        @Override\n        public SSLContext getSSLContext(String initiatorPublicKey) {\n            return sslContext;\n        }\n    })\n    // ...\n\n\n\n\nLogging\n\n\nThe library uses the \nslf4j\n logging API. Configure\na logger (e.g. slf4j-simple) to see the log output.", 
+            "location": "/usage/",
+            "text": "Usage\n\n\nThis chapter gives a short introduction on how to use the SaltyRTC JavaScript client.\n\n\nTo see a more practical example, you may also want to take a look at our \ndemo\napplication\n.\n\n\nThe SaltyRTCBuilder\n\n\nTo initialize a \nSaltyRTC\n instance, you can use the \nSaltyRTCBuilder\n.\n\n\nimport org.saltyrtc.client.SaltyRTCBuilder;\n\nfinal SaltyRTCBuilder builder = new SaltyRTCBuilder();\n\n\n\n\nConnection info\n\n\nThen you need to provide connection info:\n\n\nbuilder.connectTo(host, port, sslContext);\n\n\n\n\nFor testing, you can use \nour test server\n.\n\n\nKey store\n\n\nThe client needs to have its own public/private keypair. Create a new keypair\nwith the \nKeyStore\n class:\n\n\nimport org.saltyrtc.client.keystore.KeyStore;\n\nfinal KeyStore keyStore = new KeyStore();\nbuilder.withKeyStore(keyStore);\n\n\n\n\nServer key pinning\n\n\nIf you want to use server key pinning, specify the server public permanent key:\n\n\nbuilder.withServerKey(serverPublicPermanentKey);\n\n\n\n\nThe \nserverPublicPermanentKey\n can be either a byte array or a hex encoded string.\n\n\nWebsocket connect timeout\n\n\nOptionally, you can specify the Websocket connection timeout in milliseconds:\n\n\nbuilder.withWebsocketConnectTimeout(5000);\n\n\n\n\nWebsocket ping interval\n\n\nOptionally, you can specify a Websocket ping interval in seconds:\n\n\nbuilder.withPingInterval(60);\n\n\n\n\nTask configuration\n\n\nYou must initialize SaltyRTC with a task (TODO: Link to tasks documentation)\nthat takes over after the handshake is done.\n\n\nFor example, when using the \nWebRTC task\n:\n\n\nimport org.saltyrtc.client.tasks.Task;\nimport org.saltyrtc.tasks.webrtc.WebRTCTask;\n\nbuilder.usingTasks(new Task[] { new WebRTCTask() });\n\n\n\n\nConnecting as Initiator\n\n\nIf you want to connect to the server as initiator, you can use the \n.asInitiator()\n method:\n\n\nfinal SaltyRTC client = builder.asInitiator();\n\n\n\n\nConnecting as Responder\n\n\nIf you want to connect as responder, you need to provide the initiator information first.\n\n\nbuilder.initiatorInfo(initiatorPublicPermanentKey, initiatorAuthToken);\nfinal SaltyRTC client = builder.asResponder();\n\n\n\n\nThe initiator public permanent key as well as the initiator auth token can be\neither byte arrays or hex encoded strings.\n\n\nFull example\n\n\nAll methods on the \nSaltyRTCBuilder\n support chaining. Here\u2019s a full example of an initiator configuration:\n\n\nimport javax.net.ssl.SSLContext;\nimport org.saltyrtc.client.SaltyRTC;\nimport org.saltyrtc.client.SaltyRTCBuilder;\nimport org.saltyrtc.client.keystore.KeyStore;\nimport org.saltyrtc.tasks.webrtc.WebRTCTask;\n\nfinal SSLContext sslContext = SSLContext.getDefault();\nfinal SaltyRTC client = new SaltyRTCBuilder()\n        .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)\n        .withKeyStore(new KeyStore())\n        .withPingInterval(60)\n        .withWebsocketConnectTimeout(5000)\n        .withServerKey(Config.SALTYRTC_SERVER_PUBLIC_KEY)\n        .usingTasks(new Task[] { new WebRTCTask() })\n        .asInitiator();\n\n\n\n\nTo see a more practical example, you may also want to take a look at our\n\ndemo application\n.\n\n\nTrusted keys\n\n\nIn order to reconnect to a session using a trusted key, you first need to\nrestore your \nKeyStore\n with the permanent keypair originally used to establish\nthe trusted session:\n\n\nfinal KeyStore keyStore = new KeyStore(ourPrivatePermanentKey);\nbuilder.withKeyStore(keyStore);\n\n\n\n\nThe \nourPrivatePermanentKey\n can be either a byte array or a hex encoded string.\n\n\nThen, on the \nSaltyRTCBuilder\n instance, set the trusted peer key:\n\n\nbuilder.withTrustedPeerKey(peerPublicPermanentKey);\n\n\n\n\nThe \npeerPublicPermanentKey\n can be either a byte array or a hex encoded string.\n\n\nEvent handlers\n\n\nThe SaltyRTC Client for Java emits a number of events during its lifecycle.\nFor all events, event handlers can be registered. Please take a look at\n\nthe reference\n for a list of all possible events.\n\n\nExample for registering an event handler:\n\n\nclient.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {\n    @Override\n    public boolean handle(SignalingStateChangedEvent event) {\n        System.out.println(\"Signaling state changed to \" + event.getState().name());\n        return false; // Don't deregister this event handler\n    }\n};\n\n\n\n\nEvery event class in \nclient.events\n is an \nEventRegistry\n. For every event,\nmultiple event handlers can be registered and \u2013 when desired \u2013\nderegistered.\n\n\nTo deregister event handlers, you have three options:\n\n\n\n\nUse the \nevent.unregister(instance)\n method to deregister a specific\n  event handler instance.\n\n\nReturn \ntrue\n from with in an event handler to remove itself from the\n  event registry.\n\n\nUse the \nevent.EVENT_NAME.clear()\n method to remove all event handlers\n  for that event.\n\n\n\n\nTo remove all handlers for all events, use the \nclient.events.clearAll()\n\nmethod.\n\n\nDynamically determine server connection info\n\n\nInstead of specifying the SaltyRTC server host, port and SSL context directly,\nyou can instead provide an implementation of \nSaltyRTCServerInfo\n that can\ndynamically determine the connection info based on the public key of the\ninitiator.\n\n\nfinal SSLContext sslContext = SSLContext.getDefault();\nfinal SaltyRTC responder = new SaltyRTCBuilder()\n    .connectTo(new SaltyRTCServerInfo() {\n        @Override\n        public String getHost(String initiatorPublicKey) {\n            if (initiatorPublicKey.startsWith(\"a\")) {\n                return \"a.example.org\";\n            } else {\n                return \"other.example.org\";\n            }\n        }\n\n        @Override\n        public int getPort(String initiatorPublicKey) {\n            return Config.SALTYRTC_PORT;\n        }\n\n        @Override\n        public SSLContext getSSLContext(String initiatorPublicKey) {\n            return sslContext;\n        }\n    })\n    // ...\n\n\n\n\nLogging\n\n\nThe library uses the \nslf4j\n logging API. Configure\na logger (e.g. slf4j-simple) to see the log output.",
             "title": "Usage"
-        }, 
+        },
         {
-            "location": "/usage/#usage", 
-            "text": "", 
+            "location": "/usage/#usage",
+            "text": "This chapter gives a short introduction on how to use the SaltyRTC JavaScript client.  To see a more practical example, you may also want to take a look at our  demo\napplication .",
             "title": "Usage"
-        }, 
+        },
         {
-            "location": "/usage/#the-saltyrtcbuilder", 
-            "text": "To initialize a  SaltyRTC  instance, you can use the  SaltyRTCBuilder .  import org.saltyrtc.client.SaltyRTCBuilder;\n\nfinal SaltyRTCBuilder builder = new SaltyRTCBuilder();", 
+            "location": "/usage/#the-saltyrtcbuilder",
+            "text": "To initialize a  SaltyRTC  instance, you can use the  SaltyRTCBuilder .  import org.saltyrtc.client.SaltyRTCBuilder;\n\nfinal SaltyRTCBuilder builder = new SaltyRTCBuilder();",
             "title": "The SaltyRTCBuilder"
-        }, 
+        },
         {
-            "location": "/usage/#connection-info", 
-            "text": "Then you need to provide connection info:  builder.connectTo(host, port, sslContext);", 
+            "location": "/usage/#connection-info",
+            "text": "Then you need to provide connection info:  builder.connectTo(host, port, sslContext);  For testing, you can use  our test server .",
             "title": "Connection info"
-        }, 
+        },
         {
-            "location": "/usage/#key-store", 
-            "text": "The client needs to have its own public/private keypair. Create a new keypair\nwith the  KeyStore  class:  import org.saltyrtc.client.keystore.KeyStore;\n\nfinal KeyStore keyStore = new KeyStore();\nbuilder.withKeyStore(keyStore);", 
+            "location": "/usage/#key-store",
+            "text": "The client needs to have its own public/private keypair. Create a new keypair\nwith the  KeyStore  class:  import org.saltyrtc.client.keystore.KeyStore;\n\nfinal KeyStore keyStore = new KeyStore();\nbuilder.withKeyStore(keyStore);",
             "title": "Key store"
-        }, 
+        },
         {
-            "location": "/usage/#server-key-pinning", 
-            "text": "If you want to use server key pinning, specify the server public permanent key:  builder.withServerKey(serverPublicPermanentKey);  The  serverPublicPermanentKey  can be either a byte array or a hex encoded string.", 
+            "location": "/usage/#server-key-pinning",
+            "text": "If you want to use server key pinning, specify the server public permanent key:  builder.withServerKey(serverPublicPermanentKey);  The  serverPublicPermanentKey  can be either a byte array or a hex encoded string.",
             "title": "Server key pinning"
-        }, 
+        },
         {
-            "location": "/usage/#websocket-ping-interval", 
-            "text": "Optionally, you can specify a Websocket ping interval in seconds:  builder.withPingInterval(60);", 
+            "location": "/usage/#websocket-connect-timeout",
+            "text": "Optionally, you can specify the Websocket connection timeout in milliseconds:  builder.withWebsocketConnectTimeout(5000);",
+            "title": "Websocket connect timeout"
+        },
+        {
+            "location": "/usage/#websocket-ping-interval",
+            "text": "Optionally, you can specify a Websocket ping interval in seconds:  builder.withPingInterval(60);",
             "title": "Websocket ping interval"
-        }, 
+        },
         {
-            "location": "/usage/#task-configuration", 
-            "text": "You must initialize SaltyRTC with a task (TODO: Link to tasks documentation)\nthat takes over after the handshake is done.  For example, when using the  WebRTC task :  import org.saltyrtc.client.tasks.Task;\nimport org.saltyrtc.tasks.webrtc.WebRTCTask;\n\nbuilder.usingTasks(new Task[] { new WebRTCTask() });", 
+            "location": "/usage/#task-configuration",
+            "text": "You must initialize SaltyRTC with a task (TODO: Link to tasks documentation)\nthat takes over after the handshake is done.  For example, when using the  WebRTC task :  import org.saltyrtc.client.tasks.Task;\nimport org.saltyrtc.tasks.webrtc.WebRTCTask;\n\nbuilder.usingTasks(new Task[] { new WebRTCTask() });",
             "title": "Task configuration"
-        }, 
+        },
         {
-            "location": "/usage/#connecting-as-initiator", 
-            "text": "If you want to connect to the server as initiator, you can use the  .asInitiator()  method:  final SaltyRTC client = builder.asInitiator();", 
+            "location": "/usage/#connecting-as-initiator",
+            "text": "If you want to connect to the server as initiator, you can use the  .asInitiator()  method:  final SaltyRTC client = builder.asInitiator();",
             "title": "Connecting as Initiator"
-        }, 
+        },
         {
-            "location": "/usage/#connecting-as-responder", 
-            "text": "If you want to connect as responder, you need to provide the initiator information first.  builder.initiatorInfo(initiatorPublicPermanentKey, initiatorAuthToken);\nfinal SaltyRTC client = builder.asResponder();  The initiator public permanent key as well as the initiator auth token can be\neither byte arrays or hex encoded strings.", 
+            "location": "/usage/#connecting-as-responder",
+            "text": "If you want to connect as responder, you need to provide the initiator information first.  builder.initiatorInfo(initiatorPublicPermanentKey, initiatorAuthToken);\nfinal SaltyRTC client = builder.asResponder();  The initiator public permanent key as well as the initiator auth token can be\neither byte arrays or hex encoded strings.",
             "title": "Connecting as Responder"
-        }, 
+        },
         {
-            "location": "/usage/#full-example", 
-            "text": "All methods on the  SaltyRTCBuilder  support chaining. Here s a full example of an initiator configuration:  import javax.net.ssl.SSLContext;\nimport org.saltyrtc.client.SaltyRTC;\nimport org.saltyrtc.client.SaltyRTCBuilder;\nimport org.saltyrtc.client.keystore.KeyStore;\nimport org.saltyrtc.tasks.webrtc.WebRTCTask;\n\nfinal SSLContext sslContext = SSLContext.getDefault();\nfinal SaltyRTC client = new SaltyRTCBuilder()\n        .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)\n        .withKeyStore(new KeyStore())\n        .withPingInterval(60)\n        .withServerKey(Config.SALTYRTC_SERVER_PUBLIC_KEY)\n        .usingTasks(new Task[] { new WebRTCTask() })\n        .asInitiator();  To see a more practical example, you may also want to take a look at our demo application .", 
+            "location": "/usage/#full-example",
+            "text": "All methods on the  SaltyRTCBuilder  support chaining. Here\u2019s a full example of an initiator configuration:  import javax.net.ssl.SSLContext;\nimport org.saltyrtc.client.SaltyRTC;\nimport org.saltyrtc.client.SaltyRTCBuilder;\nimport org.saltyrtc.client.keystore.KeyStore;\nimport org.saltyrtc.tasks.webrtc.WebRTCTask;\n\nfinal SSLContext sslContext = SSLContext.getDefault();\nfinal SaltyRTC client = new SaltyRTCBuilder()\n        .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)\n        .withKeyStore(new KeyStore())\n        .withPingInterval(60)\n        .withWebsocketConnectTimeout(5000)\n        .withServerKey(Config.SALTYRTC_SERVER_PUBLIC_KEY)\n        .usingTasks(new Task[] { new WebRTCTask() })\n        .asInitiator();  To see a more practical example, you may also want to take a look at our demo application .",
             "title": "Full example"
-        }, 
+        },
         {
-            "location": "/usage/#trusted-keys", 
-            "text": "In order to reconnect to a session using a trusted key, you first need to\nrestore your  KeyStore  with the permanent keypair originally used to establish\nthe trusted session:  final KeyStore keyStore = new KeyStore(ourPrivatePermanentKey);\nbuilder.withKeyStore(keyStore);  The  ourPrivatePermanentKey  can be either a byte array or a hex encoded string.  Then, on the  SaltyRTCBuilder  instance, set the trusted peer key:  builder.withTrustedPeerKey(peerPublicPermanentKey);  The  peerPublicPermanentKey  can be either a byte array or a hex encoded string.", 
+            "location": "/usage/#trusted-keys",
+            "text": "In order to reconnect to a session using a trusted key, you first need to\nrestore your  KeyStore  with the permanent keypair originally used to establish\nthe trusted session:  final KeyStore keyStore = new KeyStore(ourPrivatePermanentKey);\nbuilder.withKeyStore(keyStore);  The  ourPrivatePermanentKey  can be either a byte array or a hex encoded string.  Then, on the  SaltyRTCBuilder  instance, set the trusted peer key:  builder.withTrustedPeerKey(peerPublicPermanentKey);  The  peerPublicPermanentKey  can be either a byte array or a hex encoded string.",
             "title": "Trusted keys"
-        }, 
+        },
         {
-            "location": "/usage/#dynamically-determine-server-connection-info", 
-            "text": "Instead of specifying the SaltyRTC server host, port and SSL context directly,\nyou can instead provide an implementation of  SaltyRTCServerInfo  that can\ndynamically determine the connection info based on the public key of the\ninitiator.  final SSLContext sslContext = SSLContext.getDefault();\nfinal SaltyRTC responder = new SaltyRTCBuilder()\n    .connectTo(new SaltyRTCServerInfo() {\n        @Override\n        public String getHost(String initiatorPublicKey) {\n            if (initiatorPublicKey.startsWith( a )) {\n                return  a.example.org ;\n            } else {\n                return  other.example.org ;\n            }\n        }\n\n        @Override\n        public int getPort(String initiatorPublicKey) {\n            return Config.SALTYRTC_PORT;\n        }\n\n        @Override\n        public SSLContext getSSLContext(String initiatorPublicKey) {\n            return sslContext;\n        }\n    })\n    // ...", 
+            "location": "/usage/#event-handlers",
+            "text": "The SaltyRTC Client for Java emits a number of events during its lifecycle.\nFor all events, event handlers can be registered. Please take a look at the reference  for a list of all possible events.  Example for registering an event handler:  client.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {\n    @Override\n    public boolean handle(SignalingStateChangedEvent event) {\n        System.out.println(\"Signaling state changed to \" + event.getState().name());\n        return false; // Don't deregister this event handler\n    }\n};  Every event class in  client.events  is an  EventRegistry . For every event,\nmultiple event handlers can be registered and \u2013 when desired \u2013\nderegistered.  To deregister event handlers, you have three options:   Use the  event.unregister(instance)  method to deregister a specific\n  event handler instance.  Return  true  from with in an event handler to remove itself from the\n  event registry.  Use the  event.EVENT_NAME.clear()  method to remove all event handlers\n  for that event.   To remove all handlers for all events, use the  client.events.clearAll() \nmethod.",
+            "title": "Event handlers"
+        },
+        {
+            "location": "/usage/#dynamically-determine-server-connection-info",
+            "text": "Instead of specifying the SaltyRTC server host, port and SSL context directly,\nyou can instead provide an implementation of  SaltyRTCServerInfo  that can\ndynamically determine the connection info based on the public key of the\ninitiator.  final SSLContext sslContext = SSLContext.getDefault();\nfinal SaltyRTC responder = new SaltyRTCBuilder()\n    .connectTo(new SaltyRTCServerInfo() {\n        @Override\n        public String getHost(String initiatorPublicKey) {\n            if (initiatorPublicKey.startsWith(\"a\")) {\n                return \"a.example.org\";\n            } else {\n                return \"other.example.org\";\n            }\n        }\n\n        @Override\n        public int getPort(String initiatorPublicKey) {\n            return Config.SALTYRTC_PORT;\n        }\n\n        @Override\n        public SSLContext getSSLContext(String initiatorPublicKey) {\n            return sslContext;\n        }\n    })\n    // ...",
             "title": "Dynamically determine server connection info"
-        }, 
+        },
         {
-            "location": "/usage/#logging", 
-            "text": "The library uses the  slf4j  logging API. Configure\na logger (e.g. slf4j-simple) to see the log output.", 
+            "location": "/usage/#logging",
+            "text": "The library uses the  slf4j  logging API. Configure\na logger (e.g. slf4j-simple) to see the log output.",
             "title": "Logging"
-        }, 
+        },
         {
-            "location": "/about/", 
-            "text": "About SaltyRTC\n\n\nFor more information about the project, please visit\n\nsaltyrtc.org\n.", 
+            "location": "/reference/",
+            "text": "Reference\n\n\nEvents\n\n\nAll events are accessible through the static \nclient.events\n class.\n\n\nsignalingStateChanged\n\n\nThis event is emitted every time the signaling state changes.\n\n\nhandover\n\n\nThis event is emitted once the signaling channel has been handed over to\nthe task.\n\n\napplicationData\n\n\nApplication data has been received.\n\n\nsignalingConnectionList\n\n\nThe signaling server lost connection to the specified peer.\n\n\nclose\n\n\nThe connection to the signaling server was closed.",
+            "title": "Reference"
+        },
+        {
+            "location": "/reference/#reference",
+            "text": "",
+            "title": "Reference"
+        },
+        {
+            "location": "/reference/#events",
+            "text": "All events are accessible through the static  client.events  class.",
+            "title": "Events"
+        },
+        {
+            "location": "/reference/#signalingstatechanged",
+            "text": "This event is emitted every time the signaling state changes.",
+            "title": "signalingStateChanged"
+        },
+        {
+            "location": "/reference/#handover",
+            "text": "This event is emitted once the signaling channel has been handed over to\nthe task.",
+            "title": "handover"
+        },
+        {
+            "location": "/reference/#applicationdata",
+            "text": "Application data has been received.",
+            "title": "applicationData"
+        },
+        {
+            "location": "/reference/#signalingconnectionlist",
+            "text": "The signaling server lost connection to the specified peer.",
+            "title": "signalingConnectionList"
+        },
+        {
+            "location": "/reference/#close",
+            "text": "The connection to the signaling server was closed.",
+            "title": "close"
+        },
+        {
+            "location": "/about/",
+            "text": "About SaltyRTC\n\n\nFor more information about the project, please visit\n\nsaltyrtc.org\n.",
             "title": "About"
-        }, 
+        },
         {
-            "location": "/about/#about-saltyrtc", 
-            "text": "For more information about the project, please visit saltyrtc.org .", 
+            "location": "/about/#about-saltyrtc",
+            "text": "For more information about the project, please visit saltyrtc.org .",
             "title": "About SaltyRTC"
         }
     ]

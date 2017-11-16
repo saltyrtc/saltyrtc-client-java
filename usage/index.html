@@ -79,12 +79,21 @@
                 
                     <li><a class="toctree-l4" href="#trusted-keys">Trusted keys</a></li>
                 
+                    <li><a class="toctree-l4" href="#event-handlers">Event handlers</a></li>
+                
                     <li><a class="toctree-l4" href="#dynamically-determine-server-connection-info">Dynamically determine server connection info</a></li>
                 
                     <li><a class="toctree-l4" href="#logging">Logging</a></li>
                 
             
             </ul>
+        
+    </li>
+
+        
+            
+    <li class="toctree-l1 ">
+        <a class="" href="../reference/">Reference</a>
         
     </li>
 
@@ -139,6 +148,9 @@
             <div class="section">
               
                 <h1 id="usage">Usage</h1>
+<p>This chapter gives a short introduction on how to use the SaltyRTC JavaScript client.</p>
+<p>To see a more practical example, you may also want to take a look at our <a href="https://github.com/saltyrtc/saltyrtc-demo">demo
+application</a>.</p>
 <h2 id="the-saltyrtcbuilder">The SaltyRTCBuilder</h2>
 <p>To initialize a <code>SaltyRTC</code> instance, you can use the <code>SaltyRTCBuilder</code>.</p>
 <pre><code class="java">import org.saltyrtc.client.SaltyRTCBuilder;
@@ -151,6 +163,7 @@ final SaltyRTCBuilder builder = new SaltyRTCBuilder();
 <pre><code class="java">builder.connectTo(host, port, sslContext);
 </code></pre>
 
+<p>For testing, you can use <a href="https://saltyrtc.org/pages/getting-started.html">our test server</a>.</p>
 <h3 id="key-store">Key store</h3>
 <p>The client needs to have its own public/private keypair. Create a new keypair
 with the <code>KeyStore</code> class:</p>
@@ -166,6 +179,11 @@ builder.withKeyStore(keyStore);
 </code></pre>
 
 <p>The <code>serverPublicPermanentKey</code> can be either a byte array or a hex encoded string.</p>
+<h3 id="websocket-connect-timeout">Websocket connect timeout</h3>
+<p>Optionally, you can specify the Websocket connection timeout in milliseconds:</p>
+<pre><code class="java">builder.withWebsocketConnectTimeout(5000);
+</code></pre>
+
 <h3 id="websocket-ping-interval">Websocket ping interval</h3>
 <p>Optionally, you can specify a Websocket ping interval in seconds:</p>
 <pre><code class="java">builder.withPingInterval(60);
@@ -207,6 +225,7 @@ final SaltyRTC client = new SaltyRTCBuilder()
         .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
         .withKeyStore(new KeyStore())
         .withPingInterval(60)
+        .withWebsocketConnectTimeout(5000)
         .withServerKey(Config.SALTYRTC_SERVER_PUBLIC_KEY)
         .usingTasks(new Task[] { new WebRTCTask() })
         .asInitiator();
@@ -228,6 +247,34 @@ builder.withKeyStore(keyStore);
 </code></pre>
 
 <p>The <code>peerPublicPermanentKey</code> can be either a byte array or a hex encoded string.</p>
+<h2 id="event-handlers">Event handlers</h2>
+<p>The SaltyRTC Client for Java emits a number of events during its lifecycle.
+For all events, event handlers can be registered. Please take a look at
+<a href="../reference/">the reference</a> for a list of all possible events.</p>
+<p>Example for registering an event handler:</p>
+<pre><code class="java">client.events.signalingStateChanged.register(new EventHandler&lt;SignalingStateChangedEvent&gt;() {
+    @Override
+    public boolean handle(SignalingStateChangedEvent event) {
+        System.out.println(&quot;Signaling state changed to &quot; + event.getState().name());
+        return false; // Don't deregister this event handler
+    }
+};
+</code></pre>
+
+<p>Every event class in <code>client.events</code> is an <code>EventRegistry</code>. For every event,
+multiple event handlers can be registered and &ndash; when desired &ndash;
+deregistered.</p>
+<p>To deregister event handlers, you have three options:</p>
+<ul>
+<li>Use the <code>event.unregister(instance)</code> method to deregister a specific
+  event handler instance.</li>
+<li>Return <code>true</code> from with in an event handler to remove itself from the
+  event registry.</li>
+<li>Use the <code>event.EVENT_NAME.clear()</code> method to remove all event handlers
+  for that event.</li>
+</ul>
+<p>To remove all handlers for all events, use the <code>client.events.clearAll()</code>
+method.</p>
 <h2 id="dynamically-determine-server-connection-info">Dynamically determine server connection info</h2>
 <p>Instead of specifying the SaltyRTC server host, port and SSL context directly,
 you can instead provide an implementation of <code>SaltyRTCServerInfo</code> that can
@@ -268,7 +315,7 @@ a logger (e.g. slf4j-simple) to see the log output.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="../about/" class="btn btn-neutral float-right" title="About">Next <span class="icon icon-circle-arrow-right"></span></a>
+        <a href="../reference/" class="btn btn-neutral float-right" title="Reference">Next <span class="icon icon-circle-arrow-right"></span></a>
       
       
         <a href="../installing/" class="btn btn-neutral" title="Installing"><span class="icon icon-circle-arrow-left"></span> Previous</a>
@@ -304,7 +351,7 @@ a logger (e.g. slf4j-simple) to see the log output.</p>
         <span><a href="../installing/" style="color: #fcfcfc;">&laquo; Previous</a></span>
       
       
-        <span style="margin-left: 15px"><a href="../about/" style="color: #fcfcfc">Next &raquo;</a></span>
+        <span style="margin-left: 15px"><a href="../reference/" style="color: #fcfcfc">Next &raquo;</a></span>
       
     </span>
 </div>
