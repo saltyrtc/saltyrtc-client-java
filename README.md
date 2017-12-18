@@ -5,6 +5,7 @@
 [![Java Version](https://img.shields.io/badge/java-7%2B-orange.svg)](https://github.com/saltyrtc/saltyrtc-client-java)
 [![License](https://img.shields.io/badge/license-MIT%20%2F%20Apache%202.0-blue.svg)](https://github.com/saltyrtc/saltyrtc-client-java)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/535/badge)](https://bestpractices.coreinfrastructure.org/projects/535)
+[![Chat on Gitter](https://badges.gitter.im/saltyrtc/Lobby.svg)](https://gitter.im/saltyrtc/Lobby)
 
 This is a [SaltyRTC](https://github.com/saltyrtc/saltyrtc-meta) v1
 implementation for Java 7+.
