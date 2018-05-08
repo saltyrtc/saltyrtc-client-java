@@ -104,10 +104,7 @@ current directory, run the tests:
 
 ## Security
 
-### Dependency Verification
-
-This project uses [gradle-witness](https://github.com/WhisperSystems/gradle-witness)
-to make sure that you always get the exact same versions of your dependencies.
+### Release Checksums
 
 These are the SHA256 hashes for the published releases of this project:
 
