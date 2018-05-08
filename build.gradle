@@ -39,7 +39,7 @@ dependencies {
     compile 'org.msgpack:jackson-dataformat-msgpack:0.8.12'
 
     // Dependency: WebSockets
-    compile 'com.neovisionaries:nv-websocket-client:1.31'
+    compile 'com.neovisionaries:nv-websocket-client:2.+'
 
     // Dependency: Binary chunking
     compile 'org.saltyrtc.chunked-dc:chunked-dc:1.0.0'

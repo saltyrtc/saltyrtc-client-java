@@ -530,6 +530,7 @@ public abstract class Signaling implements SignalingInterface {
         this.ws = new WebSocketFactory()
                 .setConnectionTimeout(this.wsConnectTimeout)
                 .setSSLContext(this.sslContext)
+                .setVerifyHostname(true)
                 .createSocket(uri)
                 .setPingInterval(SALTYRTC_WS_PING_INTERVAL)
                 .addProtocol(SALTYRTC_SUBPROTOCOL)
