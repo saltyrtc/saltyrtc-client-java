@@ -17,9 +17,13 @@ the task.
 
 Application data has been received.
 
-### signalingConnectionList
+### signalingConnectionLost
 
 The signaling server lost connection to the specified peer.
+
+### peerDisconnected
+
+A previously authenticated peer has disconnected from the server.
 
 ### close
 

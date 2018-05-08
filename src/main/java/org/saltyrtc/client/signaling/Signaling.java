@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017 Threema GmbH
+ * Copyright (c) 2016-2018 Threema GmbH
  *
  * Licensed under the Apache License, Version 2.0, <see LICENSE-APACHE file>
  * or the MIT license <see LICENSE-MIT file>, at your option. This file may not be
@@ -19,11 +19,7 @@ import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.cookie.Cookie;
-import org.saltyrtc.client.events.ApplicationDataEvent;
-import org.saltyrtc.client.events.CloseEvent;
-import org.saltyrtc.client.events.EventHandler;
-import org.saltyrtc.client.events.HandoverEvent;
-import org.saltyrtc.client.events.SignalingStateChangedEvent;
+import org.saltyrtc.client.events.*;
 import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
 import org.saltyrtc.client.exceptions.InternalException;
@@ -43,11 +39,7 @@ import org.saltyrtc.client.messages.Message;
 import org.saltyrtc.client.messages.c2c.Application;
 import org.saltyrtc.client.messages.c2c.Close;
 import org.saltyrtc.client.messages.c2c.TaskMessage;
-import org.saltyrtc.client.messages.s2c.ClientAuth;
-import org.saltyrtc.client.messages.s2c.InitiatorServerAuth;
-import org.saltyrtc.client.messages.s2c.ResponderServerAuth;
-import org.saltyrtc.client.messages.s2c.SendError;
-import org.saltyrtc.client.messages.s2c.ServerHello;
+import org.saltyrtc.client.messages.s2c.*;
 import org.saltyrtc.client.nonce.CombinedSequenceSnapshot;
 import org.saltyrtc.client.nonce.SignalingChannelNonce;
 import org.saltyrtc.client.signaling.peers.Peer;
@@ -750,6 +742,8 @@ public abstract class Signaling implements SignalingInterface {
 
         if (message instanceof SendError) {
             this.handleSendError((SendError) message);
+        } else if (message instanceof Disconnected) {
+            this.handleDisconnected((Disconnected) message);
         } else {
             this.getLogger().error("Invalid server message type: " + message.getType());
         }
@@ -1246,6 +1240,39 @@ public abstract class Signaling implements SignalingInterface {
         }
 
         this.handleSendError(destination);
+    }
+
+    /**
+     * Handle incoming disconnected messages.
+     */
+    void handleDisconnected(Disconnected msg) throws SignalingException {
+        // Get the peer id from the Disconnected message
+        final int id = msg.getId();
+
+        switch (this.getRole()) {
+            case Initiator:
+                // An initiator who receives a 'disconnected' message SHALL validate
+                // that the id field contains a valid responder address (0x02..0xff).
+                if (id < 0x02 || id > 0xff) {
+                    throw new ProtocolException("Received 'disconnected' message from server "
+                        + "with invalid responder id: " + id);
+                }
+                break;
+            case Responder:
+                // A responder who receives a 'disconnected' message SHALL validate
+                // that the id field contains a valid initiator address (0x01).
+                if (id != 0x01) {
+                    throw new ProtocolException("Received 'disconnected' message from server "
+                        + "with invalid initiator id: " + id);
+                }
+                break;
+        }
+
+        // A receiving client MUST notify the user application about the
+        // incoming 'disconnected' message, along with the id field.
+        this.salty.events.peerDisconnected.notifyHandlers(
+            new PeerDisconnectedEvent((short) id)
+        );
     }
 
     /**
