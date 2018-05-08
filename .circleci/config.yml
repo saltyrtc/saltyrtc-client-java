@@ -55,6 +55,10 @@ workflows:
   build:
     jobs:
       - test-openjdk8
+          filters:
+            branches:
+              ignore:
+                - gh-pages
       - deploy-docs:
           requires:
             - test-openjdk8
