@@ -12,6 +12,10 @@ Possible log types:
 - `[security]` to invite users to upgrade in case of vulnerabilities.
 
 
+### v0.11.3 (2018-05-08)
+
+- [fixed] Fix potential NPE when WebSocket is closed (#85)
+
 ### v0.11.2 (2018-05-08)
 
 - [fixed] Accept server messages during/after peer handshake

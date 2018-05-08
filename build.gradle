@@ -18,7 +18,7 @@ plugins {
 
 apply plugin: 'maven'
 
-def app_version = '0.11.2'
+def app_version = '0.11.3'
 
 targetCompatibility = '1.7'
 sourceCompatibility = '1.7'
