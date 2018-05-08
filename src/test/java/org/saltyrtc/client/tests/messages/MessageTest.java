@@ -20,15 +20,7 @@ import org.saltyrtc.client.messages.c2c.InitiatorAuth;
 import org.saltyrtc.client.messages.c2c.Key;
 import org.saltyrtc.client.messages.c2c.ResponderAuth;
 import org.saltyrtc.client.messages.c2c.Token;
-import org.saltyrtc.client.messages.s2c.ClientAuth;
-import org.saltyrtc.client.messages.s2c.ClientHello;
-import org.saltyrtc.client.messages.s2c.DropResponder;
-import org.saltyrtc.client.messages.s2c.InitiatorServerAuth;
-import org.saltyrtc.client.messages.s2c.NewInitiator;
-import org.saltyrtc.client.messages.s2c.NewResponder;
-import org.saltyrtc.client.messages.s2c.ResponderServerAuth;
-import org.saltyrtc.client.messages.s2c.SendError;
-import org.saltyrtc.client.messages.s2c.ServerHello;
+import org.saltyrtc.client.messages.s2c.*;
 import org.saltyrtc.client.signaling.CloseCode;
 
 import java.util.ArrayList;
@@ -317,5 +309,11 @@ public class MessageTest {
         assertEquals(number, returned.getData());
     }
 
+    @Test
+    public void testDisconnectedRoundtrip() throws SerializationError, ValidationError {
+        final Disconnected original = new Disconnected((short) 13);
+        final Disconnected returned = this.roundTrip(original);
+        assertEquals(original.getId(), returned.getId());
+    }
 
 }

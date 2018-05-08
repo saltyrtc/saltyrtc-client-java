@@ -22,15 +22,7 @@ import org.saltyrtc.client.messages.c2c.Key;
 import org.saltyrtc.client.messages.c2c.ResponderAuth;
 import org.saltyrtc.client.messages.c2c.TaskMessage;
 import org.saltyrtc.client.messages.c2c.Token;
-import org.saltyrtc.client.messages.s2c.ClientAuth;
-import org.saltyrtc.client.messages.s2c.ClientHello;
-import org.saltyrtc.client.messages.s2c.DropResponder;
-import org.saltyrtc.client.messages.s2c.InitiatorServerAuth;
-import org.saltyrtc.client.messages.s2c.NewInitiator;
-import org.saltyrtc.client.messages.s2c.NewResponder;
-import org.saltyrtc.client.messages.s2c.ResponderServerAuth;
-import org.saltyrtc.client.messages.s2c.SendError;
-import org.saltyrtc.client.messages.s2c.ServerHello;
+import org.saltyrtc.client.messages.s2c.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -119,6 +111,8 @@ public class MessageReader {
                 return new Close(map);
             case "application":
                 return new Application(map);
+            case "disconnected":
+                return new Disconnected(map);
             default:
                 if (taskTypes.contains(type)) {
                     return new TaskMessage(type, map);
