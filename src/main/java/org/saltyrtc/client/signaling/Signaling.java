@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017 Threema GmbH
+ * Copyright (c) 2016-2018 Threema GmbH
  *
  * Licensed under the Apache License, Version 2.0, <see LICENSE-APACHE file>
  * or the MIT license <see LICENSE-MIT file>, at your option. This file may not be
@@ -8,31 +8,14 @@
 
 package org.saltyrtc.client.signaling;
 
-import com.neovisionaries.ws.client.WebSocket;
-import com.neovisionaries.ws.client.WebSocketAdapter;
-import com.neovisionaries.ws.client.WebSocketException;
-import com.neovisionaries.ws.client.WebSocketFactory;
-import com.neovisionaries.ws.client.WebSocketFrame;
-
+import com.neovisionaries.ws.client.*;
 import org.saltyrtc.chunkedDc.UnsignedHelper;
 import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.cookie.Cookie;
-import org.saltyrtc.client.events.ApplicationDataEvent;
-import org.saltyrtc.client.events.CloseEvent;
-import org.saltyrtc.client.events.EventHandler;
-import org.saltyrtc.client.events.HandoverEvent;
-import org.saltyrtc.client.events.SignalingStateChangedEvent;
-import org.saltyrtc.client.exceptions.ConnectionException;
-import org.saltyrtc.client.exceptions.CryptoFailedException;
-import org.saltyrtc.client.exceptions.InternalException;
-import org.saltyrtc.client.exceptions.InvalidKeyException;
-import org.saltyrtc.client.exceptions.OverflowException;
-import org.saltyrtc.client.exceptions.ProtocolException;
-import org.saltyrtc.client.exceptions.SerializationError;
-import org.saltyrtc.client.exceptions.SignalingException;
-import org.saltyrtc.client.exceptions.ValidationError;
+import org.saltyrtc.client.events.*;
+import org.saltyrtc.client.exceptions.*;
 import org.saltyrtc.client.helpers.ArrayHelper;
 import org.saltyrtc.client.helpers.MessageHistory;
 import org.saltyrtc.client.helpers.MessageReader;
@@ -43,11 +26,7 @@ import org.saltyrtc.client.messages.Message;
 import org.saltyrtc.client.messages.c2c.Application;
 import org.saltyrtc.client.messages.c2c.Close;
 import org.saltyrtc.client.messages.c2c.TaskMessage;
-import org.saltyrtc.client.messages.s2c.ClientAuth;
-import org.saltyrtc.client.messages.s2c.InitiatorServerAuth;
-import org.saltyrtc.client.messages.s2c.ResponderServerAuth;
-import org.saltyrtc.client.messages.s2c.SendError;
-import org.saltyrtc.client.messages.s2c.ServerHello;
+import org.saltyrtc.client.messages.s2c.*;
 import org.saltyrtc.client.nonce.CombinedSequenceSnapshot;
 import org.saltyrtc.client.nonce.SignalingChannelNonce;
 import org.saltyrtc.client.signaling.peers.Peer;
@@ -59,6 +38,7 @@ import org.saltyrtc.client.tasks.Task;
 import org.saltyrtc.vendor.com.neilalexander.jnacl.NaCl;
 import org.slf4j.Logger;
 
+import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
@@ -66,8 +46,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-
-import javax.net.ssl.SSLContext;
 
 /**
  * Base class for initiator and responder signaling.
@@ -374,14 +352,6 @@ public abstract class Signaling implements SignalingInterface {
                     setState(SignalingState.SERVER_HANDSHAKE);
                 }
 
-                // Check peer handover state
-                if (Signaling.this.handoverState.getPeer()) {
-                    getLogger().error("Protocol error: Received WebSocket message from peer " +
-                        "even though it has already handed over to task.");
-                    Signaling.this.resetConnection(CloseCode.PROTOCOL_ERROR);
-                    return;
-                }
-
                 SignalingChannelNonce nonce = null;
                 try {
                     // Parse buffer
@@ -390,6 +360,14 @@ public abstract class Signaling implements SignalingInterface {
                     // Parse and validate nonce
                     nonce = new SignalingChannelNonce(ByteBuffer.wrap(box.getNonce()));
                     validateNonce(nonce);
+
+                    // Check peer handover state
+                    if (nonce.getSource() != SALTYRTC_ADDR_SERVER && Signaling.this.handoverState.getPeer()) {
+                        getLogger().error("Protocol error: Received WebSocket message from peer " +
+                            "even though it has already handed over to task.");
+                        Signaling.this.resetConnection(CloseCode.PROTOCOL_ERROR);
+                        return;
+                    }
 
                     // Dispatch message
                     switch (Signaling.this.getState()) {
@@ -407,7 +385,16 @@ public abstract class Signaling implements SignalingInterface {
                                     " signaling state. Ignoring.");
                     }
                 // TODO: The following errors could also be handled using `handleCallbackError` on the websocket.
-                } catch (ValidationError | SerializationError e) {
+                } catch (ValidationError e) {
+                    if (e.critical) {
+                        getLogger().error("Protocol error: Invalid incoming message: " + e.getMessage());
+                        e.printStackTrace();
+                        Signaling.this.resetConnection(CloseCode.PROTOCOL_ERROR);
+                    } else {
+                        getLogger().warn("Dropping invalid message: " + e.getMessage());
+                        e.printStackTrace();
+                    }
+                } catch (SerializationError e) {
                     getLogger().error("Protocol error: Invalid incoming message: " + e.getMessage());
                     e.printStackTrace();
                     Signaling.this.resetConnection(CloseCode.PROTOCOL_ERROR);
@@ -741,6 +728,8 @@ public abstract class Signaling implements SignalingInterface {
 
         if (message instanceof SendError) {
             this.handleSendError((SendError) message);
+        } else if (message instanceof Disconnected) {
+            this.handleDisconnected((Disconnected) message);
         } else {
             this.getLogger().error("Invalid server message type: " + message.getType());
         }
@@ -918,45 +907,48 @@ public abstract class Signaling implements SignalingInterface {
 
     /**
      * Validate the sender address in the nonce.
-     * TODO: Rewrite or remove with new peer logic
      */
     private void validateNonceSource(SignalingChannelNonce nonce) throws ValidationError {
+        // An initiator SHALL ONLY process messages from the server (0x00). As
+        // soon as the initiator has been assigned an identity, it MAY ALSO accept
+        // messages from other responders (0x02..0xff). Other messages SHALL be
+        // discarded and SHOULD trigger a warning.
+        //
+        // A responder SHALL ONLY process messages from the server (0x00). As soon
+        // as the responder has been assigned an identity, it MAY ALSO accept
+        // messages from the initiator (0x01). Other messages SHALL be discarded
+        // and SHOULD trigger a warning.
         switch (this.getState()) {
             case SERVER_HANDSHAKE:
                 // Messages during server handshake must come from the server.
                 if (nonce.getSource() != SALTYRTC_ADDR_SERVER) {
                     throw new ValidationError("Received message during server handshake " +
                             "with invalid sender address (" +
-                            nonce.getSource() + " != " + SALTYRTC_ADDR_SERVER + ")");
+                            nonce.getSource() + " != " + SALTYRTC_ADDR_SERVER + ")",
+                            false);
                 }
                 break;
             case PEER_HANDSHAKE:
-                // Messages during peer handshake may come from server or peer.
+            case TASK:
+                // Messages after server handshake may come from server or peer.
                 if (nonce.getSource() != SALTYRTC_ADDR_SERVER) {
                     switch (this.role) {
                         case Initiator:
                             if (!this.isResponderId(nonce.getSource())) {
                                 throw new ValidationError("Initiator peer message does not come from " +
-                                        "a valid responder address: " + nonce.getSource());
+                                        "a valid responder address: " + nonce.getSource(),
+                                        false);
                             }
                             break;
                         case Responder:
                             if (nonce.getSource() != SALTYRTC_ADDR_INITIATOR) {
                                 throw new ValidationError("Responder peer message does not come from " +
                                         "intitiator (" + SALTYRTC_ADDR_INITIATOR + "), " +
-                                        "but from " + nonce.getSource());
+                                        "but from " + nonce.getSource(),
+                                        false);
                             }
                             break;
                     }
-                }
-                break;
-            case TASK:
-                // Messages after the handshake must come from the peer.
-                final Peer peer = this.getPeer();
-                assert peer != null;
-                if (nonce.getSource() != peer.getId()) {
-                    throw new ValidationError("Received message after handshake with invalid " +
-                        "sender address (" + nonce.getSource() + " != " + peer.getId() + ")");
                 }
                 break;
             default:
@@ -1234,6 +1226,41 @@ public abstract class Signaling implements SignalingInterface {
         }
 
         this.handleSendError(destination);
+    }
+
+    /**
+     * Handle incoming disconnected messages.
+     */
+    void handleDisconnected(Disconnected msg) throws SignalingException {
+        // Get the peer id from the Disconnected message
+        final int id = msg.getId();
+
+        switch (this.getRole()) {
+            case Initiator:
+                // An initiator who receives a 'disconnected' message SHALL validate
+                // that the id field contains a valid responder address (0x02..0xff).
+                if (id < 0x02 || id > 0xff) {
+                    throw new ProtocolException("Received 'disconnected' message from server "
+                        + "with invalid responder id: " + id);
+                }
+                break;
+            case Responder:
+                // A responder who receives a 'disconnected' message SHALL validate
+                // that the id field contains a valid initiator address (0x01).
+                if (id != 0x01) {
+                    throw new ProtocolException("Received 'disconnected' message from server "
+                        + "with invalid initiator id: " + id);
+                }
+                break;
+        }
+
+        this.getLogger().debug("Peer with id " + id + " disconnected from server");
+
+        // A receiving client MUST notify the user application about the
+        // incoming 'disconnected' message, along with the id field.
+        this.salty.events.peerDisconnected.notifyHandlers(
+            new PeerDisconnectedEvent((short) id)
+        );
     }
 
     /**

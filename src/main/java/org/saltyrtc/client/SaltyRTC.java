@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017 Threema GmbH
+ * Copyright (c) 2016-2018 Threema GmbH
  *
  * Licensed under the Apache License, Version 2.0, <see LICENSE-APACHE file>
  * or the MIT license <see LICENSE-MIT file>, at your option. This file may not be
@@ -9,12 +9,7 @@
 package org.saltyrtc.client;
 
 import org.saltyrtc.client.annotations.Nullable;
-import org.saltyrtc.client.events.ApplicationDataEvent;
-import org.saltyrtc.client.events.CloseEvent;
-import org.saltyrtc.client.events.EventRegistry;
-import org.saltyrtc.client.events.HandoverEvent;
-import org.saltyrtc.client.events.SignalingConnectionLostEvent;
-import org.saltyrtc.client.events.SignalingStateChangedEvent;
+import org.saltyrtc.client.events.*;
 import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
 import org.saltyrtc.client.exceptions.InvalidStateException;
@@ -178,6 +173,7 @@ public class SaltyRTC {
         public final EventRegistry<HandoverEvent> handover = new EventRegistry<>();
         public final EventRegistry<ApplicationDataEvent> applicationData = new EventRegistry<>();
         public final EventRegistry<SignalingConnectionLostEvent> signalingConnectionLost = new EventRegistry<>();
+        public final EventRegistry<PeerDisconnectedEvent> peerDisconnected = new EventRegistry<>();
         public final EventRegistry<CloseEvent> close = new EventRegistry<>();
 
         /**
@@ -188,6 +184,7 @@ public class SaltyRTC {
             this.handover.clear();
             this.applicationData.clear();
             this.signalingConnectionLost.clear();
+            this.peerDisconnected.clear();
             this.close.clear();
         }
     }

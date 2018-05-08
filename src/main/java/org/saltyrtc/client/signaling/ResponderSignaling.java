@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017 Threema GmbH
+ * Copyright (c) 2016-2018 Threema GmbH
  *
  * Licensed under the Apache License, Version 2.0, <see LICENSE-APACHE file>
  * or the MIT license <see LICENSE-MIT file>, at your option. This file may not be
@@ -31,10 +31,7 @@ import org.saltyrtc.client.messages.c2c.InitiatorAuth;
 import org.saltyrtc.client.messages.c2c.Key;
 import org.saltyrtc.client.messages.c2c.ResponderAuth;
 import org.saltyrtc.client.messages.c2c.Token;
-import org.saltyrtc.client.messages.s2c.ClientHello;
-import org.saltyrtc.client.messages.s2c.NewInitiator;
-import org.saltyrtc.client.messages.s2c.ResponderServerAuth;
-import org.saltyrtc.client.messages.s2c.SendError;
+import org.saltyrtc.client.messages.s2c.*;
 import org.saltyrtc.client.nonce.SignalingChannelNonce;
 import org.saltyrtc.client.signaling.peers.Initiator;
 import org.saltyrtc.client.signaling.peers.Peer;
@@ -364,6 +361,8 @@ public class ResponderSignaling extends Signaling {
             } else if (msg instanceof SendError) {
                 this.getLogger().debug("Received send-error");
                 this.handleSendError((SendError) msg);
+            } else if (msg instanceof Disconnected) {
+                this.handleDisconnected((Disconnected) msg);
             } else {
                 throw new ProtocolException("Got unexpected server message: " + msg.getType());
             }
