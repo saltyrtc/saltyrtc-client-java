@@ -918,9 +918,17 @@ public abstract class Signaling implements SignalingInterface {
 
     /**
      * Validate the sender address in the nonce.
-     * TODO: Rewrite or remove with new peer logic
      */
     private void validateNonceSource(SignalingChannelNonce nonce) throws ValidationError {
+        // An initiator SHALL ONLY process messages from the server (0x00). As
+        // soon as the initiator has been assigned an identity, it MAY ALSO accept
+        // messages from other responders (0x02..0xff). Other messages SHALL be
+        // discarded and SHOULD trigger a warning.
+        //
+        // A responder SHALL ONLY process messages from the server (0x00). As soon
+        // as the responder has been assigned an identity, it MAY ALSO accept
+        // messages from the initiator (0x01). Other messages SHALL be discarded
+        // and SHOULD trigger a warning.
         switch (this.getState()) {
             case SERVER_HANDSHAKE:
                 // Messages during server handshake must come from the server.
@@ -931,7 +939,8 @@ public abstract class Signaling implements SignalingInterface {
                 }
                 break;
             case PEER_HANDSHAKE:
-                // Messages during peer handshake may come from server or peer.
+            case TASK:
+                // Messages after server handshake may come from server or peer.
                 if (nonce.getSource() != SALTYRTC_ADDR_SERVER) {
                     switch (this.role) {
                         case Initiator:
@@ -948,15 +957,6 @@ public abstract class Signaling implements SignalingInterface {
                             }
                             break;
                     }
-                }
-                break;
-            case TASK:
-                // Messages after the handshake must come from the peer.
-                final Peer peer = this.getPeer();
-                assert peer != null;
-                if (nonce.getSource() != peer.getId()) {
-                    throw new ValidationError("Received message after handshake with invalid " +
-                        "sender address (" + nonce.getSource() + " != " + peer.getId() + ")");
                 }
                 break;
             default:
