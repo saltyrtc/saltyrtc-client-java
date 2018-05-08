@@ -407,7 +407,16 @@ public abstract class Signaling implements SignalingInterface {
                                     " signaling state. Ignoring.");
                     }
                 // TODO: The following errors could also be handled using `handleCallbackError` on the websocket.
-                } catch (ValidationError | SerializationError e) {
+                } catch (ValidationError e) {
+                    if (e.critical) {
+                        getLogger().error("Protocol error: Invalid incoming message: " + e.getMessage());
+                        e.printStackTrace();
+                        Signaling.this.resetConnection(CloseCode.PROTOCOL_ERROR);
+                    } else {
+                        getLogger().warn("Dropping invalid message: " + e.getMessage());
+                        e.printStackTrace();
+                    }
+                } catch (SerializationError e) {
                     getLogger().error("Protocol error: Invalid incoming message: " + e.getMessage());
                     e.printStackTrace();
                     Signaling.this.resetConnection(CloseCode.PROTOCOL_ERROR);
@@ -935,7 +944,8 @@ public abstract class Signaling implements SignalingInterface {
                 if (nonce.getSource() != SALTYRTC_ADDR_SERVER) {
                     throw new ValidationError("Received message during server handshake " +
                             "with invalid sender address (" +
-                            nonce.getSource() + " != " + SALTYRTC_ADDR_SERVER + ")");
+                            nonce.getSource() + " != " + SALTYRTC_ADDR_SERVER + ")",
+                            false);
                 }
                 break;
             case PEER_HANDSHAKE:
@@ -946,14 +956,16 @@ public abstract class Signaling implements SignalingInterface {
                         case Initiator:
                             if (!this.isResponderId(nonce.getSource())) {
                                 throw new ValidationError("Initiator peer message does not come from " +
-                                        "a valid responder address: " + nonce.getSource());
+                                        "a valid responder address: " + nonce.getSource(),
+                                        false);
                             }
                             break;
                         case Responder:
                             if (nonce.getSource() != SALTYRTC_ADDR_INITIATOR) {
                                 throw new ValidationError("Responder peer message does not come from " +
                                         "intitiator (" + SALTYRTC_ADDR_INITIATOR + "), " +
-                                        "but from " + nonce.getSource());
+                                        "but from " + nonce.getSource(),
+                                        false);
                             }
                             break;
                     }
