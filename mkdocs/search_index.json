@@ -107,7 +107,7 @@
         },
         {
             "location": "/reference/",
-            "text": "Reference\n\n\nEvents\n\n\nAll events are accessible through the static \nclient.events\n class.\n\n\nsignalingStateChanged\n\n\nThis event is emitted every time the signaling state changes.\n\n\nhandover\n\n\nThis event is emitted once the signaling channel has been handed over to\nthe task.\n\n\napplicationData\n\n\nApplication data has been received.\n\n\nsignalingConnectionList\n\n\nThe signaling server lost connection to the specified peer.\n\n\nclose\n\n\nThe connection to the signaling server was closed.",
+            "text": "Reference\n\n\nEvents\n\n\nAll events are accessible through the static \nclient.events\n class.\n\n\nsignalingStateChanged\n\n\nThis event is emitted every time the signaling state changes.\n\n\nhandover\n\n\nThis event is emitted once the signaling channel has been handed over to\nthe task.\n\n\napplicationData\n\n\nApplication data has been received.\n\n\nsignalingConnectionLost\n\n\nThe signaling server lost connection to the specified peer.\n\n\npeerDisconnected\n\n\nA previously authenticated peer has disconnected from the server.\n\n\nclose\n\n\nThe connection to the signaling server was closed.",
             "title": "Reference"
         },
         {
@@ -136,9 +136,14 @@
             "title": "applicationData"
         },
         {
-            "location": "/reference/#signalingconnectionlist",
+            "location": "/reference/#signalingconnectionlost",
             "text": "The signaling server lost connection to the specified peer.",
-            "title": "signalingConnectionList"
+            "title": "signalingConnectionLost"
+        },
+        {
+            "location": "/reference/#peerdisconnected",
+            "text": "A previously authenticated peer has disconnected from the server.",
+            "title": "peerDisconnected"
         },
         {
             "location": "/reference/#close",
