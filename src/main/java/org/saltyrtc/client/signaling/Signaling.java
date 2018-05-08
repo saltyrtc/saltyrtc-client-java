@@ -8,27 +8,14 @@
 
 package org.saltyrtc.client.signaling;
 
-import com.neovisionaries.ws.client.WebSocket;
-import com.neovisionaries.ws.client.WebSocketAdapter;
-import com.neovisionaries.ws.client.WebSocketException;
-import com.neovisionaries.ws.client.WebSocketFactory;
-import com.neovisionaries.ws.client.WebSocketFrame;
-
+import com.neovisionaries.ws.client.*;
 import org.saltyrtc.chunkedDc.UnsignedHelper;
 import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.cookie.Cookie;
 import org.saltyrtc.client.events.*;
-import org.saltyrtc.client.exceptions.ConnectionException;
-import org.saltyrtc.client.exceptions.CryptoFailedException;
-import org.saltyrtc.client.exceptions.InternalException;
-import org.saltyrtc.client.exceptions.InvalidKeyException;
-import org.saltyrtc.client.exceptions.OverflowException;
-import org.saltyrtc.client.exceptions.ProtocolException;
-import org.saltyrtc.client.exceptions.SerializationError;
-import org.saltyrtc.client.exceptions.SignalingException;
-import org.saltyrtc.client.exceptions.ValidationError;
+import org.saltyrtc.client.exceptions.*;
 import org.saltyrtc.client.helpers.ArrayHelper;
 import org.saltyrtc.client.helpers.MessageHistory;
 import org.saltyrtc.client.helpers.MessageReader;
@@ -51,6 +38,7 @@ import org.saltyrtc.client.tasks.Task;
 import org.saltyrtc.vendor.com.neilalexander.jnacl.NaCl;
 import org.slf4j.Logger;
 
+import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
@@ -58,8 +46,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-
-import javax.net.ssl.SSLContext;
 
 /**
  * Base class for initiator and responder signaling.
@@ -366,14 +352,6 @@ public abstract class Signaling implements SignalingInterface {
                     setState(SignalingState.SERVER_HANDSHAKE);
                 }
 
-                // Check peer handover state
-                if (Signaling.this.handoverState.getPeer()) {
-                    getLogger().error("Protocol error: Received WebSocket message from peer " +
-                        "even though it has already handed over to task.");
-                    Signaling.this.resetConnection(CloseCode.PROTOCOL_ERROR);
-                    return;
-                }
-
                 SignalingChannelNonce nonce = null;
                 try {
                     // Parse buffer
@@ -382,6 +360,14 @@ public abstract class Signaling implements SignalingInterface {
                     // Parse and validate nonce
                     nonce = new SignalingChannelNonce(ByteBuffer.wrap(box.getNonce()));
                     validateNonce(nonce);
+
+                    // Check peer handover state
+                    if (nonce.getSource() != SALTYRTC_ADDR_SERVER && Signaling.this.handoverState.getPeer()) {
+                        getLogger().error("Protocol error: Received WebSocket message from peer " +
+                            "even though it has already handed over to task.");
+                        Signaling.this.resetConnection(CloseCode.PROTOCOL_ERROR);
+                        return;
+                    }
 
                     // Dispatch message
                     switch (Signaling.this.getState()) {
@@ -1267,6 +1253,8 @@ public abstract class Signaling implements SignalingInterface {
                 }
                 break;
         }
+
+        this.getLogger().debug("Peer with id " + id + " disconnected from server");
 
         // A receiving client MUST notify the user application about the
         // incoming 'disconnected' message, along with the id field.
