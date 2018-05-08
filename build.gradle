@@ -65,7 +65,12 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
     from javadoc.destinationDir
 }
 
-// add javadoc/source jar tasks as artifacts
+// Turn off linting for javadoc
+tasks.withType(Javadoc) {
+    options.addStringOption('Xdoclint:none', '-quiet')
+}
+
+// Add javadoc/source jar tasks as artifacts
 artifacts {
     archives sourcesJar, javadocJar
 }
