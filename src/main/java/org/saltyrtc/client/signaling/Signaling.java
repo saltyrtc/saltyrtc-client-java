@@ -435,13 +435,15 @@ public abstract class Signaling implements SignalingInterface {
 
             @Override
             @SuppressWarnings("UnqualifiedMethodAccess")
-            public void onDisconnected(WebSocket websocket, WebSocketFrame serverCloseFrame,
-                                       WebSocketFrame clientCloseFrame, boolean closedByServer) throws Exception {
+            public void onDisconnected(WebSocket websocket,
+                                       @Nullable WebSocketFrame serverCloseFrame,
+                                       @Nullable WebSocketFrame clientCloseFrame,
+                                       boolean closedByServer) throws Exception {
                 // Log details to debug log
                 final String closer = closedByServer ? "server" : "client";
                 final WebSocketFrame frame = closedByServer ? serverCloseFrame : clientCloseFrame;
-                final int closeCode = frame.getCloseCode();
-                String closeReason = frame.getCloseReason();
+                final int closeCode = frame == null ? 0 : frame.getCloseCode();
+                String closeReason = frame == null ? null : frame.getCloseReason();
                 if (closeReason == null) {
                     closeReason = CloseCode.explain(closeCode);
                 }
@@ -451,6 +453,9 @@ public abstract class Signaling implements SignalingInterface {
                 // Log some of the codes on higher log levels too
                 if (closedByServer) {
                     switch (closeCode) {
+                        case 0:
+                            getLogger().warn("WebSocket closed (no close frame provided)");
+                            break;
                         case CloseCode.CLOSING_NORMAL:
                             getLogger().info("WebSocket closed");
                             break;
