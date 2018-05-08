@@ -12,6 +12,15 @@ Possible log types:
 - `[security]` to invite users to upgrade in case of vulnerabilities.
 
 
+### v0.11.2 (2018-05-08)
+
+- [fixed] Accept server messages during/after peer handshake
+- [fixed] If message nonce has an invalid source, discard it
+- [added] Implement support for 'disconnected' messages (#84)
+- [changed] Upgrade nv-websocket-client (#81)
+- [changed] Upgrade msgpack libraries (#82)
+- [changed] Upgrade json library (#83)
+
 ### v0.11.1 (2017-11-16)
 
 - [fixed] Fix potential race condition in websocket message handling (#76)
