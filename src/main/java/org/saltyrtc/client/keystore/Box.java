@@ -9,6 +9,7 @@
 package org.saltyrtc.client.keystore;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 
 /**
@@ -74,5 +75,15 @@ public class Box {
 
         // Return underlying array
         return box.array();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof Box)) {
+            return false;
+        }
+        final Box other = (Box) o;
+        return Arrays.equals(this.data, other.getData())
+            && Arrays.equals(this.nonce, other.getNonce());
     }
 }
