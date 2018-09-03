@@ -31,10 +31,10 @@ repositories {
 // In this section you declare the dependencies for your production and test code
 dependencies {
     // The production code uses the SLF4J logging API at compile time
-    compile 'org.slf4j:slf4j-api:1.7.21'
+    compile 'org.slf4j:slf4j-api:1.7.25'
 
     // Dependency: Msgpack serialization
-    compile group: 'org.json', name: 'json', version: '20180130'
+    compile group: 'org.json', name: 'json', version: '20180813'
     compile 'org.msgpack:msgpack-core:0.8.+'
     compile 'org.msgpack:jackson-dataformat-msgpack:0.8.+'
 
@@ -42,10 +42,10 @@ dependencies {
     compile 'com.neovisionaries:nv-websocket-client:2.+'
 
     // Dependency: Binary chunking
-    compile 'org.saltyrtc.chunked-dc:chunked-dc:1.0.0'
+    compile 'org.saltyrtc.chunked-dc:chunked-dc:1.+'
 
     // Test dependencies
-    testCompile 'org.slf4j:slf4j-simple:1.7.21'
+    testCompile 'org.slf4j:slf4j-simple:1.7.+'
     testCompile 'junit:junit:4.12'
 }
 
