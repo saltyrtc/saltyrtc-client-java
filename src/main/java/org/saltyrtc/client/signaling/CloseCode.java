@@ -72,6 +72,11 @@ public class CloseCode {
     public static final int INVALID_KEY = 3007;
 
     /**
+     * Timeout.
+     */
+    public static final int TIMEOUT = 3008;
+
+    /**
      * Valid close codes for drop-responder messages.
      */
     public static final int[] CLOSE_CODES_DROP_RESPONDER = new int[] {
@@ -83,7 +88,8 @@ public class CloseCode {
      */
     public static final int[] CLOSE_CODES_ALL = new int[] {
         GOING_AWAY, NO_SHARED_SUBPROTOCOL, PATH_FULL, PROTOCOL_ERROR, INTERNAL_ERROR,
-        HANDOVER, DROPPED_BY_INITIATOR, INITIATOR_COULD_NOT_DECRYPT, NO_SHARED_TASK, INVALID_KEY,
+        HANDOVER, DROPPED_BY_INITIATOR, INITIATOR_COULD_NOT_DECRYPT, NO_SHARED_TASK,
+        INVALID_KEY, TIMEOUT,
     };
 
     /**
@@ -113,6 +119,8 @@ public class CloseCode {
                 return "No shared task was found";
             case INVALID_KEY:
                 return "Invalid key";
+            case TIMEOUT:
+                return "Timeout";
         }
         return "Unknown";
     }
