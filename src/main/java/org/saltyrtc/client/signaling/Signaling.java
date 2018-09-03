@@ -457,10 +457,13 @@ public abstract class Signaling implements SignalingInterface {
                             getLogger().warn("WebSocket closed (no close frame provided)");
                             break;
                         case CloseCode.CLOSING_NORMAL:
-                            getLogger().info("WebSocket closed");
+                            getLogger().info("WebSocket closed normally");
+                            break;
+                        case CloseCode.TIMEOUT:
+                            getLogger().info("WebSocket closed due to timeout");
                             break;
                         case CloseCode.GOING_AWAY:
-                            getLogger().error("Server is being shut down");
+                            getLogger().warn("WebSocket closed, server is being shut down");
                             break;
                         case CloseCode.NO_SHARED_SUBPROTOCOL:
                             getLogger().error("No shared sub-protocol could be found");
@@ -469,6 +472,7 @@ public abstract class Signaling implements SignalingInterface {
                             getLogger().error("Path full (no free responder byte)");
                             break;
                         case CloseCode.PROTOCOL_ERROR:
+                            getLogger().error("Protocol error");
                             break;
                         case CloseCode.INTERNAL_ERROR:
                             getLogger().error("Internal server error");
