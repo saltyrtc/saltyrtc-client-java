@@ -9,6 +9,11 @@
 package org.saltyrtc.client.signaling.peers;
 
 import org.saltyrtc.client.annotations.NonNull;
+import org.saltyrtc.client.annotations.Nullable;
+import org.saltyrtc.client.exceptions.InvalidKeyException;
+import org.saltyrtc.client.exceptions.InvalidStateException;
+import org.saltyrtc.client.keystore.KeyStore;
+import org.saltyrtc.client.keystore.SharedKeyStore;
 import org.saltyrtc.client.signaling.state.InitiatorHandshakeState;
 
 /**
@@ -21,9 +26,18 @@ public class Initiator extends Peer {
 
     public InitiatorHandshakeState handshakeState;
 
-    public Initiator(byte[] permanentKey) {
+    // This variable is used to temporarily store a local session key.
+    // It is used later to create a SharedKeyStore with this responder,
+    // but when the initiator sends its 'key' message to the responder
+    // (encrypted with this newly created local session key), it does not yet
+    // know the responder's public session key, so it cannot yet
+    // create the SharedKeyStore.
+    @Nullable
+    private KeyStore tmpLocalSessionKey;
+
+    public Initiator(byte[] remotePermanentKey, KeyStore localPermanentKey) throws InvalidKeyException {
         super(Initiator.ID);
-        this.permanentKey = permanentKey;
+        this.setPermanentSharedKey(remotePermanentKey, localPermanentKey);
         this.connected = false;
         this.handshakeState = InitiatorHandshakeState.NEW;
     }
@@ -32,6 +46,45 @@ public class Initiator extends Peer {
     @Override
     public String getName() {
         return "Initiator";
+    }
+
+    @NonNull
+    @Override
+    public SharedKeyStore getPermanentSharedKey() {
+        //noinspection ConstantConditions: Set in initiator
+        return this.permanentSharedKey;
+    }
+
+    /**
+     * Return the temporary local session key.
+     *
+     * After calling this function, the temporary local session key will be set to null.
+     *
+     * @throws InvalidStateException Thrown if no local session key was set.
+     */
+    @NonNull
+    public KeyStore extractTmpLocalSessionKey() throws InvalidStateException {
+        final KeyStore ks = this.tmpLocalSessionKey;
+        if (ks == null) {
+            throw new InvalidStateException("Temporary local session key is null");
+        }
+        this.tmpLocalSessionKey = null;
+        return ks;
+    }
+
+    /**
+     * Set the temporary local session key for this responder.
+     *
+     * See class source code for more explanations.
+     *
+     * @param keystore The local session keystore.
+     * @throws InvalidStateException Thrown if a local session keystore already exists.
+     */
+    public void setTmpLocalSessionKey(@Nullable KeyStore keystore) throws InvalidStateException  {
+        if (this.tmpLocalSessionKey != null) {
+            throw new InvalidStateException("tmpLocalSessionKey already set");
+        }
+        this.tmpLocalSessionKey = keystore;
     }
 
     public boolean isConnected() {

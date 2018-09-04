@@ -13,19 +13,13 @@ import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.cookie.Cookie;
 import org.saltyrtc.client.events.SignalingConnectionLostEvent;
-import org.saltyrtc.client.exceptions.ConnectionException;
-import org.saltyrtc.client.exceptions.CryptoFailedException;
-import org.saltyrtc.client.exceptions.InternalException;
-import org.saltyrtc.client.exceptions.InvalidKeyException;
-import org.saltyrtc.client.exceptions.ProtocolException;
-import org.saltyrtc.client.exceptions.SerializationError;
-import org.saltyrtc.client.exceptions.SignalingException;
-import org.saltyrtc.client.exceptions.ValidationError;
+import org.saltyrtc.client.exceptions.*;
 import org.saltyrtc.client.helpers.MessageReader;
 import org.saltyrtc.client.helpers.TaskHelper;
 import org.saltyrtc.client.keystore.AuthToken;
 import org.saltyrtc.client.keystore.Box;
 import org.saltyrtc.client.keystore.KeyStore;
+import org.saltyrtc.client.keystore.SharedKeyStore;
 import org.saltyrtc.client.messages.Message;
 import org.saltyrtc.client.messages.c2c.InitiatorAuth;
 import org.saltyrtc.client.messages.c2c.Key;
@@ -79,11 +73,11 @@ public class ResponderSignaling extends Signaling {
                 throw new IllegalArgumentException(
                     "Cannot specify both a trusted key and a public key / auth token pair");
             }
-            this.initiator = new Initiator(initiatorTrustedKey);
+            this.initiator = new Initiator(initiatorTrustedKey, permanentKey);
             // If we trust the initiator, don't send a token message
             this.initiator.handshakeState = InitiatorHandshakeState.TOKEN_SENT;
         } else if (initiatorPublicKey != null && authToken != null) {
-            this.initiator = new Initiator(initiatorPublicKey);
+            this.initiator = new Initiator(initiatorPublicKey, permanentKey);
             this.authToken = new AuthToken(authToken);
         } else {
             throw new IllegalArgumentException(
@@ -103,13 +97,13 @@ public class ResponderSignaling extends Signaling {
      */
     @Override
     protected String getWebsocketPath() {
-        return NaCl.asHex(this.initiator.getPermanentKey());
+        return NaCl.asHex(this.initiator.getPermanentSharedKey().getRemotePublicKey());
     }
 
     @Override
     protected Box encryptHandshakeDataForPeer(short receiver, String messageType,
                                               byte[] payload, byte[] nonce)
-            throws CryptoFailedException, InvalidKeyException, ProtocolException {
+            throws CryptoFailedException, ProtocolException {
         if (this.isResponderId(receiver)) {
             throw new ProtocolException("Responder may not encrypt messages for other responders: " + receiver);
         } else if (receiver != Signaling.SALTYRTC_ADDR_INITIATOR) {
@@ -123,14 +117,14 @@ public class ResponderSignaling extends Signaling {
                 }
                 return this.authToken.encrypt(payload, nonce);
             case "key":
-                return this.permanentKey.encrypt(payload, nonce, this.initiator.getPermanentKey());
+                return this.initiator.getPermanentSharedKey().encrypt(payload, nonce);
             default:
-                byte[] peerSessionKey = this.getPeerSessionKey();
-                if (peerSessionKey == null) {
+                final SharedKeyStore sks = this.initiator.getSessionSharedKey();
+                if (sks == null) {
                     throw new ProtocolException(
                             "Trying to encrypt for peer using session key, but session key is null");
                 }
-                return this.sessionKey.encrypt(payload, nonce, peerSessionKey);
+                return sks.encrypt(payload, nonce);
         }
     }
 
@@ -218,10 +212,15 @@ public class ResponderSignaling extends Signaling {
      */
     private void sendKey() throws SignalingException, ConnectionException {
         // Generate our own session key
-        this.sessionKey = new KeyStore();
+        final KeyStore tmpLocalSessionKey = new KeyStore();
+        try {
+            this.initiator.setTmpLocalSessionKey(tmpLocalSessionKey);
+        } catch (InvalidStateException e) {
+            throw new SignalingException(CloseCode.INTERNAL_ERROR, "Temp local session key already set", e);
+        }
 
         // Send public key to initiator
-        final Key msg = new Key(this.sessionKey.getPublicKey());
+        final Key msg = new Key(tmpLocalSessionKey.getPublicKey());
         final byte[] packet = this.buildPacket(msg, this.initiator);
         this.getLogger().debug("Sending key");
         this.send(packet, msg);
@@ -231,8 +230,18 @@ public class ResponderSignaling extends Signaling {
     /**
      * The initiator sends his public session key.
      */
-    private void handleKey(Key msg) {
-        this.initiator.setSessionKey(msg.getKey());
+    private void handleKey(Key msg) throws SignalingException {
+        final KeyStore localSessionKey;
+        try {
+            localSessionKey = this.initiator.extractTmpLocalSessionKey();
+        } catch (InvalidStateException e) {
+            throw new SignalingException(CloseCode.INTERNAL_ERROR, "Initiator temp local session key not set");
+        }
+        try {
+            this.initiator.setSessionSharedKey(msg.getKey(), localSessionKey);
+        } catch (InvalidKeyException e) {
+            throw new SignalingException(CloseCode.PROTOCOL_ERROR, "Initiator sent invalid session key in key message");
+        }
         this.initiator.handshakeState = InitiatorHandshakeState.KEY_RECEIVED;
     }
 
@@ -312,8 +321,9 @@ public class ResponderSignaling extends Signaling {
             case KEY_SENT:
                 // Expect a key message, encrypted with the permanent keys
                 try {
-                    return this.permanentKey.decrypt(box, this.initiator.getPermanentKey());
-                } catch (CryptoFailedException | InvalidKeyException e) {
+                    final SharedKeyStore permanentSharedKey = this.initiator.getPermanentSharedKey();
+                    return permanentSharedKey.decrypt(box);
+                } catch (CryptoFailedException e) {
                     e.printStackTrace();
                     throw new ProtocolException("Could not decrypt key message");
                 }
@@ -321,8 +331,10 @@ public class ResponderSignaling extends Signaling {
             case AUTH_RECEIVED:
                 // Otherwise, it must be encrypted with the session key.
                 try {
-                    return this.sessionKey.decrypt(box, this.initiator.getSessionKey());
-                } catch (CryptoFailedException | InvalidKeyException e) {
+                    final SharedKeyStore sessionSharedKey = this.initiator.getSessionSharedKey();
+                    assert sessionSharedKey != null;
+                    return sessionSharedKey.decrypt(box);
+                } catch (CryptoFailedException e) {
                     e.printStackTrace();
                     throw new ProtocolException("Could not decrypt message using session key");
                 }
@@ -347,9 +359,10 @@ public class ResponderSignaling extends Signaling {
             // Nonce claims to come from server.
             // Try to decrypt data accordingly.
             try {
-                assert this.server.hasSessionKey();
-                payload = this.permanentKey.decrypt(box, this.server.getSessionKey());
-            } catch (CryptoFailedException | InvalidKeyException e) {
+                final SharedKeyStore serverKey = this.server.getSessionSharedKey();
+                assert serverKey != null;
+                payload = serverKey.decrypt(box);
+            } catch (CryptoFailedException e) {
                 e.printStackTrace();
                 throw new ProtocolException("Could not decrypt server message");
             }
@@ -408,7 +421,16 @@ public class ResponderSignaling extends Signaling {
      * A new initiator replaces the old one.
      */
     private void handleNewInitiator(NewInitiator msg) throws SignalingException, ConnectionException {
-        this.initiator = new Initiator(this.initiator.getPermanentKey());
+        // Create a new `Initiator` instance with the same public permanent key as the previous initiator.
+        // It must be the same public key, since it's part of the WebSocket path :)
+        try {
+            this.initiator = new Initiator(this.initiator.getPermanentSharedKey().getRemotePublicKey(), this.permanentKey);
+        } catch (InvalidKeyException e) {
+            throw new SignalingException(
+                CloseCode.INTERNAL_ERROR,
+                "Invalid initiator remote public key. This should never happen."
+            );
+        }
         this.initiator.setConnected(true);
         this.initPeerHandshake();
     }
@@ -430,12 +452,6 @@ public class ResponderSignaling extends Signaling {
     @Nullable
     protected Peer getPeer() {
         return this.initiator;
-    }
-
-    @Override
-    @Nullable
-    protected byte[] getPeerSessionKey() {
-        return this.initiator.getSessionKey();
     }
 
     /**

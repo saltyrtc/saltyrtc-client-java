@@ -27,8 +27,8 @@ public class SharedKeyStore {
     private static final Logger LOG = org.slf4j.LoggerFactory.getLogger("SaltyRTC.SharedKeyStore");
 
     // Keys
-    private byte[] localPrivateKey;
-    private byte[] remotePublicKey;
+    @NonNull private final byte[] localPublicKey;
+    @NonNull private final byte[] remotePublicKey;
 
     // Precomputed NaCl instance
     private NaCl nacl;
@@ -38,7 +38,7 @@ public class SharedKeyStore {
      * The public key will automatically be derived.
      */
     public SharedKeyStore(byte[] localPrivateKey, byte[] remotePublicKey) throws InvalidKeyException {
-        this.localPrivateKey = localPrivateKey;
+        this.localPublicKey = NaCl.derivePublicKey(localPrivateKey); // TODO: Maybe we should pass in the local pubkey
         this.remotePublicKey = remotePublicKey;
 
         LOG.debug("Precalculating shared key");
@@ -88,5 +88,15 @@ public class SharedKeyStore {
             throw new CryptoFailedException("Decrypted data is null");
         }
         return decrypted;
+    }
+
+    @NonNull
+    public byte[] getRemotePublicKey() {
+        return this.remotePublicKey;
+    }
+
+    @NonNull
+    public byte[] getLocalPublicKey() {
+        return this.localPublicKey;
     }
 }
