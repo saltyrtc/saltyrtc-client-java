@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017 Threema GmbH
+ * Copyright (c) 2016-2018 Threema GmbH
  *
  * Licensed under the Apache License, Version 2.0, <see LICENSE-APACHE file>
  * or the MIT license <see LICENSE-MIT file>, at your option. This file may not be
@@ -20,7 +20,7 @@ import static org.junit.Assert.assertEquals;
 
 public class KeyStoreBoxTest {
 
-    private static byte[] nonce = new byte[NaCl.NONCEBYTES];;
+    private static byte[] nonce = new byte[NaCl.NONCEBYTES];
     private static byte[] data = new byte[] { 0x00, 0x01, 0x02, 0x03 };
 
     @BeforeClass

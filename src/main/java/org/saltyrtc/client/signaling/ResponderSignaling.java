@@ -420,7 +420,7 @@ public class ResponderSignaling extends Signaling {
     /**
      * A new initiator replaces the old one.
      */
-    private void handleNewInitiator(NewInitiator msg) throws SignalingException, ConnectionException {
+    private void handleNewInitiator(@SuppressWarnings("unused") NewInitiator msg) throws SignalingException, ConnectionException {
         // Create a new `Initiator` instance with the same public permanent key as the previous initiator.
         // It must be the same public key, since it's part of the WebSocket path :)
         try {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017 Threema GmbH
+ * Copyright (c) 2016-2018 Threema GmbH
  *
  * Licensed under the Apache License, Version 2.0, <see LICENSE-APACHE file>
  * or the MIT license <see LICENSE-MIT file>, at your option. This file may not be
@@ -35,7 +35,10 @@ public class Initiator extends Peer {
     @Nullable
     private KeyStore tmpLocalSessionKey;
 
-    public Initiator(byte[] remotePermanentKey, KeyStore localPermanentKey) throws InvalidKeyException {
+    public Initiator(
+        @NonNull byte[] remotePermanentKey,
+        @NonNull KeyStore localPermanentKey
+    ) throws InvalidKeyException {
         super(Initiator.ID);
         this.setPermanentSharedKey(remotePermanentKey, localPermanentKey);
         this.connected = false;
@@ -50,8 +53,8 @@ public class Initiator extends Peer {
 
     @NonNull
     @Override
+    @SuppressWarnings("ConstantConditions") // Set in constructor
     public SharedKeyStore getPermanentSharedKey() {
-        //noinspection ConstantConditions: Set in initiator
         return this.permanentSharedKey;
     }
 

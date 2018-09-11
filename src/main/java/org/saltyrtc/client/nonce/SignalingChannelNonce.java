@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017 Threema GmbH
+ * Copyright (c) 2016-2018 Threema GmbH
  *
  * Licensed under the Apache License, Version 2.0, <see LICENSE-APACHE file>
  * or the MIT license <see LICENSE-MIT file>, at your option. This file may not be
@@ -41,11 +41,11 @@ public class SignalingChannelNonce extends Nonce {
      * See also: http://stackoverflow.com/a/397997/284318.
      */
     public SignalingChannelNonce(byte[] cookie, short source, short destination, int overflow, long sequence) {
-        validateCookie(cookie);
-        validateSource(source);
-        validateDestination(destination);
-        validateOverflow(overflow);
-        validateSequence(sequence);
+        this.validateCookie(cookie);
+        this.validateSource(source);
+        this.validateDestination(destination);
+        this.validateOverflow(overflow);
+        this.validateSequence(sequence);
         this.cookie = cookie;
         this.source = source;
         this.destination = destination;
@@ -63,19 +63,19 @@ public class SignalingChannelNonce extends Nonce {
 
         final byte[] cookie = new byte[COOKIE_LENGTH];
         buf.get(cookie, 0, COOKIE_LENGTH);
-        validateCookie(cookie);
+        this.validateCookie(cookie);
 
         final short source = UnsignedHelper.readUnsignedByte(buf.get());
-        validateSource(source);
+        this.validateSource(source);
 
         final short destination = UnsignedHelper.readUnsignedByte(buf.get());
-        validateDestination(destination);
+        this.validateDestination(destination);
 
         final int overflow = UnsignedHelper.readUnsignedShort(buf.getShort());
-        validateOverflow(overflow);
+        this.validateOverflow(overflow);
 
         final long sequence = UnsignedHelper.readUnsignedInt(buf.getInt());
-        validateSequence(sequence);
+        this.validateSequence(sequence);
 
         this.cookie = cookie;
         this.source = source;

@@ -3,7 +3,6 @@ package org.saltyrtc.client.tests;
 import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.messages.c2c.TaskMessage;
-import org.saltyrtc.client.signaling.Signaling;
 import org.saltyrtc.client.signaling.SignalingInterface;
 import org.saltyrtc.client.tasks.Task;
 import org.slf4j.Logger;
@@ -15,6 +14,7 @@ import java.util.Map;
 /**
  * A dummy task that doesn't do anything.
  */
+@SuppressWarnings("WeakerAccess")
 public class DummyTask implements Task {
 
     private static final Logger LOG = org.slf4j.LoggerFactory.getLogger("SaltyRTC.DummyTask");

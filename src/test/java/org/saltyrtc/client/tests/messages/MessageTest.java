@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017 Threema GmbH
+ * Copyright (c) 2016-2018 Threema GmbH
  *
  * Licensed under the Apache License, Version 2.0, <see LICENSE-APACHE file>
  * or the MIT license <see LICENSE-MIT file>, at your option. This file may not be
@@ -54,7 +54,7 @@ public class MessageTest {
     }
 
     @Test
-    public void testServerHelloBadMapType() throws SerializationError {
+    public void testServerHelloBadMapType() {
         Map<String, Object> map = new HashMap<>();
         map.put("type", "client-hello");
         try {
@@ -151,7 +151,7 @@ public class MessageTest {
     }
 
     @Test
-    public void testNewResponderValidation() throws SerializationError, ValidationError {
+    public void testNewResponderValidation() throws SerializationError {
         final NewResponder original = new NewResponder(0xff + 1);
         try {
             this.roundTrip(original);
@@ -179,10 +179,10 @@ public class MessageTest {
     }
 
     @Test
-    public void testDropResponderIdValidation() throws SerializationError, ValidationError {
+    public void testDropResponderIdValidation() throws SerializationError {
         final DropResponder original = new DropResponder(0xff + 1);
         try {
-            roundTrip(original);
+            this.roundTrip(original);
             fail("No ValidationError thrown");
         } catch (ValidationError e) {
             assertEquals("id must be < 255", e.getMessage());
@@ -190,10 +190,10 @@ public class MessageTest {
     }
 
     @Test
-    public void testDropResponderReasonValidation() throws SerializationError, ValidationError {
+    public void testDropResponderReasonValidation() throws SerializationError {
         final DropResponder original = new DropResponder(0xff, 6000);
         try {
-            roundTrip(original);
+            this.roundTrip(original);
             fail("No ValidationError thrown");
         } catch (ValidationError e) {
             assertEquals("reason is not valid", e.getMessage());
@@ -249,7 +249,7 @@ public class MessageTest {
     }
 
     @Test
-    public void testCloseValidation() throws SerializationError, ValidationError {
+    public void testCloseValidation() throws SerializationError {
         final Close original = new Close(4000);
         try {
             this.roundTrip(original);
@@ -275,6 +275,7 @@ public class MessageTest {
     @SuppressWarnings("unchecked")
     @Test
     public void testApplicationPojo() throws ValidationError, SerializationError {
+        @SuppressWarnings("WeakerAccess")
         class Pojo {
             public Integer number;
             public List<String> list;
@@ -287,10 +288,10 @@ public class MessageTest {
         List<String> list = new ArrayList<>();
         list.add("a");
         list.add("b");
-        Pojo pojo = new Pojo(42, list);
+        final Pojo pojo = new Pojo(42, list);
 
         final Application original = new Application(pojo);
-        final Application returned = roundTrip(original);
+        final Application returned = this.roundTrip(original);
         assertEquals("application", returned.getType());
 
         Map<String, Object> data = (HashMap<String, Object>) returned.getData();
@@ -304,7 +305,7 @@ public class MessageTest {
     public void testGenericApplicationData() throws ValidationError, SerializationError {
         Integer number = 42;
         final Application original = new Application(number);
-        final Application returned = roundTrip(original);
+        final Application returned = this.roundTrip(original);
         assertEquals("application", returned.getType());
         assertEquals(number, returned.getData());
     }

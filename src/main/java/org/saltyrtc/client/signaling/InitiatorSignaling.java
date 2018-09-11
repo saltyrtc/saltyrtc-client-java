@@ -329,7 +329,7 @@ public class InitiatorSignaling extends Signaling {
                     this.responders.remove(responder.getId());
 
                     // Drop other responders
-                    this.dropResponders(CloseCode.DROPPED_BY_INITIATOR);
+                    this.dropResponders();
 
                     // Peer handshake done
                     this.setState(SignalingState.TASK);
@@ -443,7 +443,9 @@ public class InitiatorSignaling extends Signaling {
      * Send our public session key to the responder.
      */
     private void sendKey(Responder responder) throws SignalingException, ConnectionException {
-        final Key msg = new Key(responder.getSessionSharedKey().getLocalPublicKey());
+        final SharedKeyStore sessionSharedKey = responder.getSessionSharedKey();
+        assert sessionSharedKey != null;
+        final Key msg = new Key(sessionSharedKey.getLocalPublicKey());
         final byte[] packet = this.buildPacket(msg, responder);
         this.getLogger().debug("Sending key");
         this.send(packet, msg);
@@ -515,10 +517,10 @@ public class InitiatorSignaling extends Signaling {
     /**
      * Drop all responders.
      */
-    private void dropResponders(@Nullable Integer reason) throws SignalingException, ConnectionException {
+    private void dropResponders() throws SignalingException, ConnectionException {
         this.getLogger().debug("Dropping " + this.responders.size() + " other responders");
         for (Responder responder : this.responders.values()) {
-            this.dropResponder(responder, reason);
+            this.dropResponder(responder, CloseCode.DROPPED_BY_INITIATOR);
         }
     }
 

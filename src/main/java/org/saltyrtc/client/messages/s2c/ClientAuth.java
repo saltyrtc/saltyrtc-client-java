@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017 Threema GmbH
+ * Copyright (c) 2016-2018 Threema GmbH
  *
  * Licensed under the Apache License, Version 2.0, <see LICENSE-APACHE file>
  * or the MIT license <see LICENSE-MIT file>, at your option. This file may not be
@@ -29,16 +29,15 @@ public class ClientAuth extends Message {
     private byte[] yourKey = null;
     @NonNull
     private List<String> subprotocols;
-    @NonNull
     private int pingInterval;
 
-    public ClientAuth(byte[] yourCookie, List<String> subprotocols, int pingInterval) {
+    public ClientAuth(@NonNull byte[] yourCookie, @NonNull List<String> subprotocols, int pingInterval) {
         this.yourCookie = yourCookie;
         this.subprotocols = subprotocols;
         this.pingInterval = pingInterval;
     }
 
-    public ClientAuth(byte[] yourCookie, byte[] yourKey, List<String> subprotocols, int pingInterval) {
+    public ClientAuth(@NonNull byte[] yourCookie, @NonNull byte[] yourKey, @NonNull List<String> subprotocols, int pingInterval) {
         this(yourCookie, subprotocols, pingInterval);
         this.yourKey = yourKey;
     }
@@ -70,7 +69,6 @@ public class ClientAuth extends Message {
         return this.subprotocols;
     }
 
-    @NonNull
     public int getPingInterval() {
         return this.pingInterval;
     }

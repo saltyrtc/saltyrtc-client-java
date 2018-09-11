@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017 Threema GmbH
+ * Copyright (c) 2016-2018 Threema GmbH
  *
  * Licensed under the Apache License, Version 2.0, <see LICENSE-APACHE file>
  * or the MIT license <see LICENSE-MIT file>, at your option. This file may not be
@@ -23,6 +23,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 public class SignalingTest {
 
@@ -143,7 +144,7 @@ public class SignalingTest {
         Field fLinearBackoff = sig.getClass().getSuperclass().getDeclaredField("wsConnectLinearBackoff");
         fLinearBackoff.setAccessible(true);
         boolean linearBackoff = (boolean) fLinearBackoff.get(sig);
-        assertEquals(linearBackoff, false);
+        assertFalse(linearBackoff);
     }
 
 }

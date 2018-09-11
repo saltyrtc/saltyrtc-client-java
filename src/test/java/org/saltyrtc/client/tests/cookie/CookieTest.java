@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017 Threema GmbH
+ * Copyright (c) 2016-2018 Threema GmbH
  *
  * Licensed under the Apache License, Version 2.0, <see LICENSE-APACHE file>
  * or the MIT license <see LICENSE-MIT file>, at your option. This file may not be
@@ -9,17 +9,9 @@
 package org.saltyrtc.client.tests.cookie;
 
 import org.junit.Test;
-import org.msgpack.core.MessageBufferPacker;
-import org.msgpack.core.MessagePack;
 import org.saltyrtc.client.cookie.Cookie;
-import org.saltyrtc.client.exceptions.SerializationError;
-import org.saltyrtc.client.exceptions.ValidationError;
-import org.saltyrtc.client.helpers.MessageReader;
 
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;

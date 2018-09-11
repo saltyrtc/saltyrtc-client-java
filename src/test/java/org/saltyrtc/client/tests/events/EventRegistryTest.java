@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017 Threema GmbH
+ * Copyright (c) 2016-2018 Threema GmbH
  *
  * Licensed under the Apache License, Version 2.0, <see LICENSE-APACHE file>
  * or the MIT license <see LICENSE-MIT file>, at your option. This file may not be
@@ -29,27 +29,21 @@ public class EventRegistryTest {
 
     class MessageEvent implements Event {
         private String message;
-        public String getMessage() { return this.message; }
-        public MessageEvent(String message) { this.message = message; }
+        String getMessage() { return this.message; }
+        MessageEvent(String message) { this.message = message; }
     }
 
     @Before
     public void setUp() {
         this.registry = new EventRegistry<>();
         this.messages = new ArrayList<>();
-        this.adder = new EventHandler<MessageEvent>() {
-            @Override
-            public boolean handle(MessageEvent event) {
-                messages.add(event.getMessage());
-                return false;
-            }
+        this.adder = event -> {
+            messages.add(event.getMessage());
+            return false;
         };
-        this.clearer = new EventHandler<MessageEvent>() {
-            @Override
-            public boolean handle(MessageEvent event) {
-                messages.clear();
-                return false;
-            }
+        this.clearer = event -> {
+            messages.clear();
+            return false;
         };
     }
 

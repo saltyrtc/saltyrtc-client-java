@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017 Threema GmbH
+ * Copyright (c) 2016-2018 Threema GmbH
  *
  * Licensed under the Apache License, Version 2.0, <see LICENSE-APACHE file>
  * or the MIT license <see LICENSE-MIT file>, at your option. This file may not be
@@ -106,7 +106,7 @@ public class SaltyRTCBuilder {
      * @throws IllegalArgumentException Thrown if the host string is invalid.
      */
     public SaltyRTCBuilder connectTo(String host, int port, SSLContext sslContext) {
-        validateHost(host);
+        this.validateHost(host);
         this.host = host;
         this.port = port;
         this.sslContext = sslContext;
