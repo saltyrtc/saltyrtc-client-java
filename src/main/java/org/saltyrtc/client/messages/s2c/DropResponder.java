@@ -18,8 +18,10 @@ import org.saltyrtc.client.signaling.CloseCode;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class DropResponder extends Message {
 
@@ -53,10 +55,8 @@ public class DropResponder extends Message {
         ValidationHelper.validateType(map.get("type"), TYPE);
         this.id = ValidationHelper.validateInteger(map.get("id"), 0x00, 0xff, "id");
         if (map.containsKey("reason")) {
-            List<Integer> validRange = new ArrayList<>();
-            for (int i = 0; i < CloseCode.CLOSE_CODES_DROP_RESPONDER.length; i++) {
-                validRange.add(CloseCode.CLOSE_CODES_DROP_RESPONDER[i]);
-            }
+            final List<Integer> validRange = Arrays.stream(CloseCode.CLOSE_CODES_DROP_RESPONDER)
+                .boxed().collect(Collectors.toList());
             this.reason = ValidationHelper.validateInteger(map.get("reason"), validRange, "reason");
         }
     }

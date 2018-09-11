@@ -462,12 +462,10 @@ public class InitiatorSignaling extends Signaling {
         // Validation of task list and data already happens in the `ResponderAuth` constructor
 
         // Select task
-        final Task task = TaskHelper.chooseCommonTask(this.tasks, msg.getTasks());
-        if (task == null) {
-            throw new SignalingException(CloseCode.NO_SHARED_TASK, "No shared task could be found");
-        } else {
-            this.getLogger().info("Task " + task.getName() + " has been selected");
-        }
+        final Task task = TaskHelper
+            .chooseCommonTask(this.tasks, msg.getTasks())
+            .orElseThrow(() -> new SignalingException(CloseCode.NO_SHARED_TASK, "No shared task could be found"));
+        this.getLogger().info("Task " + task.getName() + " has been selected");
 
         // Initialize task
         this.initTask(task, msg.getData().get(task.getName()));

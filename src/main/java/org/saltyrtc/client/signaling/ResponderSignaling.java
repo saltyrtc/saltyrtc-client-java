@@ -36,11 +36,10 @@ import org.saltyrtc.client.tasks.Task;
 import org.saltyrtc.vendor.com.neilalexander.jnacl.NaCl;
 import org.slf4j.Logger;
 
+import javax.net.ssl.SSLContext;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-
-import javax.net.ssl.SSLContext;
 
 public class ResponderSignaling extends Signaling {
 
@@ -282,21 +281,14 @@ public class ResponderSignaling extends Signaling {
 
         // Find selected task
         final String taskName = msg.getTask();
-        Task selectedTask = null;
-        for (Task task : this.tasks) {
-            if (task.getName().equals(taskName)) {
-                this.getLogger().info("Task " + task.getName() + " has been selected");
-                selectedTask = task;
-                break;
-            }
-        }
+        final Task selectedTask = Arrays.stream(this.tasks)
+            .filter(task -> task.getName().equals(taskName))
+            .findFirst()
+            .orElseThrow(() -> new SignalingException(CloseCode.PROTOCOL_ERROR, "Initiator selected unknown task"));
 
         // Initialize task
-        if (selectedTask == null) {
-            throw new SignalingException(CloseCode.PROTOCOL_ERROR, "Initiator selected unknown task");
-        } else {
-            this.initTask(selectedTask, msg.getData().get(selectedTask.getName()));
-        }
+        this.getLogger().info("Task " + selectedTask.getName() + " has been selected");
+        this.initTask(selectedTask, msg.getData().get(selectedTask.getName()));
 
         // OK!
         this.getLogger().debug("Initiator authenticated");
