@@ -107,7 +107,7 @@ public class InitiatorSignaling extends Signaling {
     @Override
     protected Box encryptHandshakeDataForPeer(short receiver, String messageType,
                                               byte[] payload, byte[] nonce)
-            throws CryptoFailedException, InvalidKeyException, ProtocolException {
+            throws CryptoFailedException, ProtocolException {
         if (receiver == SALTYRTC_ADDR_INITIATOR) {
             throw new ProtocolException("Initiator cannot encrypt messages for initiator");
         } else if (!this.isResponderId(receiver)) {
@@ -365,7 +365,12 @@ public class InitiatorSignaling extends Signaling {
         this.responders.remove(responderId);
 
         // Create responder instance
-        final Responder responder = new Responder(responderId, this.responderCounter++);
+        final Responder responder;
+        try {
+            responder = new Responder(responderId, this.responderCounter++);
+        } catch (ValidationError e) {
+            throw new SignalingException(CloseCode.INTERNAL_ERROR, "Responder could not be constructed", e);
+        }
 
         // If we trust the responder...
         if (this.hasTrustedKey()) {

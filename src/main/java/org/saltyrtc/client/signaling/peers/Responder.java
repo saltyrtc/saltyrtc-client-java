@@ -9,6 +9,7 @@
 package org.saltyrtc.client.signaling.peers;
 
 import org.saltyrtc.client.annotations.NonNull;
+import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.signaling.state.ResponderHandshakeState;
 
 /**
@@ -24,8 +25,11 @@ public class Responder extends Peer {
      * @param id The responder ID as specified by the SaltyRTC protocol.
      * @param counter A counter used to identify the oldest responder during the path cleaning procedure.
      */
-    public Responder(short id, int counter) {
+    public Responder(short id, int counter) throws ValidationError {
         super(id);
+        if (id < 2 || id > 255) {
+            throw new ValidationError("Responder id must be in the range 2..255");
+        }
         this.counter = counter;
         this.handshakeState = ResponderHandshakeState.NEW;
     }
