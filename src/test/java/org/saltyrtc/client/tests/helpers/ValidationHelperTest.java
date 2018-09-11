@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017 Threema GmbH
+ * Copyright (c) 2016-2018 Threema GmbH
  *
  * Licensed under the Apache License, Version 2.0, <see LICENSE-APACHE file>
  * or the MIT license <see LICENSE-MIT file>, at your option. This file may not be
@@ -18,9 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 import static java.util.Arrays.asList;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 public class ValidationHelperTest {
 
@@ -89,7 +87,7 @@ public class ValidationHelperTest {
     @Test
     public void testValidateBoolean() throws ValidationError {
         final boolean validated = ValidationHelper.validateBoolean(true, "Condition");
-        assertEquals(true, validated);
+        assertTrue(validated);
     }
 
     @Test
@@ -107,10 +105,9 @@ public class ValidationHelperTest {
         // Create an object that is a list of integers
         final List<Object> values = new ArrayList<>();
         values.add(1); values.add(2); values.add(3);
-        final Object value = values;
 
         // Convert
-        final List<Integer> validated = ValidationHelper.validateTypedList(value, Integer.class, "IntArray");
+        final List<Integer> validated = ValidationHelper.validateTypedList(values, Integer.class, "IntArray");
 
         // Verify
         final List<Integer> expected = new ArrayList<>();
@@ -123,10 +120,9 @@ public class ValidationHelperTest {
         // Create an object that is a list of integers
         final List<Object> values = new ArrayList<>();
         values.add(1); values.add(null); values.add(3);
-        final Object value = values;
 
         // Convert
-        final List<Integer> validated = ValidationHelper.validateTypedList(value, Integer.class, "IntArray", true);
+        final List<Integer> validated = ValidationHelper.validateTypedList(values, Integer.class, "IntArray", true);
 
         // Verify
         final List<Integer> expected = new ArrayList<>();
@@ -139,10 +135,9 @@ public class ValidationHelperTest {
         // Create an object that is a list of integers
         final List<Object> values = new ArrayList<>();
         values.add("a"); values.add("b"); values.add("c");
-        final Object value = values;
 
         // Convert
-        final List<String> validated = ValidationHelper.validateTypedList(value, String.class, "StringArray");
+        final List<String> validated = ValidationHelper.validateTypedList(values, String.class, "StringArray");
 
         // Verify
         final List<String> expected = new ArrayList<>();
@@ -151,7 +146,7 @@ public class ValidationHelperTest {
     }
 
     @Test
-    public void testValidateIntegerListOuterTypeFails() throws ValidationError {
+    public void testValidateIntegerListOuterTypeFails() {
         final Object value = "hello";
         try {
             ValidationHelper.validateTypedList(value, Integer.class, "IntArray");
@@ -260,7 +255,7 @@ public class ValidationHelperTest {
     }
 
     @Test
-    public void testValidateCloseCodeFails() throws ValidationError {
+    public void testValidateCloseCodeFails() {
         try {
             ValidationHelper.validateCloseCode(2000, false, "Number");
             fail("No ValidationError thrown");
@@ -270,7 +265,7 @@ public class ValidationHelperTest {
     }
 
     @Test
-    public void testValidateCloseCodeDroppedResponderFails() throws ValidationError {
+    public void testValidateCloseCodeDroppedResponderFails() {
         try {
             ValidationHelper.validateCloseCode(1002, true, "Number");
             fail("No ValidationError thrown");
@@ -285,10 +280,9 @@ public class ValidationHelperTest {
         final Map<String, Map<Object, Object>> map = new HashMap<>();
         final Map<Object, Object> inner = new HashMap<>(); inner.put("foo", 1);
         map.put("a", inner); map.put("b", null); map.put("c", null);
-        final Object value = map;
 
         // Convert
-        final Map<String, Map<Object, Object>> validated = ValidationHelper.validateStringMapMap(value, "Map");
+        final Map<String, Map<Object, Object>> validated = ValidationHelper.validateStringMapMap(map, "Map");
 
         // Verify
         final Map<String, Map<Object, Object>> expected = new HashMap<>();
@@ -311,9 +305,8 @@ public class ValidationHelperTest {
     public void testValidateStringMapMapInnerTypeFails() {
         final Map<Integer, Object> map = new HashMap<>();
         map.put(1, 1); map.put(2, "foo"); map.put(3, 'c');
-        final Object value = map;
         try {
-            ValidationHelper.validateStringMapMap(value, "IntegerObjectMap");
+            ValidationHelper.validateStringMapMap(map, "IntegerObjectMap");
             fail("No ValidationError thrown");
         } catch (ValidationError e) {
             assertEquals("IntegerObjectMap must be a Map with Strings as keys", e.getMessage());
@@ -324,9 +317,8 @@ public class ValidationHelperTest {
     public void testValidateStringMapMapInnerInnerTypeFails() {
         final Map<String, Object> map = new HashMap<>();
         map.put("a", 1); map.put("b", "foo"); map.put("c", 'c');
-        final Object value = map;
         try {
-            ValidationHelper.validateStringMapMap(value, "IntegerObjectMap");
+            ValidationHelper.validateStringMapMap(map, "IntegerObjectMap");
             fail("No ValidationError thrown");
         } catch (ValidationError e) {
             assertEquals("IntegerObjectMap must be a Map with Maps or null as values", e.getMessage());

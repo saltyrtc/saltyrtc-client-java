@@ -47,7 +47,7 @@ public class PingPongTask extends DummyTask {
 
     private void sendPing() {
         LOG.info("Sending ping");
-        TaskMessage msg = new TaskMessage("ping", new HashMap<String, Object>());
+        TaskMessage msg = new TaskMessage("ping", new HashMap<>());
         try {
             this.signaling.sendTaskMessage(msg);
         } catch (SignalingException | ConnectionException e) {
@@ -58,7 +58,7 @@ public class PingPongTask extends DummyTask {
 
     private void sendPong() {
         LOG.info("Sending pong");
-        TaskMessage msg = new TaskMessage("pong", new HashMap<String, Object>());
+        TaskMessage msg = new TaskMessage("pong", new HashMap<>());
         try {
             this.signaling.sendTaskMessage(msg);
         } catch (SignalingException | ConnectionException e) {

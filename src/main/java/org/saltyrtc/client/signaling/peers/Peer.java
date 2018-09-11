@@ -38,6 +38,7 @@ public abstract class Peer {
 	/**
      * Initialize a peer with just an ID.
      */
+    @SuppressWarnings("WeakerAccess")
     public Peer(short id) {
         this.id = id;
         this.csnPair = new CombinedSequencePair();

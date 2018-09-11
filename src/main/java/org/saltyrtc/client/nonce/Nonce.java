@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017 Threema GmbH
+ * Copyright (c) 2016-2018 Threema GmbH
  *
  * Licensed under the Apache License, Version 2.0, <see LICENSE-APACHE file>
  * or the MIT license <see LICENSE-MIT file>, at your option. This file may not be
@@ -28,7 +28,7 @@ public abstract class Nonce {
     /**
      * A cookie should be 16 bytes long.
      */
-    protected void validateCookie(byte[] cookie) {
+    void validateCookie(byte[] cookie) {
         if (cookie.length != COOKIE_LENGTH) {
             throw new IllegalArgumentException("cookie must be " + COOKIE_LENGTH + " bytes long");
         }
@@ -37,7 +37,7 @@ public abstract class Nonce {
     /**
      * An overflow number should be an uint16.
      */
-    protected void validateOverflow(int overflow) {
+    void validateOverflow(int overflow) {
         if (overflow < 0 || overflow >= (1 << 16)) {
             throw new IllegalArgumentException("overflow must be between 0 and 2**16-1");
         }
@@ -46,7 +46,7 @@ public abstract class Nonce {
     /**
      * A sequence should be an uint32.
      */
-    protected void validateSequence(long sequence) {
+    void validateSequence(long sequence) {
         if (sequence < 0 || sequence >= (1L << 32)) {
             throw new IllegalArgumentException("sequence must be between 0 and 2**32-1");
         }

@@ -30,7 +30,7 @@ public class HexHelper {
      */
     public static String byteArrayToHexString(byte[] b) {
         final StringBuilder data = new StringBuilder();
-        for (byte value: b) {
+        for (byte value : b) {
             data.append(String.format("%02x", value));
         }
         return data.toString();

@@ -11,6 +11,7 @@ package org.saltyrtc.client.signaling;
 /**
  * WebSocket close codes
  */
+@SuppressWarnings("WeakerAccess")
 public class CloseCode {
     /**
      * Normal closing of websocket.

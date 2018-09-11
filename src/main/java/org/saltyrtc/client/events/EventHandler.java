@@ -11,6 +11,7 @@ package org.saltyrtc.client.events;
 /**
  * All event handlers need to implement this interface.
  */
+@FunctionalInterface
 public interface EventHandler<E extends Event> {
     /**
      * Handle an event.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017 Threema GmbH
+ * Copyright (c) 2016-2018 Threema GmbH
  *
  * Licensed under the Apache License, Version 2.0, <see LICENSE-APACHE file>
  * or the MIT license <see LICENSE-MIT file>, at your option. This file may not be
@@ -46,10 +46,9 @@ public class Cookie {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (o == null || this.getClass() != o.getClass()) return false;
         Cookie cookie = (Cookie) o;
         return Arrays.equals(bytes, cookie.bytes);
-
     }
 
     @Override

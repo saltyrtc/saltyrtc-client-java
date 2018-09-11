@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017 Threema GmbH
+ * Copyright (c) 2016-2018 Threema GmbH
  *
  * Licensed under the Apache License, Version 2.0, <see LICENSE-APACHE file>
  * or the MIT license <see LICENSE-MIT file>, at your option. This file may not be
@@ -89,39 +89,33 @@ public class ConnectionTest {
         }
 
         // Register event handlers
-        initiator.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
-            @Override
-            public boolean handle(SignalingStateChangedEvent event) {
-                switch (event.getState()) {
-                    case TASK:
-                        eventsCalled.put("initiatorConnected", true);
-                        break;
-                    case ERROR:
-                        eventsCalled.put("initiatorError", true);
-                        break;
-                    case CLOSED:
-                        eventsCalled.put("initiatorClosed", true);
-                        break;
-                }
-                return false;
+        initiator.events.signalingStateChanged.register(event -> {
+            switch (event.getState()) {
+                case TASK:
+                    eventsCalled.put("initiatorConnected", true);
+                    break;
+                case ERROR:
+                    eventsCalled.put("initiatorError", true);
+                    break;
+                case CLOSED:
+                    eventsCalled.put("initiatorClosed", true);
+                    break;
             }
+            return false;
         });
-        responder.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
-            @Override
-            public boolean handle(SignalingStateChangedEvent event) {
-                switch (event.getState()) {
-                    case TASK:
-                        eventsCalled.put("responderConnected", true);
-                        break;
-                    case ERROR:
-                        eventsCalled.put("responderError", true);
-                        break;
-                    case CLOSED:
-                        eventsCalled.put("responderClosed", true);
-                        break;
-                }
-                return false;
+        responder.events.signalingStateChanged.register(event -> {
+            switch (event.getState()) {
+                case TASK:
+                    eventsCalled.put("responderConnected", true);
+                    break;
+                case ERROR:
+                    eventsCalled.put("responderError", true);
+                    break;
+                case CLOSED:
+                    eventsCalled.put("responderClosed", true);
+                    break;
             }
+            return false;
         });
     }
 
@@ -135,23 +129,17 @@ public class ConnectionTest {
         final CountDownLatch connectedPeers = new CountDownLatch(2);
 
         // Register onConnect handler
-        initiator.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
-            @Override
-            public boolean handle(SignalingStateChangedEvent event) {
-                if (event.getState() == SignalingState.TASK) {
-                    connectedPeers.countDown();
-                }
-                return false;
+        initiator.events.signalingStateChanged.register(event -> {
+            if (event.getState() == SignalingState.TASK) {
+                connectedPeers.countDown();
             }
+            return false;
         });
-        responder.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
-            @Override
-            public boolean handle(SignalingStateChangedEvent event) {
-                if (event.getState() == SignalingState.TASK) {
-                    connectedPeers.countDown();
-                }
-                return false;
+        responder.events.signalingStateChanged.register(event -> {
+            if (event.getState() == SignalingState.TASK) {
+                connectedPeers.countDown();
             }
+            return false;
         });
 
         // Connect server
@@ -195,23 +183,17 @@ public class ConnectionTest {
         final CountDownLatch connectedPeers = new CountDownLatch(2);
 
         // Register onConnect handler
-        responder.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
-            @Override
-            public boolean handle(SignalingStateChangedEvent event) {
-                if (event.getState() == SignalingState.TASK) {
-                    connectedPeers.countDown();
-                }
-                return false;
+        responder.events.signalingStateChanged.register(event -> {
+            if (event.getState() == SignalingState.TASK) {
+                connectedPeers.countDown();
             }
+            return false;
         });
-        initiator.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
-            @Override
-            public boolean handle(SignalingStateChangedEvent event) {
-                if (event.getState() == SignalingState.TASK) {
-                    connectedPeers.countDown();
-                }
-                return false;
+        initiator.events.signalingStateChanged.register(event -> {
+            if (event.getState() == SignalingState.TASK) {
+                connectedPeers.countDown();
             }
+            return false;
         });
 
         // Connect server
@@ -252,23 +234,17 @@ public class ConnectionTest {
 
         // Latches to test connection state
         final CountDownLatch connectedPeers = new CountDownLatch(2);
-        initiator.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
-            @Override
-            public boolean handle(SignalingStateChangedEvent event) {
-                if (event.getState() == SignalingState.TASK) {
-                    connectedPeers.countDown();
-                }
-                return false;
+        initiator.events.signalingStateChanged.register(event -> {
+            if (event.getState() == SignalingState.TASK) {
+                connectedPeers.countDown();
             }
+            return false;
         });
-        responder.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
-            @Override
-            public boolean handle(SignalingStateChangedEvent event) {
-                if (event.getState() == SignalingState.TASK) {
-                    connectedPeers.countDown();
-                }
-                return false;
+        responder.events.signalingStateChanged.register(event -> {
+            if (event.getState() == SignalingState.TASK) {
+                connectedPeers.countDown();
             }
+            return false;
         });
 
         // Connect server
@@ -316,23 +292,17 @@ public class ConnectionTest {
 
         // Latches to test connection state
         final CountDownLatch connectedPeers = new CountDownLatch(2);
-        trustingInitiator.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
-            @Override
-            public boolean handle(SignalingStateChangedEvent event) {
-                if (event.getState() == SignalingState.TASK) {
-                    connectedPeers.countDown();
-                }
-                return false;
+        trustingInitiator.events.signalingStateChanged.register(event -> {
+            if (event.getState() == SignalingState.TASK) {
+                connectedPeers.countDown();
             }
+            return false;
         });
-        trustingResponder.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
-            @Override
-            public boolean handle(SignalingStateChangedEvent event) {
-                if (event.getState() == SignalingState.TASK) {
-                    connectedPeers.countDown();
-                }
-                return false;
+        trustingResponder.events.signalingStateChanged.register(event -> {
+            if (event.getState() == SignalingState.TASK) {
+                connectedPeers.countDown();
             }
+            return false;
         });
 
         // Connect server
@@ -385,23 +355,17 @@ public class ConnectionTest {
         final CountDownLatch connectedPeers = new CountDownLatch(2);
 
         // Register onConnect handler
-        trustingInitiator.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
-            @Override
-            public boolean handle(SignalingStateChangedEvent event) {
-                if (event.getState() == SignalingState.TASK) {
-                    connectedPeers.countDown();
-                }
-                return false;
+        trustingInitiator.events.signalingStateChanged.register(event -> {
+            if (event.getState() == SignalingState.TASK) {
+                connectedPeers.countDown();
             }
+            return false;
         });
-        trustingResponder.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
-            @Override
-            public boolean handle(SignalingStateChangedEvent event) {
-                if (event.getState() == SignalingState.TASK) {
-                    connectedPeers.countDown();
-                }
-                return false;
+        trustingResponder.events.signalingStateChanged.register(event -> {
+            if (event.getState() == SignalingState.TASK) {
+                connectedPeers.countDown();
             }
+            return false;
         });
 
         // Connect server
@@ -457,23 +421,17 @@ public class ConnectionTest {
         final CountDownLatch connectedPeers = new CountDownLatch(2);
 
         // Register onConnect handler
-        initiator.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
-            @Override
-            public boolean handle(SignalingStateChangedEvent event) {
-                if (event.getState() == SignalingState.TASK) {
-                    connectedPeers.countDown();
-                }
-                return false;
+        initiator.events.signalingStateChanged.register(event -> {
+            if (event.getState() == SignalingState.TASK) {
+                connectedPeers.countDown();
             }
+            return false;
         });
-        responder.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
-            @Override
-            public boolean handle(SignalingStateChangedEvent event) {
-                if (event.getState() == SignalingState.TASK) {
-                    connectedPeers.countDown();
-                }
-                return false;
+        responder.events.signalingStateChanged.register(event -> {
+            if (event.getState() == SignalingState.TASK) {
+                connectedPeers.countDown();
             }
+            return false;
         });
 
         // Connect server
@@ -526,14 +484,11 @@ public class ConnectionTest {
         // Look for signaling changes
         final CountDownLatch closed = new CountDownLatch(1);
         initiator.events.signalingStateChanged.register(
-            new EventHandler<SignalingStateChangedEvent>() {
-                @Override
-                public boolean handle(SignalingStateChangedEvent event) {
-                    if (event.getState() == SignalingState.PEER_HANDSHAKE) {
-                        closed.countDown();
-                    }
-                    return false;
+            event -> {
+                if (event.getState() == SignalingState.PEER_HANDSHAKE) {
+                    closed.countDown();
                 }
+                return false;
             }
         );
 
@@ -554,27 +509,19 @@ public class ConnectionTest {
 
         // Look for signaling changes
         final CountDownLatch closed = new CountDownLatch(1);
-        initiator.events.signalingStateChanged.register(
-            new EventHandler<SignalingStateChangedEvent>() {
-                @Override
-                public boolean handle(SignalingStateChangedEvent event) {
-                    if (event.getState() == SignalingState.PEER_HANDSHAKE) {
-                        fail("Server handshake succeeded even though server key was wrong");
-                    }
-                    return false;
-                }
+        initiator.events.signalingStateChanged.register(event -> {
+            if (event.getState() == SignalingState.PEER_HANDSHAKE) {
+                fail("Server handshake succeeded even though server key was wrong");
             }
-        );
-        initiator.events.close.register(new EventHandler<CloseEvent>() {
-            @Override
-            public boolean handle(CloseEvent event) {
-                if (event.getReason() == CloseCode.PROTOCOL_ERROR) {
-                    closed.countDown();
-                } else {
-                    fail("Signaling was closed without a protocol error");
-                }
-                return false;
+            return false;
+        });
+        initiator.events.close.register(event -> {
+            if (event.getReason() == CloseCode.PROTOCOL_ERROR) {
+                closed.countDown();
+            } else {
+                fail("Signaling was closed without a protocol error");
             }
+            return false;
         });
 
         // Connect server and wait for connection closing
@@ -595,17 +542,12 @@ public class ConnectionTest {
 
         // Look for signaling changes
         final CountDownLatch closed = new CountDownLatch(1);
-        responder.events.signalingStateChanged.register(
-            new EventHandler<SignalingStateChangedEvent>() {
-                @Override
-                public boolean handle(SignalingStateChangedEvent event) {
-                    if (event.getState() == SignalingState.PEER_HANDSHAKE) {
-                        closed.countDown();
-                    }
-                    return false;
-                }
+        responder.events.signalingStateChanged.register(event -> {
+            if (event.getState() == SignalingState.PEER_HANDSHAKE) {
+                closed.countDown();
             }
-        );
+            return false;
+        });
 
         // Connect server and wait for peer handshake
         responder.connect();
@@ -625,27 +567,19 @@ public class ConnectionTest {
 
         // Look for signaling changes
         final CountDownLatch closed = new CountDownLatch(1);
-        responder.events.signalingStateChanged.register(
-            new EventHandler<SignalingStateChangedEvent>() {
-                @Override
-                public boolean handle(SignalingStateChangedEvent event) {
-                    if (event.getState() == SignalingState.PEER_HANDSHAKE) {
-                        fail("Server handshake succeeded even though server key was wrong");
-                    }
-                    return false;
-                }
+        responder.events.signalingStateChanged.register(event -> {
+            if (event.getState() == SignalingState.PEER_HANDSHAKE) {
+                fail("Server handshake succeeded even though server key was wrong");
             }
-        );
-        responder.events.close.register(new EventHandler<CloseEvent>() {
-            @Override
-            public boolean handle(CloseEvent event) {
-                if (event.getReason() == CloseCode.PROTOCOL_ERROR) {
-                    closed.countDown();
-                } else {
-                    fail("Signaling was closed without a protocol error");
-                }
-                return false;
+            return false;
+        });
+        responder.events.close.register(event -> {
+            if (event.getReason() == CloseCode.PROTOCOL_ERROR) {
+                closed.countDown();
+            } else {
+                fail("Signaling was closed without a protocol error");
             }
+            return false;
         });
 
         // Connect server and wait for connection closing
@@ -675,23 +609,17 @@ public class ConnectionTest {
         final CountDownLatch messagesReceived = new CountDownLatch(2);
 
         // Register onConnect handler
-        initiator.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
-            @Override
-            public boolean handle(SignalingStateChangedEvent event) {
-                if (event.getState() == SignalingState.TASK) {
-                    connectedPeers.countDown();
-                }
-                return false;
+        initiator.events.signalingStateChanged.register(event -> {
+            if (event.getState() == SignalingState.TASK) {
+                connectedPeers.countDown();
             }
+            return false;
         });
-        responder.events.signalingStateChanged.register(new EventHandler<SignalingStateChangedEvent>() {
-            @Override
-            public boolean handle(SignalingStateChangedEvent event) {
-                if (event.getState() == SignalingState.TASK) {
-                    connectedPeers.countDown();
-                }
-                return false;
+        responder.events.signalingStateChanged.register(event -> {
+            if (event.getState() == SignalingState.TASK) {
+                connectedPeers.countDown();
             }
+            return false;
         });
 
         // Connect server
@@ -708,25 +636,19 @@ public class ConnectionTest {
         assertEquals(SignalingState.TASK, responder.getSignalingState());
 
         // Add application message handlers
-        initiator.events.applicationData.register(new EventHandler<ApplicationDataEvent>() {
-            @Override
-            public boolean handle(ApplicationDataEvent event) {
-                messagesReceived.countDown();
-                return false;
-            }
+        initiator.events.applicationData.register(event -> {
+            messagesReceived.countDown();
+            return false;
         });
-        responder.events.applicationData.register(new EventHandler<ApplicationDataEvent>() {
-            @Override
-            public boolean handle(ApplicationDataEvent event) {
-                messagesReceived.countDown();
-                Assert.assertEquals(event.getData(), "ping");
-                try {
-                    responder.sendApplicationMessage("pong");
-                } catch (ConnectionException | InvalidStateException e) {
-                    e.printStackTrace();
-                }
-                return false;
+        responder.events.applicationData.register(event -> {
+            messagesReceived.countDown();
+            Assert.assertEquals(event.getData(), "ping");
+            try {
+                responder.sendApplicationMessage("pong");
+            } catch (ConnectionException | InvalidStateException e) {
+                e.printStackTrace();
             }
+            return false;
         });
 
         // Send ping message
@@ -769,17 +691,12 @@ public class ConnectionTest {
 
         // Look for signaling changes
         final CountDownLatch closed = new CountDownLatch(1);
-        responder.events.signalingStateChanged.register(
-            new EventHandler<SignalingStateChangedEvent>() {
-                @Override
-                public boolean handle(SignalingStateChangedEvent event) {
-                    if (event.getState() == SignalingState.PEER_HANDSHAKE) {
-                        closed.countDown();
-                    }
-                    return false;
-                }
+        responder.events.signalingStateChanged.register(event -> {
+            if (event.getState() == SignalingState.PEER_HANDSHAKE) {
+                closed.countDown();
             }
-        );
+            return false;
+        });
 
         // Connect server and wait for peer handshake
         responder.connect();

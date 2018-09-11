@@ -54,6 +54,7 @@ import java.util.Map;
  * Note: As end user, you should not instantiate this class directly!
  * Instead, use the `SaltyRTCBuilder` for more convenience.
  */
+@SuppressWarnings("WeakerAccess")
 public abstract class Signaling implements SignalingInterface {
 
     static final String SALTYRTC_SUBPROTOCOL = "v1.saltyrtc.org";
@@ -138,13 +139,10 @@ public abstract class Signaling implements SignalingInterface {
         this.pingInterval = pingInterval;
 
         // When the handover is complete, notify event handlers and close the WebSocket.
-        this.handoverState.handoverComplete.register(new EventHandler<HandoverState.HandoverComplete>() {
-            @Override
-            public boolean handle(HandoverState.HandoverComplete event) {
-                Signaling.this.salty.events.handover.notifyHandlers(new HandoverEvent());
-                Signaling.this.ws.sendClose(CloseCode.HANDOVER);
-                return false;
-            }
+        this.handoverState.handoverComplete.register(event -> {
+            Signaling.this.salty.events.handover.notifyHandlers(new HandoverEvent());
+            Signaling.this.ws.sendClose(CloseCode.HANDOVER);
+            return false;
         });
     }
 
@@ -293,7 +291,7 @@ public abstract class Signaling implements SignalingInterface {
         WebSocketAdapter listener = new WebSocketAdapter() {
             @Override
             @SuppressWarnings("UnqualifiedMethodAccess")
-            public void onConnected(WebSocket websocket, Map<String, List<String>> headers) throws Exception {
+            public void onConnected(WebSocket websocket, Map<String, List<String>> headers) {
                 synchronized (this) {
                     if (getState() == SignalingState.WS_CONNECTING) {
                         getLogger().warn("WebSocket connection open");
@@ -335,7 +333,7 @@ public abstract class Signaling implements SignalingInterface {
 
             @Override
             @SuppressWarnings("UnqualifiedMethodAccess")
-            public void onTextMessage(WebSocket websocket, String text) throws Exception {
+            public void onTextMessage(WebSocket websocket, String text) {
                 getLogger().debug("New string message: " + text);
                 getLogger().error("Protocol error: Received string message, but only binary messages are valid.");
                 Signaling.this.resetConnection(CloseCode.PROTOCOL_ERROR);
@@ -438,7 +436,7 @@ public abstract class Signaling implements SignalingInterface {
             public void onDisconnected(WebSocket websocket,
                                        @Nullable WebSocketFrame serverCloseFrame,
                                        @Nullable WebSocketFrame clientCloseFrame,
-                                       boolean closedByServer) throws Exception {
+                                       boolean closedByServer) {
                 // Log details to debug log
                 final String closer = closedByServer ? "server" : "client";
                 final WebSocketFrame frame = closedByServer ? serverCloseFrame : clientCloseFrame;
@@ -506,13 +504,13 @@ public abstract class Signaling implements SignalingInterface {
              */
             @Override
             @SuppressWarnings("UnqualifiedMethodAccess")
-            public void onError(WebSocket websocket, WebSocketException cause) throws Exception {
+            public void onError(WebSocket websocket, WebSocketException cause) {
                 getLogger().warn("A WebSocket error occured: " + cause.getMessage(), cause);
             }
 
             @Override
             @SuppressWarnings("UnqualifiedMethodAccess")
-            public void handleCallbackError(WebSocket websocket, Throwable cause) throws Exception {
+            public void handleCallbackError(WebSocket websocket, Throwable cause) {
                 getLogger().error("WebSocket callback error: " + cause);
                 cause.printStackTrace();
                 Signaling.this.resetConnection(CloseCode.INTERNAL_ERROR);
@@ -834,9 +832,11 @@ public abstract class Signaling implements SignalingInterface {
         }
         final Box box = new Box(nonce.toBytes(), signedKeys);
         final byte[] decrypted;
+        final SharedKeyStore sessionSharedKey = this.server.getSessionSharedKey();
+        assert sessionSharedKey != null;
         try {
-            getLogger().debug("Expected server key is " + NaCl.asHex(expectedServerKey));
-            getLogger().debug("Server session key is " + NaCl.asHex(this.server.getSessionSharedKey().getRemotePublicKey()));
+            this.getLogger().debug("Expected server key is " + NaCl.asHex(expectedServerKey));
+            this.getLogger().debug("Server session key is " + NaCl.asHex(sessionSharedKey.getRemotePublicKey()));
             // Note: We will not create a SharedKeyStore here since this will be done only once
             decrypted = this.permanentKey.decrypt(box, expectedServerKey);
         } catch (CryptoFailedException e) {
@@ -845,7 +845,7 @@ public abstract class Signaling implements SignalingInterface {
             throw new ValidationError("Invalid key when trying to decrypt signed_keys in server-auth message", e);
         }
         final byte[] expected = ArrayHelper.concat(
-            this.server.getSessionSharedKey().getRemotePublicKey(),
+            sessionSharedKey.getRemotePublicKey(),
             this.permanentKey.getPublicKey()
         );
         if (!Arrays.equals(decrypted, expected)) {

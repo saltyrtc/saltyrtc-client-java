@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017 Threema GmbH
+ * Copyright (c) 2016-2018 Threema GmbH
  *
  * Licensed under the Apache License, Version 2.0, <see LICENSE-APACHE file>
  * or the MIT license <see LICENSE-MIT file>, at your option. This file may not be
@@ -92,12 +92,12 @@ public class CombinedSequenceTest {
      * Make sure the next() method is thread safe.
      */
     @Test
-    public void testThreadSafety() throws InterruptedException, BrokenBarrierException {
+    public void testThreadSafety() throws InterruptedException {
         final int THREAD_COUNT = 100;
 
         final CombinedSequence cs = new CombinedSequence(0, 0);
-        final List<Long> list = Collections.synchronizedList(new ArrayList<Long>());
-        final List<Thread> threads = Collections.synchronizedList(new ArrayList<Thread>());
+        final List<Long> list = Collections.synchronizedList(new ArrayList<>());
+        final List<Thread> threads = Collections.synchronizedList(new ArrayList<>());
         final List<Long> expected = new ArrayList<>();
 
         class Incrementor extends Thread {

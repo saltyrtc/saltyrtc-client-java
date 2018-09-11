@@ -37,7 +37,7 @@ public class SharedKeyStore {
      * Create a new key store from an existing private key.
      * The public key will automatically be derived.
      */
-    public SharedKeyStore(byte[] localPrivateKey, byte[] remotePublicKey) throws InvalidKeyException {
+    public SharedKeyStore(@NonNull byte[] localPrivateKey, @NonNull byte[] remotePublicKey) throws InvalidKeyException {
         this.localPublicKey = NaCl.derivePublicKey(localPrivateKey); // TODO: Maybe we should pass in the local pubkey
         this.remotePublicKey = remotePublicKey;
 

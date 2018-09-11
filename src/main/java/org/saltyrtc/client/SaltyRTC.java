@@ -33,9 +33,6 @@ import javax.net.ssl.SSLContext;
  */
 public class SaltyRTC {
 
-    // Logger
-    private static final Logger LOG = org.slf4j.LoggerFactory.getLogger("SaltyRTC");
-
     // Whether to enable debug mode
     private boolean debug = false;
 
@@ -178,6 +175,7 @@ public class SaltyRTC {
         /**
          * Deregister all event handlers.
          */
+        @SuppressWarnings("unused")
         public void clearAll() {
             this.signalingStateChanged.clear();
             this.handover.clear();

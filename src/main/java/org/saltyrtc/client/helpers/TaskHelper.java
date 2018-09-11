@@ -8,10 +8,14 @@
 
 package org.saltyrtc.client.helpers;
 
+import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.tasks.Task;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Utilities for working with tasks.
@@ -19,31 +23,24 @@ import java.util.List;
 public class TaskHelper {
 
     /**
-     * Iterate over all registered tasks, return list of task names.
+     * Return list of names of registered tasks.
      */
     public static List<String> getTaskNames(Task[] tasks) {
-        // Sane languages could do this by calling .map
-        // with an anonymous function, but unfortunately Java ain't :(
-        List<String> taskNames = new ArrayList<>();
-        for (Task task : tasks) {
-            taskNames.add(task.getName());
-        }
-        return taskNames;
+        return Arrays.stream(tasks)
+            .map(Task::getName)
+            .collect(Collectors.toList());
     }
 
     /**
      * Choose the first task in our own list of supported tasks that is also contained in the list
      * of supported tasks provided by the peer.
      *
-     * @return The selected task, or null if no common task can be found.
+     * @return The selected task, if a common task can be found.
      */
-    public static Task chooseCommonTask(Task[] ourTasks, List<String> theirTasks) {
-        for (Task task : ourTasks) {
-            if (theirTasks.contains(task.getName())) {
-                return task;
-            }
-        }
-        return null;
+    public static Optional<Task> chooseCommonTask(@NonNull Task[] ourTasks, @NonNull List<String> theirTasks) {
+        return Arrays.stream(ourTasks)
+            .filter(task -> theirTasks.contains(task.getName()))
+            .findFirst();
     }
 
 }
