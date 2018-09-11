@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017 Threema GmbH
+ * Copyright (c) 2016-2018 Threema GmbH
  *
  * Licensed under the Apache License, Version 2.0, <see LICENSE-APACHE file>
  * or the MIT license <see LICENSE-MIT file>, at your option. This file may not be
@@ -8,6 +8,7 @@
 
 package org.saltyrtc.client.keystore;
 
+import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
 import org.saltyrtc.client.helpers.HexHelper;
@@ -72,6 +73,16 @@ public class KeyStore {
     public KeyStore(String publicKeyHex, String privateKeyHex) {
         this(HexHelper.hexStringToByteArray(publicKeyHex),
              HexHelper.hexStringToByteArray(privateKeyHex));
+    }
+
+    /**
+     * Create a SharedKeyStore from this instance and the public key of the remote peer.
+     *
+     * @param publicKey The public key of the remote peer.
+     * @throws InvalidKeyException Thrown if the `publicKey` bytes are not a valid public key
+     */
+    public SharedKeyStore getSharedKeyStore(@NonNull byte[] publicKey) throws InvalidKeyException {
+        return new SharedKeyStore(this.privateKey, publicKey);
     }
 
     public byte[] getPublicKey() {

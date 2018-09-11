@@ -29,7 +29,7 @@ public class AuthTokenTest {
     private SecureRandom random = new SecureRandom();
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         this.at = new AuthToken();
     }
 

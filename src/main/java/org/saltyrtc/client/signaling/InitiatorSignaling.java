@@ -26,6 +26,7 @@ import org.saltyrtc.client.helpers.TaskHelper;
 import org.saltyrtc.client.keystore.AuthToken;
 import org.saltyrtc.client.keystore.Box;
 import org.saltyrtc.client.keystore.KeyStore;
+import org.saltyrtc.client.keystore.SharedKeyStore;
 import org.saltyrtc.client.messages.Message;
 import org.saltyrtc.client.messages.c2c.InitiatorAuth;
 import org.saltyrtc.client.messages.c2c.Key;
@@ -106,7 +107,7 @@ public class InitiatorSignaling extends Signaling {
     @Override
     protected Box encryptHandshakeDataForPeer(short receiver, String messageType,
                                               byte[] payload, byte[] nonce)
-            throws CryptoFailedException, InvalidKeyException, ProtocolException {
+            throws CryptoFailedException, ProtocolException {
         if (receiver == SALTYRTC_ADDR_INITIATOR) {
             throw new ProtocolException("Initiator cannot encrypt messages for initiator");
         } else if (!this.isResponderId(receiver)) {
@@ -125,11 +126,15 @@ public class InitiatorSignaling extends Signaling {
         }
 
         // Encrypt
+        final SharedKeyStore sharedKey;
         if ("key".equals(messageType)) {
-            return this.permanentKey.encrypt(payload, nonce, responder.getPermanentKey());
+            sharedKey = responder.getPermanentSharedKey();
+            assert sharedKey != null;
         } else {
-            return responder.getKeyStore().encrypt(payload, nonce, responder.getSessionKey());
+            sharedKey = responder.getSessionSharedKey();
+            assert sharedKey != null;
         }
+        return sharedKey.encrypt(payload, nonce);
     }
 
     /**
@@ -206,8 +211,8 @@ public class InitiatorSignaling extends Signaling {
 
     @Override
     protected void onPeerHandshakeMessage(Box box, SignalingChannelNonce nonce)
-        throws ValidationError, SerializationError,
-        InternalException, ConnectionException, SignalingException {
+        throws ValidationError, SerializationError, InternalException,
+        ConnectionException, SignalingException {
 
         // Validate nonce destination
         if (nonce.getDestination() != this.address) {
@@ -219,9 +224,10 @@ public class InitiatorSignaling extends Signaling {
             // Nonce claims to come from server.
             // Try to decrypt data accordingly.
             try {
-                assert this.server.hasSessionKey();
-                payload = this.permanentKey.decrypt(box, this.server.getSessionKey());
-            } catch (CryptoFailedException | InvalidKeyException e) {
+                final SharedKeyStore sessionSharedKey = this.server.getSessionSharedKey();
+                assert sessionSharedKey != null;
+                payload = sessionSharedKey.decrypt(box);
+            } catch (CryptoFailedException e) {
                 e.printStackTrace();
                 throw new ProtocolException("Could not decrypt server message");
             }
@@ -275,17 +281,13 @@ public class InitiatorSignaling extends Signaling {
                     // Expect key message, encrypted with our public permanent key
                     // and responder private permanent key
                     try {
-                        final byte[] peerPublicKey = this.hasTrustedKey()
-                                                   ? this.peerTrustedKey
-                                                   : responder.getPermanentKey();
-                        payload = this.permanentKey.decrypt(box, peerPublicKey);
+                        final SharedKeyStore permanentSharedKey = responder.getPermanentSharedKey();
+                        assert permanentSharedKey != null;
+                        payload = permanentSharedKey.decrypt(box);
                     } catch (CryptoFailedException e) {
                         this.getLogger().warn("Could not decrypt key message");
                         this.dropResponder(responder, CloseCode.INITIATOR_COULD_NOT_DECRYPT);
                         return;
-                    } catch (InvalidKeyException e) {
-                        e.printStackTrace();
-                        throw new ProtocolException("Invalid key when decrypting key message", e);
                     }
 
                     msg = MessageReader.read(payload);
@@ -303,13 +305,12 @@ public class InitiatorSignaling extends Signaling {
                     try {
                         // Note: The session key related to the responder is
                         // responder.keyStore, not this.sessionKey!
-                        payload = responder.getKeyStore().decrypt(box, responder.getSessionKey());
+                        final SharedKeyStore sessionSharedKey = responder.getSessionSharedKey();
+                        assert sessionSharedKey != null;
+                        payload = sessionSharedKey.decrypt(box);
                     } catch (CryptoFailedException e) {
                         e.printStackTrace();
                         throw new ProtocolException("Could not decrypt auth message");
-                    } catch (InvalidKeyException e) {
-                        e.printStackTrace();
-                        throw new ProtocolException("Invalid key when decrypting auth message", e);
                     }
 
                     msg = MessageReader.read(payload);
@@ -323,7 +324,6 @@ public class InitiatorSignaling extends Signaling {
 
                     // We're connected!
                     this.responder = responder;
-                    this.sessionKey = responder.getKeyStore();
 
                     // Remove responder from responders list
                     this.responders.remove(responder.getId());
@@ -362,12 +362,15 @@ public class InitiatorSignaling extends Signaling {
      */
     private void processNewResponder(short responderId) throws ConnectionException, SignalingException {
         // Drop responder if it's already known
-        if (this.responders.containsKey(responderId)) {
-            this.responders.remove(responderId);
-        }
+        this.responders.remove(responderId);
 
         // Create responder instance
-        final Responder responder = new Responder(responderId, this.responderCounter++);
+        final Responder responder;
+        try {
+            responder = new Responder(responderId, this.responderCounter++);
+        } catch (ValidationError e) {
+            throw new SignalingException(CloseCode.INTERNAL_ERROR, "Responder could not be constructed", e);
+        }
 
         // If we trust the responder...
         if (this.hasTrustedKey()) {
@@ -375,7 +378,12 @@ public class InitiatorSignaling extends Signaling {
             responder.handshakeState = ResponderHandshakeState.TOKEN_RECEIVED;
 
             // Set the public permanent key.
-            responder.setPermanentKey(this.peerTrustedKey);
+            assert this.peerTrustedKey != null; // Handled by this.hasTrustedKey()
+            try {
+                responder.setPermanentSharedKey(this.peerTrustedKey, this.permanentKey);
+            } catch (InvalidKeyException e) {
+                throw new SignalingException(CloseCode.INTERNAL_ERROR, "Invalid peer trusted key");
+            }
         }
 
         // Store responder
@@ -410,16 +418,24 @@ public class InitiatorSignaling extends Signaling {
     /**
      * A responder sends his public permanent key.
      */
-    private void handleToken(Token msg, Responder responder) {
-        responder.setPermanentKey(msg.getKey());
+    private void handleToken(Token msg, Responder responder) throws ProtocolException {
+        try {
+            responder.setPermanentSharedKey(msg.getKey(), this.permanentKey);
+        } catch (InvalidKeyException e) {
+            throw new ProtocolException("Responder sent invalid permanent key in token message", e);
+        }
         responder.handshakeState = ResponderHandshakeState.TOKEN_RECEIVED;
     }
 
     /**
      * A responder sends his public session key.
      */
-    private void handleKey(Key msg, Responder responder) {
-        responder.setSessionKey(msg.getKey());
+    private void handleKey(Key msg, Responder responder) throws ProtocolException {
+        try {
+            responder.setSessionSharedKey(msg.getKey(), new KeyStore());
+        } catch (InvalidKeyException e) {
+            throw new ProtocolException("Responder sent invalid session key in key message", e);
+        }
         responder.handshakeState = ResponderHandshakeState.KEY_RECEIVED;
     }
 
@@ -427,7 +443,7 @@ public class InitiatorSignaling extends Signaling {
      * Send our public session key to the responder.
      */
     private void sendKey(Responder responder) throws SignalingException, ConnectionException {
-        final Key msg = new Key(responder.getKeyStore().getPublicKey());
+        final Key msg = new Key(responder.getSessionSharedKey().getLocalPublicKey());
         final byte[] packet = this.buildPacket(msg, responder);
         this.getLogger().debug("Sending key");
         this.send(packet, msg);
@@ -548,15 +564,6 @@ public class InitiatorSignaling extends Signaling {
     @Nullable
     protected Peer getPeer() {
         return this.responder;
-    }
-
-    @Override
-    @Nullable
-    protected byte[] getPeerSessionKey() {
-        if (this.responder != null) {
-            return this.responder.getSessionKey();
-        }
-        return null;
     }
 
     /**

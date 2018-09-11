@@ -22,6 +22,7 @@ import org.saltyrtc.client.helpers.MessageReader;
 import org.saltyrtc.client.keystore.AuthToken;
 import org.saltyrtc.client.keystore.Box;
 import org.saltyrtc.client.keystore.KeyStore;
+import org.saltyrtc.client.keystore.SharedKeyStore;
 import org.saltyrtc.client.messages.Message;
 import org.saltyrtc.client.messages.c2c.Application;
 import org.saltyrtc.client.messages.c2c.Close;
@@ -91,7 +92,6 @@ public abstract class Signaling implements SignalingInterface {
 
     // Our keys
     @NonNull final KeyStore permanentKey;
-    KeyStore sessionKey;
 
     // Peer trusted key or auth token
     @Nullable AuthToken authToken;
@@ -466,28 +466,28 @@ public abstract class Signaling implements SignalingInterface {
                             getLogger().warn("WebSocket closed, server is being shut down");
                             break;
                         case CloseCode.NO_SHARED_SUBPROTOCOL:
-                            getLogger().error("No shared sub-protocol could be found");
+                            getLogger().warn("WebSocket closed: No shared sub-protocol could be found");
                             break;
                         case CloseCode.PATH_FULL:
-                            getLogger().error("Path full (no free responder byte)");
+                            getLogger().warn("WebSocket closed: Path full (no free responder byte)");
                             break;
                         case CloseCode.PROTOCOL_ERROR:
-                            getLogger().error("Protocol error");
+                            getLogger().error("WebSocket closed: Protocol error");
                             break;
                         case CloseCode.INTERNAL_ERROR:
-                            getLogger().error("Internal server error");
+                            getLogger().error("WebSocket closed: Internal server error");
                             break;
                         case CloseCode.DROPPED_BY_INITIATOR:
-                            getLogger().warn("Dropped by initiator");
+                            getLogger().info("WebSocket closed: Dropped by initiator");
                             break;
                         case CloseCode.INITIATOR_COULD_NOT_DECRYPT:
-                            getLogger().error("Initiator could not decrypt message");
+                            getLogger().warn("WebSocket closed: Initiator could not decrypt message");
                             break;
                         case CloseCode.NO_SHARED_TASK:
-                            getLogger().error("No shared task was found");
+                            getLogger().warn("WebSocket closed: No shared task was found");
                             break;
                         case CloseCode.INVALID_KEY:
-                            getLogger().error("An invalid public permanent server key was specified");
+                            getLogger().error("WebSocket closed: An invalid public permanent server key was specified");
                             break;
                     }
                 }
@@ -619,14 +619,6 @@ public abstract class Signaling implements SignalingInterface {
     abstract Peer getPeer();
 
     /**
-     * Return the session key of the peer.
-     *
-     * May return null if peer is not yet set.
-     */
-    @Nullable
-    abstract byte[] getPeerSessionKey();
-
-    /**
      * Message received during server handshake.
      *
      * @param box The box containing raw nonce and payload bytes.
@@ -641,9 +633,10 @@ public abstract class Signaling implements SignalingInterface {
         } else {
             // Later, they're encrypted with our permanent key and the server key
             try {
-                assert this.server.hasSessionKey();
-                payload = this.permanentKey.decrypt(box, this.server.getSessionKey());
-            } catch (CryptoFailedException | InvalidKeyException e) {
+                final SharedKeyStore sks = this.server.getSessionSharedKey();
+                assert sks != null;
+                payload = sks.decrypt(box);
+            } catch (CryptoFailedException e) {
                 throw new ProtocolException("Could not decrypt server message", e);
             }
         }
@@ -721,14 +714,12 @@ public abstract class Signaling implements SignalingInterface {
         final Message message;
 
         try {
-            assert this.server.hasSessionKey();
-            final byte[] decrypted = this.permanentKey.decrypt(box, this.server.getSessionKey());
+            final SharedKeyStore sks = this.server.getSessionSharedKey();
+            assert sks != null;
+            final byte[] decrypted = sks.decrypt(box);
             message = MessageReader.read(decrypted);
         } catch (CryptoFailedException e) {
             this.getLogger().error("Could not decrypt incoming message from server", e);
-            return;
-        } catch (InvalidKeyException e) {
-            this.getLogger().error("InvalidKeyException while processing incoming message from server", e);
             return;
         } catch (ValidationError | SerializationError e) {
             this.getLogger().error("Received invalid message from server", e);
@@ -776,7 +767,11 @@ public abstract class Signaling implements SignalingInterface {
      */
     private void handleServerHello(ServerHello msg, SignalingChannelNonce nonce) throws ProtocolException {
         // Update server instance
-        this.server.setSessionKey(msg.getKey());
+        try {
+            this.server.setSessionSharedKey(msg.getKey(), this.permanentKey);
+        } catch (InvalidKeyException e) {
+            throw new ProtocolException("Server sent invalid session key in server-hello message", e);
+        }
         this.server.getCookiePair().setTheirs(nonce.getCookie());
     }
 
@@ -789,15 +784,22 @@ public abstract class Signaling implements SignalingInterface {
      * Send a client-auth message to the server.
      */
     private void sendClientAuth() throws SignalingException, ConnectionException {
-        final byte[] yourCookie = this.server.getCookiePair().getTheirs().getBytes();
+        final Cookie serverCookie = this.server.getCookiePair().getTheirs();
+        assert serverCookie != null;
+        final byte[] yourCookie = serverCookie.getBytes();
+
         final List<String> subprotocols = Collections.singletonList(Signaling.SALTYRTC_SUBPROTOCOL);
+
         final ClientAuth msg;
-        if (this.server.hasPermanentKey()) {
-            final byte[] serverKey = this.server.getPermanentKey();
+        if (this.server.hasPermanentSharedKey()) {
+            final SharedKeyStore permanentSharedKey = this.server.getPermanentSharedKey();
+            assert permanentSharedKey != null;
+            final byte[] serverKey = permanentSharedKey.getRemotePublicKey();
             msg = new ClientAuth(yourCookie, serverKey, subprotocols, this.pingInterval);
         } else {
             msg = new ClientAuth(yourCookie, subprotocols, this.pingInterval);
         }
+
         final byte[] packet = this.buildPacket(msg, this.server);
         this.getLogger().debug("Sending client-auth");
         this.send(packet, msg);
@@ -826,7 +828,7 @@ public abstract class Signaling implements SignalingInterface {
                             @NonNull SignalingChannelNonce nonce,
                             @NonNull byte[] expectedServerKey)
             throws ValidationError {
-        assert this.server.hasSessionKey();
+        assert this.server.hasSessionSharedKey();
         if (signedKeys == null) {
             throw new ValidationError("Server did not send signed_keys in server-auth message");
         }
@@ -834,14 +836,18 @@ public abstract class Signaling implements SignalingInterface {
         final byte[] decrypted;
         try {
             getLogger().debug("Expected server key is " + NaCl.asHex(expectedServerKey));
-            getLogger().debug("Server session key is " + NaCl.asHex(this.server.getSessionKey()));
+            getLogger().debug("Server session key is " + NaCl.asHex(this.server.getSessionSharedKey().getRemotePublicKey()));
+            // Note: We will not create a SharedKeyStore here since this will be done only once
             decrypted = this.permanentKey.decrypt(box, expectedServerKey);
         } catch (CryptoFailedException e) {
             throw new ValidationError("Could not decrypt signed_keys in server-auth message", e);
         } catch (InvalidKeyException e) {
             throw new ValidationError("Invalid key when trying to decrypt signed_keys in server-auth message", e);
         }
-        final byte[] expected = ArrayHelper.concat(this.server.getSessionKey(), this.permanentKey.getPublicKey());
+        final byte[] expected = ArrayHelper.concat(
+            this.server.getSessionSharedKey().getRemotePublicKey(),
+            this.permanentKey.getPublicKey()
+        );
         if (!Arrays.equals(decrypted, expected)) {
             throw new ValidationError("Decrypted signed_keys in server-auth message is invalid");
         }
@@ -1078,10 +1084,13 @@ public abstract class Signaling implements SignalingInterface {
     /**
      * Encrypt data for the server during the handshake.
      */
-    private Box encryptHandshakeDataForServer(byte[] payload, byte[] nonce)
-            throws CryptoFailedException, InvalidKeyException {
-        assert this.server.hasSessionKey();
-        return this.permanentKey.encrypt(payload, nonce, this.server.getSessionKey());
+    private Box encryptHandshakeDataForServer(
+        @NonNull byte[] payload,
+        @NonNull byte[] nonce
+    ) throws CryptoFailedException {
+        final SharedKeyStore sks = this.server.getSessionSharedKey();
+        assert sks != null;
+        return sks.encrypt(payload, nonce);
     }
 
     /**
@@ -1273,16 +1282,31 @@ public abstract class Signaling implements SignalingInterface {
     }
 
     /**
+     * Helper method. Return the peer session shared key.
+     *
+     * @throws InvalidStateException If the peer or the shared keystore are not set
+     */
+    private SharedKeyStore getPeerSessionSharedKey() throws InvalidStateException {
+        final Peer peer = this.getPeer();
+        if (peer == null) {
+            throw new InvalidStateException("Peer is null");
+        }
+        final SharedKeyStore sks = peer.getSessionSharedKey();
+        if (sks == null) {
+            throw new InvalidStateException("Peer session shared key is null");
+        }
+        return sks;
+    }
+
+    /**
      * Encrypt data for the peer using the session key and the specified nonce.
      *
      * This method should primarily be used by tasks.
      */
-    public Box encryptForPeer(@NonNull byte[] data, @NonNull byte[] nonce) throws
-        CryptoFailedException {
+    public Box encryptForPeer(@NonNull byte[] data, @NonNull byte[] nonce) throws CryptoFailedException {
         try {
-            return this.sessionKey.encrypt(data, nonce, this.getPeerSessionKey());
-        } catch (InvalidKeyException e) {
-            // This could only happen if the session keys are somehow broken.
+            return this.getPeerSessionSharedKey().encrypt(data, nonce);
+        } catch (InvalidStateException e) {
             // If that happens, something went massively wrong.
             e.printStackTrace();
             if (this.getState() == SignalingState.TASK) {
@@ -1299,9 +1323,8 @@ public abstract class Signaling implements SignalingInterface {
      */
     public byte[] decryptFromPeer(Box box) throws CryptoFailedException {
         try {
-            return this.sessionKey.decrypt(box, this.getPeerSessionKey());
-        } catch (InvalidKeyException e) {
-            // This could only happen if the session keys are somehow broken.
+            return this.getPeerSessionSharedKey().decrypt(box);
+        } catch (InvalidStateException e) {
             // If that happens, something went massively wrong.
             e.printStackTrace();
             if (this.getState() == SignalingState.TASK) {

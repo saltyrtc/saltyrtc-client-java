@@ -53,8 +53,7 @@ public class SaltyRTC {
              @Nullable Integer wsConnectAttemptsMax,
              @Nullable Boolean wsConnectLinearBackoff,
              @Nullable byte[] serverKey,
-             Task[] tasks, int pingInterval)
-             throws InvalidKeyException {
+             Task[] tasks, int pingInterval) {
         this.signaling = new InitiatorSignaling(
             this, host, port, sslContext, wsConnectTimeout, wsConnectAttemptsMax, wsConnectLinearBackoff,
             permanentKey, null, serverKey, tasks, pingInterval);

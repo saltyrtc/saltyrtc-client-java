@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017 Threema GmbH
+ * Copyright (c) 2016-2018 Threema GmbH
  *
  * Licensed under the Apache License, Version 2.0, <see LICENSE-APACHE file>
  * or the MIT license <see LICENSE-MIT file>, at your option. This file may not be
@@ -11,6 +11,9 @@ package org.saltyrtc.client.signaling.peers;
 import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.cookie.CookiePair;
+import org.saltyrtc.client.exceptions.InvalidKeyException;
+import org.saltyrtc.client.keystore.KeyStore;
+import org.saltyrtc.client.keystore.SharedKeyStore;
 import org.saltyrtc.client.nonce.CombinedSequencePair;
 
 /**
@@ -21,10 +24,10 @@ public abstract class Peer {
     private short id;
 
     // Permanent key of the peer
-    @Nullable byte[] permanentKey;
+    @Nullable SharedKeyStore permanentSharedKey;
 
     // Session key of the peer
-    @Nullable byte[] sessionKey;
+    @Nullable SharedKeyStore sessionSharedKey;
 
     // CSN pair
     @NonNull private final CombinedSequencePair csnPair;
@@ -55,29 +58,47 @@ public abstract class Peer {
     }
 
     @Nullable
-    public byte[] getPermanentKey() {
-        return this.permanentKey;
+    public SharedKeyStore getPermanentSharedKey() {
+        return this.permanentSharedKey;
     }
 
-    public void setPermanentKey(@Nullable byte[] permanentKey) {
-        this.permanentKey = permanentKey;
+    /**
+     * Set the permanent shared key for this peer.
+     * @param remotePermanentKey The remote public permanent key.
+     * @param localPermanentKey The local permanent keystore.
+     * @throws InvalidKeyException Thrown if the `remotePermanentKey` is not a valid public key.
+     */
+    public void setPermanentSharedKey(
+        @NonNull byte[] remotePermanentKey,
+        @NonNull KeyStore localPermanentKey
+    ) throws InvalidKeyException {
+        this.permanentSharedKey = localPermanentKey.getSharedKeyStore(remotePermanentKey);
     }
 
-    public boolean hasPermanentKey() {
-        return this.permanentKey != null;
+    public boolean hasPermanentSharedKey() {
+        return this.permanentSharedKey != null;
     }
 
     @Nullable
-    public byte[] getSessionKey() {
-        return this.sessionKey;
+    public SharedKeyStore getSessionSharedKey() {
+        return this.sessionSharedKey;
     }
 
-    public void setSessionKey(@Nullable byte[] sessionKey) {
-        this.sessionKey = sessionKey;
+    /**
+     * Set the session shared key for this peer.
+     * @param remoteSessionKey The remote public session key.
+     * @param localSessionKey The local session keystore.
+     * @throws InvalidKeyException Thrown if the `remoteSessionKey` is not a valid public key.
+     */
+    public void setSessionSharedKey(
+        @NonNull byte[] remoteSessionKey,
+        @NonNull KeyStore localSessionKey
+    ) throws InvalidKeyException {
+        this.sessionSharedKey = localSessionKey.getSharedKeyStore(remoteSessionKey);
     }
 
-    public boolean hasSessionKey() {
-        return this.sessionKey != null;
+    public boolean hasSessionSharedKey() {
+        return this.sessionSharedKey != null;
     }
 
     @NonNull
