@@ -8,7 +8,7 @@
 [![Chat on Gitter](https://badges.gitter.im/saltyrtc/Lobby.svg)](https://gitter.im/saltyrtc/Lobby)
 
 This is a [SaltyRTC](https://github.com/saltyrtc/saltyrtc-meta) v1
-implementation for Java 7+.
+implementation for Java 8+.
 
 ## Installing
 
