@@ -294,7 +294,7 @@ public abstract class Signaling implements SignalingInterface {
             public void onConnected(WebSocket websocket, Map<String, List<String>> headers) {
                 synchronized (this) {
                     if (getState() == SignalingState.WS_CONNECTING) {
-                        getLogger().warn("WebSocket connection open");
+                        getLogger().info("WebSocket connection established");
                         setState(SignalingState.SERVER_HANDSHAKE);
                     } else {
                         getLogger().warn("Got onConnected event, but WebSocket connection already open");
