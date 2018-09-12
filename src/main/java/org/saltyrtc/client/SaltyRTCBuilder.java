@@ -30,6 +30,7 @@ public class SaltyRTCBuilder {
     private boolean hasTrustedPeerKey = false;
     private boolean hasTasks = false;
 
+    private final CryptoProvider cryptoProvider;
     private KeyStore keyStore;
     private String host;
     private Integer port;
@@ -43,8 +44,16 @@ public class SaltyRTCBuilder {
     private byte[] peerTrustedKey;
     private byte[] serverKey;
     private Task[] tasks;
-    private CryptoProvider cryptoProvider;
     private int pingInterval = 0;
+
+    /**
+     * Create a new SaltyRTCBuilder instance.
+     *
+     * @param cryptoProvider An implementation of the `CryptoProvider` interface.
+     */
+    public SaltyRTCBuilder(@NonNull CryptoProvider cryptoProvider) {
+        this.cryptoProvider = cryptoProvider;
+    }
 
     /**
      * Validate the specified host, throw an IllegalArgumentException if it's invalid.
@@ -104,15 +113,13 @@ public class SaltyRTCBuilder {
      * @param host The SaltyRTC server host.
      * @param port The SaltyRTC server port.
      * @param sslContext The SSL context used to create the encrypted WebSocket connection.
-     * @param cryptoProvider An implementation of the `CryptoProvider` interface.
      * @throws IllegalArgumentException Thrown if the host string is invalid.
      */
-    public SaltyRTCBuilder connectTo(String host, int port, SSLContext sslContext, CryptoProvider cryptoProvider) {
+    public SaltyRTCBuilder connectTo(String host, int port, SSLContext sslContext) {
         this.validateHost(host);
         this.host = host;
         this.port = port;
         this.sslContext = sslContext;
-        this.cryptoProvider = cryptoProvider;
         this.hasConnectionInfo = true;
         return this;
     }

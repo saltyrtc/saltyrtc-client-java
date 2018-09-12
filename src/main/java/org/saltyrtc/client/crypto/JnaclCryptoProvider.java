@@ -11,7 +11,12 @@ import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.vendor.com.neilalexander.jnacl.NaCl;
 
 /**
- * An implementation of the CryptoProvider interface for jnacl.
+ * An implementation of the CryptoProvider interface for jnacl (bundled with saltyrtc-client).
+ *
+ * Note that this uses a pure-java implementation of NaCl, which is not the fastest
+ * performance-wise... For better performance, it's recommended that you supply your
+ * own implementation of the `CryptoProvider` interface using your NaCl/Sodium
+ * library of choice.
  */
 public class JnaclCryptoProvider implements CryptoProvider {
 
