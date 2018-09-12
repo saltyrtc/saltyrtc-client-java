@@ -28,7 +28,8 @@ public abstract class Nonce {
     /**
      * A cookie should be 16 bytes long.
      */
-    void validateCookie(byte[] cookie) {
+    @SuppressWarnings("WeakerAccess") // Used by libraries
+    protected static void validateCookie(byte[] cookie) {
         if (cookie.length != COOKIE_LENGTH) {
             throw new IllegalArgumentException("cookie must be " + COOKIE_LENGTH + " bytes long");
         }
@@ -37,7 +38,8 @@ public abstract class Nonce {
     /**
      * An overflow number should be an uint16.
      */
-    void validateOverflow(int overflow) {
+    @SuppressWarnings("WeakerAccess") // Used by libraries
+    protected static void validateOverflow(int overflow) {
         if (overflow < 0 || overflow >= (1 << 16)) {
             throw new IllegalArgumentException("overflow must be between 0 and 2**16-1");
         }
@@ -46,7 +48,8 @@ public abstract class Nonce {
     /**
      * A sequence should be an uint32.
      */
-    void validateSequence(long sequence) {
+    @SuppressWarnings("WeakerAccess") // Used by libraries
+    protected static void validateSequence(long sequence) {
         if (sequence < 0 || sequence >= (1L << 32)) {
             throw new IllegalArgumentException("sequence must be between 0 and 2**32-1");
         }
