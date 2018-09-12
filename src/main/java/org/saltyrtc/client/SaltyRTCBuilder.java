@@ -9,13 +9,13 @@
 package org.saltyrtc.client;
 
 import org.saltyrtc.client.annotations.NonNull;
+import org.saltyrtc.client.crypto.CryptoProvider;
 import org.saltyrtc.client.exceptions.InvalidBuilderStateException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
 import org.saltyrtc.client.helpers.HexHelper;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.signaling.SignalingRole;
 import org.saltyrtc.client.tasks.Task;
-import org.saltyrtc.vendor.com.neilalexander.jnacl.NaCl;
 
 import javax.net.ssl.SSLContext;
 
@@ -43,6 +43,7 @@ public class SaltyRTCBuilder {
     private byte[] peerTrustedKey;
     private byte[] serverKey;
     private Task[] tasks;
+    private CryptoProvider cryptoProvider;
     private int pingInterval = 0;
 
     /**
@@ -103,13 +104,15 @@ public class SaltyRTCBuilder {
      * @param host The SaltyRTC server host.
      * @param port The SaltyRTC server port.
      * @param sslContext The SSL context used to create the encrypted WebSocket connection.
+     * @param cryptoProvider An implementation of the `CryptoProvider` interface.
      * @throws IllegalArgumentException Thrown if the host string is invalid.
      */
-    public SaltyRTCBuilder connectTo(String host, int port, SSLContext sslContext) {
+    public SaltyRTCBuilder connectTo(String host, int port, SSLContext sslContext, CryptoProvider cryptoProvider) {
         this.validateHost(host);
         this.host = host;
         this.port = port;
         this.sslContext = sslContext;
+        this.cryptoProvider = cryptoProvider;
         this.hasConnectionInfo = true;
         return this;
     }
@@ -280,7 +283,7 @@ public class SaltyRTCBuilder {
      * If a SaltyRTCServerInfo instance is provided, dynamically determine host and port.
      */
     private void processServerInfo(@NonNull SaltyRTCServerInfo serverInfo, byte[] publicKey) {
-        final String hexPublicKey = NaCl.asHex(publicKey);
+        final String hexPublicKey = HexHelper.byteArrayToHexString(publicKey);
         this.host = serverInfo.getHost(hexPublicKey);
         this.port = serverInfo.getPort(hexPublicKey);
         this.sslContext = serverInfo.getSSLContext(hexPublicKey);
