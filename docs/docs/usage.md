@@ -5,6 +5,25 @@ This chapter gives a short introduction on how to use the SaltyRTC JavaScript cl
 To see a more practical example, you may also want to take a look at our [demo
 application](https://github.com/saltyrtc/saltyrtc-demo).
 
+## The CryptoProvider
+
+SaltyRTC is based on the [NaCl](https://nacl.cr.yp.to/) crypto system, which
+features both symmetric and asymmetric encryption. However, there are various
+implementations of NaCl for different target systems with different performance
+characteristics, therefore the crypto backend in this library is pluggable.
+
+In order to instantiate a `SaltyRTC` instance or a `KeyStore`, you need to
+provide an implementation of the `org.saltyrtc.client.crypto.CryptoProvider`
+interface. For ease of use, this library provides a pure-java implementation of
+such a CryptoProvider using [jnacl](https://github.com/neilalexander/jnacl). To
+use, simply create an instance of the `JnaclCryptoProvider`.
+
+```java
+import org.saltyrtc.client.crypto.JnaclCryptoProvider;
+
+final CryptoProvider cryptoProvider = new JnaclCryptoProvider();
+```
+
 ## The SaltyRTCBuilder
 
 To initialize a `SaltyRTC` instance, you can use the `SaltyRTCBuilder`.
@@ -12,7 +31,7 @@ To initialize a `SaltyRTC` instance, you can use the `SaltyRTCBuilder`.
 ```java
 import org.saltyrtc.client.SaltyRTCBuilder;
 
-final SaltyRTCBuilder builder = new SaltyRTCBuilder();
+final SaltyRTCBuilder builder = new SaltyRTCBuilder(cryptoProvider);
 ```
 
 ### Connection info
@@ -33,7 +52,7 @@ with the `KeyStore` class:
 ```java
 import org.saltyrtc.client.keystore.KeyStore;
 
-final KeyStore keyStore = new KeyStore();
+final KeyStore keyStore = new KeyStore(cryptoProvider);
 builder.withKeyStore(keyStore);
 ```
 
@@ -105,13 +124,15 @@ All methods on the `SaltyRTCBuilder` support chaining. Here's a full example of 
 import javax.net.ssl.SSLContext;
 import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.SaltyRTCBuilder;
+import org.saltyrtc.client.crypto.CryptoProvider;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.tasks.webrtc.WebRTCTask;
 
 final SSLContext sslContext = SSLContext.getDefault();
-final SaltyRTC client = new SaltyRTCBuilder()
+final CryptoProvider cryptoProvider = new JnaclCryptoProvider();
+final SaltyRTC client = new SaltyRTCBuilder(cryptoProvider)
         .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
-        .withKeyStore(new KeyStore())
+        .withKeyStore(new KeyStore(cryptoProvider))
         .withPingInterval(60)
         .withWebsocketConnectTimeout(5000)
         .withServerKey(Config.SALTYRTC_SERVER_PUBLIC_KEY)
@@ -129,7 +150,7 @@ restore your `KeyStore` with the permanent keypair originally used to establish
 the trusted session:
 
 ```java
-final KeyStore keyStore = new KeyStore(ourPrivatePermanentKey);
+final KeyStore keyStore = new KeyStore(cryptoProvider, ourPrivatePermanentKey);
 builder.withKeyStore(keyStore);
 ```
 
@@ -186,7 +207,7 @@ initiator.
 
 ```java
 final SSLContext sslContext = SSLContext.getDefault();
-final SaltyRTC responder = new SaltyRTCBuilder()
+final SaltyRTC responder = new SaltyRTCBuilder(cryptoProvider)
     .connectTo(new SaltyRTCServerInfo() {
         @Override
         public String getHost(String initiatorPublicKey) {
