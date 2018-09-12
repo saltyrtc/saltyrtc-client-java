@@ -41,11 +41,11 @@ public class SignalingChannelNonce extends Nonce {
      * See also: http://stackoverflow.com/a/397997/284318.
      */
     public SignalingChannelNonce(byte[] cookie, short source, short destination, int overflow, long sequence) {
-        this.validateCookie(cookie);
-        this.validateSource(source);
-        this.validateDestination(destination);
-        this.validateOverflow(overflow);
-        this.validateSequence(sequence);
+        validateCookie(cookie);
+        validateSource(source);
+        validateDestination(destination);
+        validateOverflow(overflow);
+        validateSequence(sequence);
         this.cookie = cookie;
         this.source = source;
         this.destination = destination;
@@ -63,19 +63,19 @@ public class SignalingChannelNonce extends Nonce {
 
         final byte[] cookie = new byte[COOKIE_LENGTH];
         buf.get(cookie, 0, COOKIE_LENGTH);
-        this.validateCookie(cookie);
+        validateCookie(cookie);
 
         final short source = UnsignedHelper.readUnsignedByte(buf.get());
-        this.validateSource(source);
+        validateSource(source);
 
         final short destination = UnsignedHelper.readUnsignedByte(buf.get());
-        this.validateDestination(destination);
+        validateDestination(destination);
 
         final int overflow = UnsignedHelper.readUnsignedShort(buf.getShort());
-        this.validateOverflow(overflow);
+        validateOverflow(overflow);
 
         final long sequence = UnsignedHelper.readUnsignedInt(buf.getInt());
-        this.validateSequence(sequence);
+        validateSequence(sequence);
 
         this.cookie = cookie;
         this.source = source;
@@ -101,7 +101,7 @@ public class SignalingChannelNonce extends Nonce {
     /**
      * A source byte should be an uint8.
      */
-    private void validateSource(short source) {
+    private static void validateSource(short source) {
         if (source < 0 || source >= (1 << 8)) {
             throw new IllegalArgumentException("source must be between 0 and 2**8-1");
         }
@@ -110,7 +110,7 @@ public class SignalingChannelNonce extends Nonce {
     /**
      * A destination byte should be an uint8.
      */
-    private void validateDestination(short destination) {
+    private static void validateDestination(short destination) {
         if (destination < 0 || destination >= (1 << 8)) {
             throw new IllegalArgumentException("destination must be between 0 and 2**8-1");
         }
