@@ -10,6 +10,7 @@ package org.saltyrtc.client.tests.keystore;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.saltyrtc.client.crypto.CryptoProvider;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
 import org.saltyrtc.client.helpers.HexHelper;
@@ -17,14 +18,10 @@ import org.saltyrtc.client.helpers.RandomHelper;
 import org.saltyrtc.client.helpers.UnsignedHelper;
 import org.saltyrtc.client.keystore.Box;
 import org.saltyrtc.client.keystore.KeyStore;
-import org.saltyrtc.vendor.com.neilalexander.jnacl.NaCl;
 
 import java.security.SecureRandom;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 public class KeyStoreTest {
 
@@ -39,8 +36,8 @@ public class KeyStoreTest {
     @Test
     public void testEncrypt() throws CryptoFailedException, InvalidKeyException {
         final byte[] in = "hello".getBytes();
-        final byte[] nonce = new byte[NaCl.NONCEBYTES];
-        final byte[] otherKey = new byte[NaCl.PUBLICKEYBYTES];
+        final byte[] nonce = new byte[CryptoProvider.NONCEBYTES];
+        final byte[] otherKey = new byte[CryptoProvider.PUBLICKEYBYTES];
         this.random.nextBytes(nonce);
         this.random.nextBytes(otherKey);
         final Box box = this.ks.encrypt(in, nonce, otherKey);
@@ -66,8 +63,8 @@ public class KeyStoreTest {
     public void testDecryptFails() throws InvalidKeyException, CryptoFailedException {
         // Encrypt data
         final byte[] in = "hello".getBytes();
-        final byte[] nonce = new byte[NaCl.NONCEBYTES];
-        final byte[] otherKey = new byte[NaCl.PUBLICKEYBYTES];
+        final byte[] nonce = new byte[CryptoProvider.NONCEBYTES];
+        final byte[] otherKey = new byte[CryptoProvider.PUBLICKEYBYTES];
         this.random.nextBytes(nonce);
         this.random.nextBytes(otherKey);
         final Box box = this.ks.encrypt(in, nonce, otherKey);
@@ -89,7 +86,7 @@ public class KeyStoreTest {
     @Test(expected=InvalidKeyException.class)
     public void testInvalidKey() throws InvalidKeyException, CryptoFailedException {
         final byte[] in = "hello".getBytes();
-        final byte[] nonce = new byte[NaCl.NONCEBYTES];
+        final byte[] nonce = new byte[CryptoProvider.NONCEBYTES];
         final byte[] otherKey = {42};
         this.random.nextBytes(nonce);
         this.ks.encrypt(in, nonce, otherKey);

@@ -9,12 +9,12 @@
 package org.saltyrtc.client.tests.keystore;
 
 import org.junit.Test;
+import org.saltyrtc.client.crypto.CryptoProvider;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
 import org.saltyrtc.client.keystore.Box;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.keystore.SharedKeyStore;
-import org.saltyrtc.vendor.com.neilalexander.jnacl.NaCl;
 
 import java.security.SecureRandom;
 
@@ -34,11 +34,11 @@ public class SharedKeyStoreTest {
         final KeyStore ks = new KeyStore();
 
         // Nonce
-        final byte[] nonce = new byte[NaCl.NONCEBYTES];
+        final byte[] nonce = new byte[CryptoProvider.NONCEBYTES];
         this.random.nextBytes(nonce);
 
         // Peer public key
-        final byte[] otherKey = new byte[NaCl.PUBLICKEYBYTES];
+        final byte[] otherKey = new byte[CryptoProvider.PUBLICKEYBYTES];
         this.random.nextBytes(otherKey);
 
         // Create shared keystore

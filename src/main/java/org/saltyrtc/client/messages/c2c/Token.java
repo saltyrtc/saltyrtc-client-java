@@ -9,10 +9,10 @@
 package org.saltyrtc.client.messages.c2c;
 
 import org.msgpack.core.MessagePacker;
+import org.saltyrtc.client.crypto.CryptoProvider;
 import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.helpers.ValidationHelper;
 import org.saltyrtc.client.messages.Message;
-import org.saltyrtc.vendor.com.neilalexander.jnacl.NaCl;
 
 import java.io.IOException;
 import java.util.Map;
@@ -29,7 +29,7 @@ public class Token extends Message {
 
     public Token(Map<String, Object> map) throws ValidationError {
         ValidationHelper.validateType(map.get("type"), TYPE);
-        this.key = ValidationHelper.validateByteArray(map.get("key"), NaCl.SYMMKEYBYTES, "Key");
+        this.key = ValidationHelper.validateByteArray(map.get("key"), CryptoProvider.SYMMKEYBYTES, "Key");
     }
 
     public byte[] getKey() {

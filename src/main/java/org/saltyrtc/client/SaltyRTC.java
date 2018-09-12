@@ -8,7 +8,9 @@
 
 package org.saltyrtc.client;
 
+import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.annotations.Nullable;
+import org.saltyrtc.client.crypto.CryptoProvider;
 import org.saltyrtc.client.events.*;
 import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
@@ -46,13 +48,14 @@ public class SaltyRTC {
     // Initialize as initiator without trusted key.
     SaltyRTC(KeyStore permanentKey, String host, int port,
              @Nullable SSLContext sslContext,
+             @NonNull CryptoProvider cryptoProvider,
              @Nullable Integer wsConnectTimeout,
              @Nullable Integer wsConnectAttemptsMax,
              @Nullable Boolean wsConnectLinearBackoff,
              @Nullable byte[] serverKey,
              Task[] tasks, int pingInterval) {
         this.signaling = new InitiatorSignaling(
-            this, host, port, sslContext, wsConnectTimeout, wsConnectAttemptsMax, wsConnectLinearBackoff,
+            this, host, port, sslContext, cryptoProvider, wsConnectTimeout, wsConnectAttemptsMax, wsConnectLinearBackoff,
             permanentKey, null, serverKey, tasks, pingInterval);
     }
 
@@ -60,6 +63,7 @@ public class SaltyRTC {
     // Initialize as responder without trusted key.
     SaltyRTC(KeyStore permanentKey, String host, int port,
              @Nullable SSLContext sslContext,
+             @NonNull CryptoProvider cryptoProvider,
              @Nullable Integer wsConnectTimeout,
              @Nullable Integer wsConnectAttemptsMax,
              @Nullable Boolean wsConnectLinearBackoff,
@@ -67,7 +71,7 @@ public class SaltyRTC {
              @Nullable byte[] serverKey, Task[] tasks, int pingInterval)
              throws InvalidKeyException {
         this.signaling = new ResponderSignaling(
-            this, host, port, sslContext, wsConnectTimeout, wsConnectAttemptsMax, wsConnectLinearBackoff,
+            this, host, port, sslContext, cryptoProvider, wsConnectTimeout, wsConnectAttemptsMax, wsConnectLinearBackoff,
             permanentKey, initiatorPublicKey, authToken, null, serverKey, tasks, pingInterval);
     }
 
@@ -75,6 +79,7 @@ public class SaltyRTC {
     // Initialize as initiator or responder with trusted key.
     SaltyRTC(KeyStore permanentKey, String host, int port,
              @Nullable SSLContext sslContext,
+             @NonNull CryptoProvider cryptoProvider,
              @Nullable Integer wsConnectTimeout,
              @Nullable Integer wsConnectAttemptsMax,
              @Nullable Boolean wsConnectLinearBackoff,
@@ -84,12 +89,12 @@ public class SaltyRTC {
         switch (role) {
             case Initiator:
                 this.signaling = new InitiatorSignaling(
-                    this, host, port, sslContext, wsConnectTimeout, wsConnectAttemptsMax, wsConnectLinearBackoff,
+                    this, host, port, sslContext, cryptoProvider, wsConnectTimeout, wsConnectAttemptsMax, wsConnectLinearBackoff,
                     permanentKey, peerTrustedKey, serverKey, tasks, pingInterval);
                 break;
             case Responder:
                 this.signaling = new ResponderSignaling(
-                    this, host, port, sslContext, wsConnectTimeout, wsConnectAttemptsMax, wsConnectLinearBackoff,
+                    this, host, port, sslContext, cryptoProvider, wsConnectTimeout, wsConnectAttemptsMax, wsConnectLinearBackoff,
                     permanentKey, null, null, peerTrustedKey, serverKey, tasks, pingInterval);
                 break;
             default:

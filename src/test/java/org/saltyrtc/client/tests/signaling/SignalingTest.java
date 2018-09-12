@@ -32,12 +32,12 @@ public class SignalingTest {
     public void testWsPath() throws Exception {
         // Create signaling instances for initiator and responder
         final InitiatorSignaling initiator = new InitiatorSignaling(
-                null, Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, null, null, null, null,
+                null, Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, null, new JnaclCryptoProvider(), null, null, null,
                 new KeyStore(), null, null,
                 new Task[] { new DummyTask() },
                 0);
         final ResponderSignaling responder = new ResponderSignaling(
-                null, Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, null, null, null, null,
+                null, Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, null, new JnaclCryptoProvider(), null, null, null,
                 new KeyStore(), initiator.getPublicPermanentKey(), initiator.getAuthToken(), null, null,
                 new Task[] { new DummyTask() },
                 0);

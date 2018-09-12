@@ -10,6 +10,7 @@ package org.saltyrtc.client.tests.signaling.peers;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.saltyrtc.client.crypto.CryptoProvider;
 import org.saltyrtc.client.exceptions.InvalidStateException;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.signaling.peers.Initiator;
@@ -22,8 +23,8 @@ public class InitiatorTest {
 
     @Before
     public void setUp() {
-        this.key = new byte[NaCl.PUBLICKEYBYTES];
-        NaCl.genkeypair(this.key, new byte[NaCl.SECRETKEYBYTES]);
+        this.key = new byte[CryptoProvider.PUBLICKEYBYTES];
+        NaCl.genkeypair(this.key, new byte[CryptoProvider.SECRETKEYBYTES]);
     }
 
     @Test

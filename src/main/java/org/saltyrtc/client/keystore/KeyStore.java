@@ -9,6 +9,7 @@
 package org.saltyrtc.client.keystore;
 
 import org.saltyrtc.client.annotations.NonNull;
+import org.saltyrtc.client.crypto.CryptoProvider;
 import org.saltyrtc.client.exceptions.CryptoFailedException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
 import org.saltyrtc.client.helpers.HexHelper;
@@ -26,8 +27,8 @@ public class KeyStore {
     private static final Logger LOG = org.slf4j.LoggerFactory.getLogger("SaltyRTC.KeyStore");
 
     // Keys
-    private byte[] privateKey = new byte[NaCl.SECRETKEYBYTES];
-    private byte[] publicKey = new byte[NaCl.PUBLICKEYBYTES];
+    private byte[] privateKey = new byte[CryptoProvider.SECRETKEYBYTES];
+    private byte[] publicKey = new byte[CryptoProvider.PUBLICKEYBYTES];
 
     /**
      * Create a new key store.
@@ -35,7 +36,7 @@ public class KeyStore {
     public KeyStore() {
         LOG.debug("Generating new key pair");
         NaCl.genkeypair(this.publicKey, this.privateKey);
-        LOG.debug("Public key: " + NaCl.asHex(this.publicKey));
+        LOG.debug("Public key: " + HexHelper.asHex(this.publicKey));
     }
 
     /**
@@ -46,7 +47,7 @@ public class KeyStore {
         LOG.debug("Deriving public key from private key");
         this.privateKey = privateKey;
         this.publicKey = NaCl.derivePublicKey(privateKey);
-        LOG.debug("Public key: " + NaCl.asHex(this.publicKey));
+        LOG.debug("Public key: " + HexHelper.asHex(this.publicKey));
     }
 
     /**
@@ -64,7 +65,7 @@ public class KeyStore {
         LOG.debug("Using existing keypair");
         this.privateKey = privateKey;
         this.publicKey = publicKey;
-        LOG.debug("Public key: " + NaCl.asHex(this.publicKey));
+        LOG.debug("Public key: " + HexHelper.asHex(this.publicKey));
     }
 
     /**
@@ -94,11 +95,11 @@ public class KeyStore {
     }
 
     public String getPublicKeyHex() {
-        return HexHelper.byteArrayToHexString(this.getPublicKey());
+        return HexHelper.asHex(this.getPublicKey());
     }
 
     public String getPrivateKeyHex() {
-        return HexHelper.byteArrayToHexString(this.getPrivateKey());
+        return HexHelper.asHex(this.getPrivateKey());
     }
 
     /**

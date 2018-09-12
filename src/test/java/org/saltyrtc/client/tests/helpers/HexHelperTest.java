@@ -19,7 +19,7 @@ public class HexHelperTest {
     @Test
     public void testByteArrayToHex() {
         byte[] a = new byte[] { (byte) 0xde, (byte) 0xad, (byte) 0xbe, (byte) 0xef };
-        assertEquals(HexHelper.byteArrayToHexString(a), "deadbeef");
+        assertEquals(HexHelper.asHex(a), "deadbeef");
     }
 
     @Test

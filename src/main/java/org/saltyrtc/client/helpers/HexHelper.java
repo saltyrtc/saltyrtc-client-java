@@ -8,11 +8,12 @@
 
 package org.saltyrtc.client.helpers;
 
+import java.util.Formatter;
+
 public class HexHelper {
 
     /**
      * Convert a hex string to a byte array.
-     * http://stackoverflow.com/a/19119453
      */
     public static byte[] hexStringToByteArray(String s) {
         int len = s.length();
@@ -26,14 +27,24 @@ public class HexHelper {
 
     /**
      * Convert a byte array to a hex string.
-     * https://stackoverflow.com/a/15429408
      */
-    public static String byteArrayToHexString(byte[] b) {
-        final StringBuilder data = new StringBuilder();
-        for (byte value : b) {
-            data.append(String.format("%02x", value));
+    public static String asHex(byte[] buf) {
+        final Formatter formatter = new Formatter();
+        for (byte b : buf) {
+            formatter.format("%02x", b);
         }
-        return data.toString();
+        return formatter.toString();
+    }
+
+    /**
+     * Convert a byte array to a hex string.
+     */
+    public static String asHex(int[] buf) {
+        final Formatter formatter = new Formatter();
+        for (int b : buf) {
+            formatter.format("%02x", b);
+        }
+        return formatter.toString();
     }
 
 }

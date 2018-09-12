@@ -12,8 +12,11 @@ import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.cookie.Cookie;
+import org.saltyrtc.client.crypto.CryptoException;
+import org.saltyrtc.client.crypto.CryptoProvider;
 import org.saltyrtc.client.events.SignalingConnectionLostEvent;
 import org.saltyrtc.client.exceptions.*;
+import org.saltyrtc.client.helpers.HexHelper;
 import org.saltyrtc.client.helpers.MessageReader;
 import org.saltyrtc.client.helpers.TaskHelper;
 import org.saltyrtc.client.keystore.AuthToken;
@@ -55,6 +58,7 @@ public class ResponderSignaling extends Signaling {
 
     public ResponderSignaling(SaltyRTC saltyRTC, String host, int port,
                               @Nullable SSLContext sslContext,
+                              @NonNull CryptoProvider cryptoProvider,
                               @Nullable Integer wsConnectTimeout,
                               @Nullable Integer wsConnectAttemptsMax,
                               @Nullable Boolean wsConnectLinearBackoff,
@@ -65,7 +69,7 @@ public class ResponderSignaling extends Signaling {
                               @NonNull Task[] tasks,
                               int pingInterval)
                               throws InvalidKeyException {
-        super(saltyRTC, host, port, sslContext, wsConnectTimeout, wsConnectAttemptsMax, wsConnectLinearBackoff,
+        super(saltyRTC, host, port, sslContext, cryptoProvider, wsConnectTimeout, wsConnectAttemptsMax, wsConnectLinearBackoff,
               permanentKey, initiatorTrustedKey, expectedServerKey, SignalingRole.Responder, tasks, pingInterval);
         if (initiatorTrustedKey != null) {
             if (initiatorPublicKey != null || authToken != null) {
@@ -77,7 +81,7 @@ public class ResponderSignaling extends Signaling {
             this.initiator.handshakeState = InitiatorHandshakeState.TOKEN_SENT;
         } else if (initiatorPublicKey != null && authToken != null) {
             this.initiator = new Initiator(initiatorPublicKey, permanentKey);
-            this.authToken = new AuthToken(authToken);
+            this.authToken = new AuthToken(cryptoProvider, authToken);
         } else {
             throw new IllegalArgumentException(
                 "You must specify either a trusted key or a public key / auth token pair");
@@ -102,7 +106,7 @@ public class ResponderSignaling extends Signaling {
     @Override
     protected Box encryptHandshakeDataForPeer(short receiver, String messageType,
                                               byte[] payload, byte[] nonce)
-            throws CryptoFailedException, ProtocolException {
+            throws CryptoException, CryptoFailedException, ProtocolException {
         if (this.isResponderId(receiver)) {
             throw new ProtocolException("Responder may not encrypt messages for other responders: " + receiver);
         } else if (receiver != Signaling.SALTYRTC_ADDR_INITIATOR) {
@@ -151,7 +155,7 @@ public class ResponderSignaling extends Signaling {
             throw new ProtocolException("Invalid nonce destination: " + nonce.getDestination());
         }
         this.address = nonce.getDestination();
-        this.getLogger().debug("Server assigned address 0x" + NaCl.asHex(new int[] { this.address }));
+        this.getLogger().debug("Server assigned address 0x" + HexHelper.asHex(new int[] { this.address }));
 
         // Validate cookie
         // TODO: Move into validateRepeatedCookie method

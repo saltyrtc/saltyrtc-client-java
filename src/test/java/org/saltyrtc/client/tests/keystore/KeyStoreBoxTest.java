@@ -10,8 +10,8 @@ package org.saltyrtc.client.tests.keystore;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.saltyrtc.client.crypto.CryptoProvider;
 import org.saltyrtc.client.keystore.Box;
-import org.saltyrtc.vendor.com.neilalexander.jnacl.NaCl;
 
 import java.nio.ByteBuffer;
 
@@ -20,13 +20,13 @@ import static org.junit.Assert.assertEquals;
 
 public class KeyStoreBoxTest {
 
-    private static byte[] nonce = new byte[NaCl.NONCEBYTES];
+    private static byte[] nonce = new byte[CryptoProvider.NONCEBYTES];
     private static byte[] data = new byte[] { 0x00, 0x01, 0x02, 0x03 };
 
     @BeforeClass
     public static void oneTimeSetUp() {
         // Initialize nonce
-        for (int i = 0; i < NaCl.NONCEBYTES; i++) {
+        for (int i = 0; i < CryptoProvider.NONCEBYTES; i++) {
             nonce[i] = (byte) i;
         }
     }
@@ -44,7 +44,7 @@ public class KeyStoreBoxTest {
         buf.put(nonce);
         buf.put(data);
         buf.flip();
-        final Box box = new Box(buf, NaCl.NONCEBYTES);
+        final Box box = new Box(buf, CryptoProvider.NONCEBYTES);
         assertArrayEquals(box.getData(), data);
         assertArrayEquals(box.getNonce(), nonce);
     }
