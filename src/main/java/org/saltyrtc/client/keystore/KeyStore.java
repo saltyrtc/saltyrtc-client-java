@@ -9,11 +9,11 @@
 package org.saltyrtc.client.keystore;
 
 import org.saltyrtc.client.annotations.NonNull;
+import org.saltyrtc.client.crypto.CryptoException;
+import org.saltyrtc.client.crypto.CryptoInstance;
 import org.saltyrtc.client.crypto.CryptoProvider;
-import org.saltyrtc.client.exceptions.CryptoFailedException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
 import org.saltyrtc.client.helpers.HexHelper;
-import org.saltyrtc.vendor.com.neilalexander.jnacl.NaCl;
 import org.slf4j.Logger;
 
 /**
@@ -26,53 +26,64 @@ public class KeyStore {
     // Logger
     private static final Logger LOG = org.slf4j.LoggerFactory.getLogger("SaltyRTC.KeyStore");
 
+    // Crypto
+    @NonNull private final CryptoProvider cryptoProvider;
+
     // Keys
-    private byte[] privateKey = new byte[CryptoProvider.SECRETKEYBYTES];
+    private byte[] privateKey = new byte[CryptoProvider.PRIVATEKEYBYTES];
     private byte[] publicKey = new byte[CryptoProvider.PUBLICKEYBYTES];
 
     /**
      * Create a new key store.
      */
-    public KeyStore() {
+    public KeyStore(@NonNull CryptoProvider cryptoProvider) {
         LOG.debug("Generating new key pair");
-        NaCl.genkeypair(this.publicKey, this.privateKey);
+        cryptoProvider.genkeypair(this.publicKey, this.privateKey);
         LOG.debug("Public key: " + HexHelper.asHex(this.publicKey));
+        this.cryptoProvider = cryptoProvider;
     }
 
     /**
      * Create a new key store from an existing private key.
      * The public key will automatically be derived.
+     *
+     * @throws CryptoException when the private key is invalid
      */
-    public KeyStore(byte[] privateKey) {
+    public KeyStore(@NonNull CryptoProvider cryptoProvider, @NonNull byte[] privateKey) throws CryptoException {
         LOG.debug("Deriving public key from private key");
         this.privateKey = privateKey;
-        this.publicKey = NaCl.derivePublicKey(privateKey);
+        this.publicKey = cryptoProvider.derivePublicKey(privateKey);
         LOG.debug("Public key: " + HexHelper.asHex(this.publicKey));
+        this.cryptoProvider = cryptoProvider;
     }
 
     /**
      * Create a new key store from an existing private key.
      * The public key will automatically be derived.
+     *
+     * @throws CryptoException when the private key is invalid
      */
-    public KeyStore(String privateKeyHex) {
-        this(HexHelper.hexStringToByteArray(privateKeyHex));
+    public KeyStore(@NonNull CryptoProvider cryptoProvider, @NonNull String privateKeyHex) throws CryptoException {
+        this(cryptoProvider, HexHelper.hexStringToByteArray(privateKeyHex));
     }
 
     /**
      * Create a new key store from an existing keypair.
      */
-    public KeyStore(byte[] publicKey, byte[] privateKey) {
+    public KeyStore(@NonNull final CryptoProvider cryptoProvider, @NonNull byte[] publicKey, @NonNull byte[] privateKey) {
         LOG.debug("Using existing keypair");
         this.privateKey = privateKey;
         this.publicKey = publicKey;
         LOG.debug("Public key: " + HexHelper.asHex(this.publicKey));
+        this.cryptoProvider = cryptoProvider;
     }
 
     /**
      * Create a new key store from an existing keypair.
      */
-    public KeyStore(String publicKeyHex, String privateKeyHex) {
-        this(HexHelper.hexStringToByteArray(publicKeyHex),
+    public KeyStore(final CryptoProvider cryptoProvider, String publicKeyHex, String privateKeyHex) {
+        this(cryptoProvider,
+             HexHelper.hexStringToByteArray(publicKeyHex),
              HexHelper.hexStringToByteArray(privateKeyHex));
     }
 
@@ -83,15 +94,15 @@ public class KeyStore {
      * @throws InvalidKeyException Thrown if the `publicKey` bytes are not a valid public key
      */
     public SharedKeyStore getSharedKeyStore(@NonNull byte[] publicKey) throws InvalidKeyException {
-        return new SharedKeyStore(this.privateKey, publicKey);
+        return new SharedKeyStore(this.cryptoProvider, this.privateKey, publicKey);
     }
 
     public byte[] getPublicKey() {
-        return publicKey;
+        return this.publicKey;
     }
 
     public byte[] getPrivateKey() {
-        return privateKey;
+        return this.privateKey;
     }
 
     public String getPublicKeyHex() {
@@ -110,27 +121,19 @@ public class KeyStore {
      * @param otherKey The public key of the peer.
      * @return The encrypted NaCl box.
      * @throws InvalidKeyException One of the keys was invalid.
-     * @throws CryptoFailedException Encryption failed.
+     * @throws CryptoException Encryption failed.
      */
-    public Box encrypt(byte[] data, byte[] nonce, byte[] otherKey) throws CryptoFailedException, InvalidKeyException {
-        // Create NaCl instance
-        final NaCl nacl;
+    public Box encrypt(@NonNull byte[] data, @NonNull byte[] nonce, @NonNull byte[] otherKey) throws CryptoException, InvalidKeyException {
+        // Create CryptoInstance
+        final CryptoInstance cryptoInstance;
         try {
-            nacl = new NaCl(this.privateKey, otherKey);
-        } catch (Error e) {
+            cryptoInstance = this.cryptoProvider.getInstance(this.privateKey, otherKey);
+        } catch (CryptoException e) {
             throw new InvalidKeyException(e.toString());
         }
 
         // Encrypt
-        final byte[] encrypted;
-        try {
-            encrypted = nacl.encrypt(data, nonce);
-        } catch (Error e) {
-            throw new CryptoFailedException(e.toString());
-        }
-        if (encrypted == null) {
-            throw new CryptoFailedException("Encrypted data is null");
-        }
+        final byte[] encrypted = cryptoInstance.encrypt(data, nonce);
 
         // Return box
         return new Box(nonce, encrypted);
@@ -142,27 +145,15 @@ public class KeyStore {
      * @param box NaCl box.
      * @param otherKey The public key of the peer.
      * @return The decrypted data.
-     * @throws CryptoFailedException Decryption failed.
+     * @throws CryptoException Decryption failed.
      */
-    public byte[] decrypt(Box box, byte[] otherKey) throws CryptoFailedException, InvalidKeyException {
-        // Create NaCl instance
-        final NaCl nacl;
+    public byte[] decrypt(@NonNull Box box, @NonNull byte[] otherKey) throws CryptoException, InvalidKeyException {
+        final CryptoInstance cryptoInstance;
         try {
-            nacl = new NaCl(this.privateKey, otherKey);
-        } catch (Error e) {
+            cryptoInstance = this.cryptoProvider.getInstance(this.privateKey, otherKey);
+        } catch (CryptoException e) {
             throw new InvalidKeyException(e.toString());
         }
-
-        final byte[] decrypted;
-        try {
-            decrypted = nacl.decrypt(box.getData(), box.getNonce());
-        } catch (Error e) {
-            throw new CryptoFailedException(e.toString());
-        }
-        if (decrypted == null) {
-            throw new CryptoFailedException("Decrypted data is null");
-        }
-
-        return decrypted;
+        return cryptoInstance.decrypt(box.getData(), box.getNonce());
     }
 }

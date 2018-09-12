@@ -36,7 +36,6 @@ import org.saltyrtc.client.signaling.state.InitiatorHandshakeState;
 import org.saltyrtc.client.signaling.state.ServerHandshakeState;
 import org.saltyrtc.client.signaling.state.SignalingState;
 import org.saltyrtc.client.tasks.Task;
-import org.saltyrtc.vendor.com.neilalexander.jnacl.NaCl;
 import org.slf4j.Logger;
 
 import javax.net.ssl.SSLContext;
@@ -100,13 +99,13 @@ public class ResponderSignaling extends Signaling {
      */
     @Override
     protected String getWebsocketPath() {
-        return NaCl.asHex(this.initiator.getPermanentSharedKey().getRemotePublicKey());
+        return HexHelper.asHex(this.initiator.getPermanentSharedKey().getRemotePublicKey());
     }
 
     @Override
     protected Box encryptHandshakeDataForPeer(short receiver, String messageType,
                                               byte[] payload, byte[] nonce)
-            throws CryptoException, CryptoFailedException, ProtocolException {
+            throws CryptoException, ProtocolException {
         if (this.isResponderId(receiver)) {
             throw new ProtocolException("Responder may not encrypt messages for other responders: " + receiver);
         } else if (receiver != Signaling.SALTYRTC_ADDR_INITIATOR) {
@@ -215,7 +214,7 @@ public class ResponderSignaling extends Signaling {
      */
     private void sendKey() throws SignalingException, ConnectionException {
         // Generate our own session key
-        final KeyStore tmpLocalSessionKey = new KeyStore();
+        final KeyStore tmpLocalSessionKey = new KeyStore(this.cryptoProvider);
         try {
             this.initiator.setTmpLocalSessionKey(tmpLocalSessionKey);
         } catch (InvalidStateException e) {
@@ -319,7 +318,7 @@ public class ResponderSignaling extends Signaling {
                 try {
                     final SharedKeyStore permanentSharedKey = this.initiator.getPermanentSharedKey();
                     return permanentSharedKey.decrypt(box);
-                } catch (CryptoFailedException e) {
+                } catch (CryptoException e) {
                     e.printStackTrace();
                     throw new ProtocolException("Could not decrypt key message");
                 }
@@ -330,7 +329,7 @@ public class ResponderSignaling extends Signaling {
                     final SharedKeyStore sessionSharedKey = this.initiator.getSessionSharedKey();
                     assert sessionSharedKey != null;
                     return sessionSharedKey.decrypt(box);
-                } catch (CryptoFailedException e) {
+                } catch (CryptoException e) {
                     e.printStackTrace();
                     throw new ProtocolException("Could not decrypt message using session key");
                 }
@@ -358,7 +357,7 @@ public class ResponderSignaling extends Signaling {
                 final SharedKeyStore serverKey = this.server.getSessionSharedKey();
                 assert serverKey != null;
                 payload = serverKey.decrypt(box);
-            } catch (CryptoFailedException e) {
+            } catch (CryptoException e) {
                 e.printStackTrace();
                 throw new ProtocolException("Could not decrypt server message");
             }

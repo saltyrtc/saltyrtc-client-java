@@ -102,7 +102,7 @@ public class InitiatorSignaling extends Signaling {
     @Override
     protected Box encryptHandshakeDataForPeer(short receiver, String messageType,
                                               byte[] payload, byte[] nonce)
-            throws CryptoFailedException, ProtocolException {
+            throws CryptoException, ProtocolException {
         if (receiver == SALTYRTC_ADDR_INITIATOR) {
             throw new ProtocolException("Initiator cannot encrypt messages for initiator");
         } else if (!this.isResponderId(receiver)) {
@@ -222,7 +222,7 @@ public class InitiatorSignaling extends Signaling {
                 final SharedKeyStore sessionSharedKey = this.server.getSessionSharedKey();
                 assert sessionSharedKey != null;
                 payload = sessionSharedKey.decrypt(box);
-            } catch (CryptoFailedException e) {
+            } catch (CryptoException e) {
                 e.printStackTrace();
                 throw new ProtocolException("Could not decrypt server message");
             }
@@ -279,7 +279,7 @@ public class InitiatorSignaling extends Signaling {
                         final SharedKeyStore permanentSharedKey = responder.getPermanentSharedKey();
                         assert permanentSharedKey != null;
                         payload = permanentSharedKey.decrypt(box);
-                    } catch (CryptoFailedException e) {
+                    } catch (CryptoException e) {
                         this.getLogger().warn("Could not decrypt key message");
                         this.dropResponder(responder, CloseCode.INITIATOR_COULD_NOT_DECRYPT);
                         return;
@@ -303,7 +303,7 @@ public class InitiatorSignaling extends Signaling {
                         final SharedKeyStore sessionSharedKey = responder.getSessionSharedKey();
                         assert sessionSharedKey != null;
                         payload = sessionSharedKey.decrypt(box);
-                    } catch (CryptoFailedException e) {
+                    } catch (CryptoException e) {
                         e.printStackTrace();
                         throw new ProtocolException("Could not decrypt auth message");
                     }
@@ -427,7 +427,7 @@ public class InitiatorSignaling extends Signaling {
      */
     private void handleKey(Key msg, Responder responder) throws ProtocolException {
         try {
-            responder.setSessionSharedKey(msg.getKey(), new KeyStore());
+            responder.setSessionSharedKey(msg.getKey(), new KeyStore(this.cryptoProvider));
         } catch (InvalidKeyException e) {
             throw new ProtocolException("Responder sent invalid session key in key message", e);
         }

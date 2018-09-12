@@ -15,6 +15,7 @@ import org.junit.Test;
 import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.SaltyRTCBuilder;
 import org.saltyrtc.client.SaltyRTCServerInfo;
+import org.saltyrtc.client.crypto.CryptoProvider;
 import org.saltyrtc.client.crypto.JnaclCryptoProvider;
 import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.exceptions.InvalidStateException;
@@ -49,21 +50,24 @@ public class ConnectionTest {
     private SaltyRTC initiator;
     private SaltyRTC responder;
     private Map<String, Boolean> eventsCalled;
+    private CryptoProvider cryptoProvider;
 
     @Before
     public void setUp() throws Exception {
+        this.cryptoProvider = new JnaclCryptoProvider();
+
         // Get SSL context
         final SSLContext sslContext = SSLContextHelper.getSSLContext();
 
         // Create SaltyRTC instances for initiator and responder
         initiator = new SaltyRTCBuilder()
                 .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext, new JnaclCryptoProvider())
-                .withKeyStore(new KeyStore())
+                .withKeyStore(new KeyStore(this.cryptoProvider))
                 .usingTasks(new Task[]{ new DummyTask() })
                 .asInitiator();
         responder = new SaltyRTCBuilder()
                 .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext, new JnaclCryptoProvider())
-                .withKeyStore(new KeyStore())
+                .withKeyStore(new KeyStore(this.cryptoProvider))
                 .usingTasks(new Task[]{ new DummyTask() })
                 .initiatorInfo(initiator.getPublicPermanentKey(), initiator.getAuthToken())
                 .asResponder();
@@ -397,12 +401,12 @@ public class ConnectionTest {
         final SSLContext sslContext = SSLContextHelper.getSSLContext();
         final SaltyRTC initiator = new SaltyRTCBuilder()
             .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext, new JnaclCryptoProvider())
-            .withKeyStore(new KeyStore())
+            .withKeyStore(new KeyStore(this.cryptoProvider))
             .usingTasks(new Task[]{ initiatorTask, new DummyTask() })
             .asInitiator();
         final SaltyRTC responder = new SaltyRTCBuilder()
             .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext, new JnaclCryptoProvider())
-            .withKeyStore(new KeyStore())
+            .withKeyStore(new KeyStore(this.cryptoProvider))
             .usingTasks(new Task[]{ new DummyTask(), responderTask })
             .initiatorInfo(initiator.getPublicPermanentKey(), initiator.getAuthToken())
             .asResponder();
@@ -588,12 +592,12 @@ public class ConnectionTest {
         final SSLContext sslContext = SSLContextHelper.getSSLContext();
         final SaltyRTC initiator = new SaltyRTCBuilder()
             .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext, new JnaclCryptoProvider())
-            .withKeyStore(new KeyStore())
+            .withKeyStore(new KeyStore(this.cryptoProvider))
             .usingTasks(new Task[]{ new DummyTask() })
             .asInitiator();
         final SaltyRTC responder = new SaltyRTCBuilder()
             .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext, new JnaclCryptoProvider())
-            .withKeyStore(new KeyStore())
+            .withKeyStore(new KeyStore(this.cryptoProvider))
             .usingTasks(new Task[]{ new DummyTask() })
             .initiatorInfo(initiator.getPublicPermanentKey(), initiator.getAuthToken())
             .asResponder();

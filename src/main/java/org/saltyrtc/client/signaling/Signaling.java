@@ -589,7 +589,7 @@ public abstract class Signaling implements SignalingInterface {
             } else {
                 throw new ProtocolException("Bad receiver byte: " + receiver);
             }
-        } catch (CryptoException | CryptoFailedException | InvalidKeyException e) {
+        } catch (CryptoException | InvalidKeyException e) {
             throw new ProtocolException("Encrypting failed: " + e.getMessage(), e);
         }
 
@@ -641,7 +641,7 @@ public abstract class Signaling implements SignalingInterface {
                 final SharedKeyStore sks = this.server.getSessionSharedKey();
                 assert sks != null;
                 payload = sks.decrypt(box);
-            } catch (CryptoFailedException e) {
+            } catch (CryptoException e) {
                 throw new ProtocolException("Could not decrypt server message", e);
             }
         }
@@ -704,7 +704,7 @@ public abstract class Signaling implements SignalingInterface {
             final byte[] decrypted;
             try {
                 decrypted = this.decryptFromPeer(box);
-            } catch (CryptoFailedException e) {
+            } catch (CryptoException e) {
                 this.getLogger().error("Could not decrypt incoming message from peer " + nonce.getSource(), e);
                 return;
             }
@@ -723,7 +723,7 @@ public abstract class Signaling implements SignalingInterface {
             assert sks != null;
             final byte[] decrypted = sks.decrypt(box);
             message = MessageReader.read(decrypted);
-        } catch (CryptoFailedException e) {
+        } catch (CryptoException e) {
             this.getLogger().error("Could not decrypt incoming message from server", e);
             return;
         } catch (ValidationError | SerializationError e) {
@@ -846,7 +846,7 @@ public abstract class Signaling implements SignalingInterface {
             this.getLogger().debug("Server session key is " + HexHelper.asHex((sessionSharedKey.getRemotePublicKey())));
             // Note: We will not create a SharedKeyStore here since this will be done only once
             decrypted = this.permanentKey.decrypt(box, expectedServerKey);
-        } catch (CryptoFailedException e) {
+        } catch (CryptoException e) {
             throw new ValidationError("Could not decrypt signed_keys in server-auth message", e);
         } catch (InvalidKeyException e) {
             throw new ValidationError("Invalid key when trying to decrypt signed_keys in server-auth message", e);
@@ -1094,7 +1094,7 @@ public abstract class Signaling implements SignalingInterface {
     private Box encryptHandshakeDataForServer(
         @NonNull byte[] payload,
         @NonNull byte[] nonce
-    ) throws CryptoFailedException {
+    ) throws CryptoException {
         final SharedKeyStore sks = this.server.getSessionSharedKey();
         assert sks != null;
         return sks.encrypt(payload, nonce);
@@ -1105,7 +1105,7 @@ public abstract class Signaling implements SignalingInterface {
      */
     abstract Box encryptHandshakeDataForPeer(short receiver, String messageType,
                                              byte[] payload, byte[] nonce)
-        throws CryptoException, CryptoFailedException, InvalidKeyException, ProtocolException;
+        throws CryptoException, InvalidKeyException, ProtocolException;
 
     /**
      * Send data through the signaling channel.
@@ -1310,7 +1310,7 @@ public abstract class Signaling implements SignalingInterface {
      *
      * This method should primarily be used by tasks.
      */
-    public Box encryptForPeer(@NonNull byte[] data, @NonNull byte[] nonce) throws CryptoFailedException {
+    public Box encryptForPeer(@NonNull byte[] data, @NonNull byte[] nonce) throws CryptoException {
         try {
             return this.getPeerSessionSharedKey().encrypt(data, nonce);
         } catch (InvalidStateException e) {
@@ -1328,7 +1328,7 @@ public abstract class Signaling implements SignalingInterface {
     /**
      * Decrypt data from the peer.
      */
-    public byte[] decryptFromPeer(Box box) throws CryptoFailedException {
+    public byte[] decryptFromPeer(Box box) throws CryptoException {
         try {
             return this.getPeerSessionSharedKey().decrypt(box);
         } catch (InvalidStateException e) {

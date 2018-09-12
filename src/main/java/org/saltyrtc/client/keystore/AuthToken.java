@@ -62,7 +62,7 @@ public class AuthToken {
      * @throws CryptoException Encryption failed.
      */
     public Box encrypt(byte[] data, byte[] nonce) throws CryptoException {
-        final byte[] encrypted = this.cryptoProvider.symmetricEncryptData(data, this.authToken, nonce);
+        final byte[] encrypted = this.cryptoProvider.symmetricEncrypt(data, this.authToken, nonce);
         return new Box(nonce, encrypted);
     }
 
@@ -74,7 +74,7 @@ public class AuthToken {
      * @throws CryptoException Decryption failed.
      */
     public byte[] decrypt(Box box) throws CryptoException {
-        return this.cryptoProvider.symmetricDecryptData(box.getData(), this.authToken, box.getNonce());
+        return this.cryptoProvider.symmetricDecrypt(box.getData(), this.authToken, box.getNonce());
     }
 
 }
