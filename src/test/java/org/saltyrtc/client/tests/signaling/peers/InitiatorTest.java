@@ -26,7 +26,7 @@ public class InitiatorTest {
     public void setUp() {
         this.key = new byte[CryptoProvider.PUBLICKEYBYTES];
         this.cryptoProvider = new JnaclCryptoProvider();
-        this.cryptoProvider.genkeypair(this.key, new byte[CryptoProvider.PRIVATEKEYBYTES]);
+        this.cryptoProvider.generateKeypair(this.key, new byte[CryptoProvider.PRIVATEKEYBYTES]);
     }
 
     @Test

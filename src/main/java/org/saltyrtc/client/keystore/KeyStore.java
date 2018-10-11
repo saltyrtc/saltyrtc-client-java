@@ -38,7 +38,14 @@ public class KeyStore {
      */
     public KeyStore(@NonNull CryptoProvider cryptoProvider) {
         LOG.debug("Generating new key pair");
-        cryptoProvider.genkeypair(this.publicKey, this.privateKey);
+        try {
+            cryptoProvider.generateKeypair(this.publicKey, this.privateKey);
+        } catch (CryptoException e) {
+            // Should never happen, since the exception is only thrown if the
+            // buffers don't have the correct size.
+            e.printStackTrace();
+            throw new RuntimeException("Could not generate keypair", e);
+        }
         LOG.debug("Public key: " + HexHelper.asHex(this.publicKey));
         this.cryptoProvider = cryptoProvider;
     }

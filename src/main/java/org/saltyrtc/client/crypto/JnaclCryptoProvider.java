@@ -21,7 +21,16 @@ import org.saltyrtc.vendor.com.neilalexander.jnacl.NaCl;
 public class JnaclCryptoProvider implements CryptoProvider {
 
     @Override
-    public void genkeypair(@NonNull byte[] publickey, @NonNull byte[] privatekey) {
+    public void generateKeypair(@NonNull byte[] publickey, @NonNull byte[] privatekey) throws CryptoException {
+        // Verify key lengths
+        if (publickey.length != CryptoProvider.PUBLICKEYBYTES) {
+            throw new CryptoException("Invalid public key buffer length");
+        }
+        if (privatekey.length != CryptoProvider.PRIVATEKEYBYTES) {
+            throw new CryptoException("Invalid private key buffer length");
+        }
+
+        // Generate keypair
         NaCl.genkeypair(publickey, privatekey);
     }
 

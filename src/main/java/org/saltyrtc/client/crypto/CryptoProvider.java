@@ -27,7 +27,7 @@ public interface CryptoProvider {
      * @param publickey A byte array with size PUBLICKEYBYTES
      * @param privatekey A byte array with size PRIVATEKEYBYTES
      */
-    void genkeypair(@NonNull byte[] publickey, @NonNull byte[] privatekey);
+    void generateKeypair(@NonNull byte[] publickey, @NonNull byte[] privatekey) throws CryptoException;
 
     /**
      * Derive the public key from a private key.
