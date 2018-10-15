@@ -9,9 +9,10 @@
 package org.saltyrtc.client.keystore;
 
 import org.saltyrtc.client.annotations.NonNull;
-import org.saltyrtc.client.exceptions.CryptoFailedException;
+import org.saltyrtc.client.crypto.CryptoException;
+import org.saltyrtc.client.crypto.CryptoInstance;
+import org.saltyrtc.client.crypto.CryptoProvider;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
-import org.saltyrtc.vendor.com.neilalexander.jnacl.NaCl;
 import org.slf4j.Logger;
 
 /**
@@ -30,21 +31,24 @@ public class SharedKeyStore {
     @NonNull private final byte[] localPublicKey;
     @NonNull private final byte[] remotePublicKey;
 
-    // Precomputed NaCl instance
-    private NaCl nacl;
+    // Crypto
+    @NonNull private final CryptoInstance cryptoInstance;
 
     /**
      * Create a new key store from an existing private key.
      * The public key will automatically be derived.
      */
-    public SharedKeyStore(@NonNull byte[] localPrivateKey, @NonNull byte[] remotePublicKey) throws InvalidKeyException {
-        this.localPublicKey = NaCl.derivePublicKey(localPrivateKey); // TODO: Maybe we should pass in the local pubkey
-        this.remotePublicKey = remotePublicKey;
-
-        LOG.debug("Precalculating shared key");
+    public SharedKeyStore(
+        @NonNull CryptoProvider cryptoProvider,
+        @NonNull byte[] localPrivateKey,
+        @NonNull byte[] remotePublicKey
+    ) throws InvalidKeyException {
         try {
-            this.nacl = new NaCl(localPrivateKey, remotePublicKey);
-        } catch (Error e) {
+            this.localPublicKey = cryptoProvider.derivePublicKey(localPrivateKey); // TODO: Maybe we should pass in the local pubkey
+            this.remotePublicKey = remotePublicKey;
+            LOG.debug("Precalculating shared key");
+            this.cryptoInstance = cryptoProvider.getInstance(localPrivateKey, remotePublicKey);
+        } catch (CryptoException e) {
             throw new InvalidKeyException(e.toString());
         }
     }
@@ -55,18 +59,10 @@ public class SharedKeyStore {
      * @param data Bytes to be encrypted.
      * @param nonce The nonce that should be used to encrypt.
      * @return The encrypted NaCl box.
-     * @throws CryptoFailedException Encryption failed.
+     * @throws CryptoException Encryption failed.
      */
-    public Box encrypt(@NonNull byte[] data, @NonNull byte[] nonce) throws CryptoFailedException {
-        final byte[] encrypted;
-        try {
-            encrypted = this.nacl.encrypt(data, nonce);
-        } catch (Error e) {
-            throw new CryptoFailedException(e.toString());
-        }
-        if (encrypted == null) {
-            throw new CryptoFailedException("Encrypted data is null");
-        }
+    public Box encrypt(@NonNull byte[] data, @NonNull byte[] nonce) throws CryptoException {
+        final byte[] encrypted = this.cryptoInstance.encrypt(data, nonce);
         return new Box(nonce, encrypted);
     }
 
@@ -75,19 +71,10 @@ public class SharedKeyStore {
      *
      * @param box NaCl box.
      * @return The decrypted data.
-     * @throws CryptoFailedException Decryption failed.
+     * @throws CryptoException Decryption failed.
      */
-    public byte[] decrypt(@NonNull Box box) throws CryptoFailedException {
-        final byte[] decrypted;
-        try {
-            decrypted = nacl.decrypt(box.getData(), box.getNonce());
-        } catch (Error e) {
-            throw new CryptoFailedException(e.toString());
-        }
-        if (decrypted == null) {
-            throw new CryptoFailedException("Decrypted data is null");
-        }
-        return decrypted;
+    public byte[] decrypt(@NonNull Box box) throws CryptoException {
+        return this.cryptoInstance.decrypt(box.getData(), box.getNonce());
     }
 
     @NonNull

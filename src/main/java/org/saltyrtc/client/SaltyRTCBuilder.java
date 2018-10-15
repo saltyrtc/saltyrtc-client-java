@@ -9,13 +9,13 @@
 package org.saltyrtc.client;
 
 import org.saltyrtc.client.annotations.NonNull;
+import org.saltyrtc.client.crypto.CryptoProvider;
 import org.saltyrtc.client.exceptions.InvalidBuilderStateException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
 import org.saltyrtc.client.helpers.HexHelper;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.signaling.SignalingRole;
 import org.saltyrtc.client.tasks.Task;
-import org.saltyrtc.vendor.com.neilalexander.jnacl.NaCl;
 
 import javax.net.ssl.SSLContext;
 
@@ -30,6 +30,7 @@ public class SaltyRTCBuilder {
     private boolean hasTrustedPeerKey = false;
     private boolean hasTasks = false;
 
+    private final CryptoProvider cryptoProvider;
     private KeyStore keyStore;
     private String host;
     private Integer port;
@@ -44,6 +45,15 @@ public class SaltyRTCBuilder {
     private byte[] serverKey;
     private Task[] tasks;
     private int pingInterval = 0;
+
+    /**
+     * Create a new SaltyRTCBuilder instance.
+     *
+     * @param cryptoProvider An implementation of the `CryptoProvider` interface.
+     */
+    public SaltyRTCBuilder(@NonNull CryptoProvider cryptoProvider) {
+        this.cryptoProvider = cryptoProvider;
+    }
 
     /**
      * Validate the specified host, throw an IllegalArgumentException if it's invalid.
@@ -280,7 +290,7 @@ public class SaltyRTCBuilder {
      * If a SaltyRTCServerInfo instance is provided, dynamically determine host and port.
      */
     private void processServerInfo(@NonNull SaltyRTCServerInfo serverInfo, byte[] publicKey) {
-        final String hexPublicKey = NaCl.asHex(publicKey);
+        final String hexPublicKey = HexHelper.asHex(publicKey);
         this.host = serverInfo.getHost(hexPublicKey);
         this.port = serverInfo.getPort(hexPublicKey);
         this.sslContext = serverInfo.getSSLContext(hexPublicKey);
@@ -303,12 +313,12 @@ public class SaltyRTCBuilder {
 
         if (this.hasTrustedPeerKey) {
             return new SaltyRTC(
-                this.keyStore, this.host, this.port, this.sslContext, this.wsConnectTimeout, this.wsConnectAttemptsMax,
+                this.keyStore, this.host, this.port, this.sslContext, this.cryptoProvider, this.wsConnectTimeout, this.wsConnectAttemptsMax,
                 this.wsConnectLinearBackoff, this.peerTrustedKey, this.serverKey,
                 this.tasks, this.pingInterval, SignalingRole.Initiator);
         } else {
             return new SaltyRTC(
-                this.keyStore, this.host, this.port, this.sslContext, this.wsConnectTimeout, this.wsConnectAttemptsMax,
+                this.keyStore, this.host, this.port, this.sslContext, this.cryptoProvider, this.wsConnectTimeout, this.wsConnectAttemptsMax,
                 this.wsConnectLinearBackoff, this.serverKey, this.tasks, this.pingInterval);
         }
     }
@@ -329,7 +339,7 @@ public class SaltyRTCBuilder {
             if (this.serverInfo != null) {
                 this.processServerInfo(this.serverInfo, this.peerTrustedKey);
             }
-            return new SaltyRTC(this.keyStore, this.host, this.port, this.sslContext, this.wsConnectTimeout,
+            return new SaltyRTC(this.keyStore, this.host, this.port, this.sslContext, this.cryptoProvider, this.wsConnectTimeout,
                 this.wsConnectAttemptsMax, this.wsConnectLinearBackoff, this.peerTrustedKey, this.serverKey,
                 this.tasks, this.pingInterval, SignalingRole.Responder);
         } else {
@@ -337,7 +347,7 @@ public class SaltyRTCBuilder {
             if (this.serverInfo != null) {
                 this.processServerInfo(this.serverInfo, this.initiatorPublicKey);
             }
-            return new SaltyRTC(this.keyStore, this.host, this.port, this.sslContext, this.wsConnectTimeout,
+            return new SaltyRTC(this.keyStore, this.host, this.port, this.sslContext, this.cryptoProvider, this.wsConnectTimeout,
                 this.wsConnectAttemptsMax, this.wsConnectLinearBackoff, this.initiatorPublicKey, this.authToken,
                 this.serverKey, this.tasks, this.pingInterval);
         }

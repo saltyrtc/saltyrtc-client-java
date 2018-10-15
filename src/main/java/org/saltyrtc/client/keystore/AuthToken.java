@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017 Threema GmbH
+ * Copyright (c) 2016-2018 Threema GmbH
  *
  * Licensed under the Apache License, Version 2.0, <see LICENSE-APACHE file>
  * or the MIT license <see LICENSE-MIT file>, at your option. This file may not be
@@ -8,9 +8,10 @@
 
 package org.saltyrtc.client.keystore;
 
-import org.saltyrtc.client.exceptions.CryptoFailedException;
+import org.saltyrtc.client.annotations.NonNull;
+import org.saltyrtc.client.crypto.CryptoException;
+import org.saltyrtc.client.crypto.CryptoProvider;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
-import org.saltyrtc.vendor.com.neilalexander.jnacl.NaCl;
 import org.slf4j.Logger;
 
 import java.security.SecureRandom;
@@ -25,25 +26,31 @@ public class AuthToken {
     // Logger
     private static final Logger LOG = org.slf4j.LoggerFactory.getLogger("SaltyRTC.AuthToken");
 
-    // Keys
-    private byte[] authToken = new byte[NaCl.SYMMKEYBYTES];
+    // Crypto
+    @NonNull
+    private final CryptoProvider cryptoProvider;
 
-    public AuthToken() {
+    // Keys
+    private byte[] authToken = new byte[CryptoProvider.SYMMKEYBYTES];
+
+    public AuthToken(@NonNull CryptoProvider cryptoProvider) {
+        this.cryptoProvider = cryptoProvider;
         final SecureRandom random = new SecureRandom();
         random.nextBytes(this.authToken);
         LOG.debug("Generated random auth token");
     }
 
-    public AuthToken(byte[] authToken) throws InvalidKeyException {
-        if (authToken.length != NaCl.SYMMKEYBYTES) {
-            throw new InvalidKeyException("Auth token must be " + NaCl.SYMMKEYBYTES + " bytes long.");
+    public AuthToken(@NonNull CryptoProvider cryptoProvider, byte[] authToken) throws InvalidKeyException {
+        if (authToken.length != CryptoProvider.SYMMKEYBYTES) {
+            throw new InvalidKeyException("Auth token must be " + CryptoProvider.SYMMKEYBYTES + " bytes long.");
         }
+        this.cryptoProvider = cryptoProvider;
         this.authToken = authToken;
         LOG.debug("Initialized auth token");
     }
 
     public byte[] getAuthToken() {
-        return authToken;
+        return this.authToken;
     }
 
     /**
@@ -52,15 +59,10 @@ public class AuthToken {
      * @param data Bytes to be encrypted.
      * @param nonce The nonce that should be used to encrypt.
      * @return The encrypted NaCl box.
-     * @throws CryptoFailedException Encryption failed.
+     * @throws CryptoException Encryption failed.
      */
-    public Box encrypt(byte[] data, byte[] nonce) throws CryptoFailedException {
-        final byte[] encrypted;
-        try {
-            encrypted = NaCl.symmetricEncryptData(data, this.authToken, nonce);
-        } catch (Error e) {
-            throw new CryptoFailedException(e.getMessage());
-        }
+    public Box encrypt(byte[] data, byte[] nonce) throws CryptoException {
+        final byte[] encrypted = this.cryptoProvider.symmetricEncrypt(data, this.authToken, nonce);
         return new Box(nonce, encrypted);
     }
 
@@ -69,19 +71,10 @@ public class AuthToken {
      *
      * @param box NaCl box.
      * @return The decrypted data.
-     * @throws CryptoFailedException Decryption failed.
+     * @throws CryptoException Decryption failed.
      */
-    public byte[] decrypt(Box box) throws CryptoFailedException {
-        final byte[] decrypted;
-        try {
-            decrypted = NaCl.symmetricDecryptData(box.getData(), this.authToken, box.getNonce());
-        } catch (Error e) {
-            throw new CryptoFailedException(e.getMessage());
-        }
-        if (decrypted == null) {
-            throw new CryptoFailedException("Decrypted data is null");
-        }
-        return decrypted;
+    public byte[] decrypt(Box box) throws CryptoException {
+        return this.cryptoProvider.symmetricDecrypt(box.getData(), this.authToken, box.getNonce());
     }
 
 }

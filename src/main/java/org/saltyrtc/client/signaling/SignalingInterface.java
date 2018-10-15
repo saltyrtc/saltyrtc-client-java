@@ -2,8 +2,8 @@ package org.saltyrtc.client.signaling;
 
 import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.annotations.Nullable;
+import org.saltyrtc.client.crypto.CryptoException;
 import org.saltyrtc.client.exceptions.ConnectionException;
-import org.saltyrtc.client.exceptions.CryptoFailedException;
 import org.saltyrtc.client.exceptions.SignalingException;
 import org.saltyrtc.client.keystore.Box;
 import org.saltyrtc.client.messages.c2c.TaskMessage;
@@ -47,18 +47,18 @@ public interface SignalingInterface {
      * @param data The bytes to be encrypted.
      * @param nonce The bytes to be used as NaCl nonce.
      * @return The encrypted box.
-     * @throws CryptoFailedException if encryption fails for some reason.
+     * @throws CryptoException if encryption fails for some reason.
      */
-    Box encryptForPeer(byte[] data, byte[] nonce) throws CryptoFailedException;
+    Box encryptForPeer(byte[] data, byte[] nonce) throws CryptoException;
 
     /**
      * Decrypt data from the peer.
      *
      * @param box The encrypted box.
      * @return The decrypted bytes.
-     * @throws CryptoFailedException if decryption fails for some reason.
+     * @throws CryptoException if decryption fails for some reason.
      */
-    byte[] decryptFromPeer(Box box) throws CryptoFailedException;
+    byte[] decryptFromPeer(Box box) throws CryptoException;
 
     /**
      * Handle incoming signaling messages from the peer.

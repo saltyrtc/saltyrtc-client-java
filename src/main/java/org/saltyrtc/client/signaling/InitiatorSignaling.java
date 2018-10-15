@@ -12,15 +12,11 @@ import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.cookie.Cookie;
+import org.saltyrtc.client.crypto.CryptoException;
+import org.saltyrtc.client.crypto.CryptoProvider;
 import org.saltyrtc.client.events.SignalingConnectionLostEvent;
-import org.saltyrtc.client.exceptions.ConnectionException;
-import org.saltyrtc.client.exceptions.CryptoFailedException;
-import org.saltyrtc.client.exceptions.InternalException;
-import org.saltyrtc.client.exceptions.InvalidKeyException;
-import org.saltyrtc.client.exceptions.ProtocolException;
-import org.saltyrtc.client.exceptions.SerializationError;
-import org.saltyrtc.client.exceptions.SignalingException;
-import org.saltyrtc.client.exceptions.ValidationError;
+import org.saltyrtc.client.exceptions.*;
+import org.saltyrtc.client.helpers.HexHelper;
 import org.saltyrtc.client.helpers.MessageReader;
 import org.saltyrtc.client.helpers.TaskHelper;
 import org.saltyrtc.client.keystore.AuthToken;
@@ -40,14 +36,12 @@ import org.saltyrtc.client.signaling.state.ResponderHandshakeState;
 import org.saltyrtc.client.signaling.state.ServerHandshakeState;
 import org.saltyrtc.client.signaling.state.SignalingState;
 import org.saltyrtc.client.tasks.Task;
-import org.saltyrtc.vendor.com.neilalexander.jnacl.NaCl;
 import org.slf4j.Logger;
 
+import javax.net.ssl.SSLContext;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-
-import javax.net.ssl.SSLContext;
 
 public class InitiatorSignaling extends Signaling {
 
@@ -65,6 +59,7 @@ public class InitiatorSignaling extends Signaling {
 
     public InitiatorSignaling(SaltyRTC saltyRTC, String host, int port,
                               @Nullable SSLContext sslContext,
+                              @NonNull CryptoProvider cryptoProvider,
                               @Nullable Integer wsConnectTimeout,
                               @Nullable Integer wsConnectAttemptsMax,
                               @Nullable Boolean wsConnectLinearBackoff,
@@ -73,10 +68,10 @@ public class InitiatorSignaling extends Signaling {
                               @Nullable byte[] expectedServerKey,
                               @NonNull Task[] tasks,
                               int pingInterval) {
-        super(saltyRTC, host, port, sslContext, wsConnectTimeout, wsConnectAttemptsMax, wsConnectLinearBackoff,
+        super(saltyRTC, host, port, sslContext, cryptoProvider, wsConnectTimeout, wsConnectAttemptsMax, wsConnectLinearBackoff,
               permanentKey, responderTrustedKey, expectedServerKey, SignalingRole.Initiator, tasks, pingInterval);
         if (responderTrustedKey == null) {
-            this.authToken = new AuthToken();
+            this.authToken = new AuthToken(cryptoProvider);
         }
     }
 
@@ -101,13 +96,13 @@ public class InitiatorSignaling extends Signaling {
      */
     @Override
     protected String getWebsocketPath() {
-        return NaCl.asHex(this.permanentKey.getPublicKey());
+        return HexHelper.asHex(this.permanentKey.getPublicKey());
     }
 
     @Override
     protected Box encryptHandshakeDataForPeer(short receiver, String messageType,
                                               byte[] payload, byte[] nonce)
-            throws CryptoFailedException, ProtocolException {
+            throws CryptoException, ProtocolException {
         if (receiver == SALTYRTC_ADDR_INITIATOR) {
             throw new ProtocolException("Initiator cannot encrypt messages for initiator");
         } else if (!this.isResponderId(receiver)) {
@@ -227,7 +222,7 @@ public class InitiatorSignaling extends Signaling {
                 final SharedKeyStore sessionSharedKey = this.server.getSessionSharedKey();
                 assert sessionSharedKey != null;
                 payload = sessionSharedKey.decrypt(box);
-            } catch (CryptoFailedException e) {
+            } catch (CryptoException e) {
                 e.printStackTrace();
                 throw new ProtocolException("Could not decrypt server message");
             }
@@ -264,7 +259,7 @@ public class InitiatorSignaling extends Signaling {
                     try {
                         assert this.authToken != null;
                         payload = this.authToken.decrypt(box);
-                    } catch (CryptoFailedException e) {
+                    } catch (CryptoException e) {
                         this.getLogger().warn("Could not decrypt token message");
                         this.dropResponder(responder, CloseCode.INITIATOR_COULD_NOT_DECRYPT);
                         return;
@@ -284,7 +279,7 @@ public class InitiatorSignaling extends Signaling {
                         final SharedKeyStore permanentSharedKey = responder.getPermanentSharedKey();
                         assert permanentSharedKey != null;
                         payload = permanentSharedKey.decrypt(box);
-                    } catch (CryptoFailedException e) {
+                    } catch (CryptoException e) {
                         this.getLogger().warn("Could not decrypt key message");
                         this.dropResponder(responder, CloseCode.INITIATOR_COULD_NOT_DECRYPT);
                         return;
@@ -308,7 +303,7 @@ public class InitiatorSignaling extends Signaling {
                         final SharedKeyStore sessionSharedKey = responder.getSessionSharedKey();
                         assert sessionSharedKey != null;
                         payload = sessionSharedKey.decrypt(box);
-                    } catch (CryptoFailedException e) {
+                    } catch (CryptoException e) {
                         e.printStackTrace();
                         throw new ProtocolException("Could not decrypt auth message");
                     }
@@ -432,7 +427,7 @@ public class InitiatorSignaling extends Signaling {
      */
     private void handleKey(Key msg, Responder responder) throws ProtocolException {
         try {
-            responder.setSessionSharedKey(msg.getKey(), new KeyStore());
+            responder.setSessionSharedKey(msg.getKey(), new KeyStore(this.cryptoProvider));
         } catch (InvalidKeyException e) {
             throw new ProtocolException("Responder sent invalid session key in key message", e);
         }
@@ -471,7 +466,7 @@ public class InitiatorSignaling extends Signaling {
         this.initTask(task, msg.getData().get(task.getName()));
 
         // OK!
-        this.getLogger().debug("Responder 0x" + NaCl.asHex(new int[] { responder.getId() }) + " authenticated");
+        this.getLogger().debug("Responder 0x" + HexHelper.asHex(new int[] { responder.getId() }) + " authenticated");
 
         // Store cookie
         responder.getCookiePair().setTheirs(nonce.getCookie());

@@ -14,9 +14,12 @@ import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.cookie.Cookie;
+import org.saltyrtc.client.crypto.CryptoException;
+import org.saltyrtc.client.crypto.CryptoProvider;
 import org.saltyrtc.client.events.*;
 import org.saltyrtc.client.exceptions.*;
 import org.saltyrtc.client.helpers.ArrayHelper;
+import org.saltyrtc.client.helpers.HexHelper;
 import org.saltyrtc.client.helpers.MessageHistory;
 import org.saltyrtc.client.helpers.MessageReader;
 import org.saltyrtc.client.keystore.AuthToken;
@@ -36,7 +39,6 @@ import org.saltyrtc.client.signaling.state.HandoverState;
 import org.saltyrtc.client.signaling.state.ServerHandshakeState;
 import org.saltyrtc.client.signaling.state.SignalingState;
 import org.saltyrtc.client.tasks.Task;
-import org.saltyrtc.vendor.com.neilalexander.jnacl.NaCl;
 import org.slf4j.Logger;
 
 import javax.net.ssl.SSLContext;
@@ -81,6 +83,9 @@ public abstract class Signaling implements SignalingInterface {
     private int wsConnectTimeout;
     private int wsConnectAttempt = 0;
 
+    // Crypto
+    protected final CryptoProvider cryptoProvider;
+
     // Connection state
     private SignalingState state = SignalingState.NEW;
     private final HandoverState handoverState = new HandoverState();
@@ -114,6 +119,7 @@ public abstract class Signaling implements SignalingInterface {
 
     public Signaling(SaltyRTC salty, String host, int port,
                      @Nullable SSLContext sslContext,
+                     @NonNull CryptoProvider cryptoProvider,
                      @Nullable Integer wsConnectTimeout,
                      @Nullable Integer wsConnectAttemptsMax,
                      @Nullable Boolean wsConnectLinearBackoff,
@@ -127,6 +133,7 @@ public abstract class Signaling implements SignalingInterface {
         this.host = host;
         this.port = port;
         this.sslContext = sslContext;
+        this.cryptoProvider = cryptoProvider;
         this.wsConnectTimeoutInitial = wsConnectTimeout == null ? SALTYRTC_WS_CONNECT_TIMEOUT : wsConnectTimeout;
         this.wsConnectAttemptsMax = wsConnectAttemptsMax == null ? SALTYRTC_WS_CONNECT_ATTEMPTS_MAX : wsConnectAttemptsMax;
         this.wsConnectLinearBackoff = wsConnectLinearBackoff == null ? SALTYRTC_WS_CONNECT_LINEAR_BACKOFF : wsConnectLinearBackoff;
@@ -582,7 +589,7 @@ public abstract class Signaling implements SignalingInterface {
             } else {
                 throw new ProtocolException("Bad receiver byte: " + receiver);
             }
-        } catch (CryptoFailedException | InvalidKeyException e) {
+        } catch (CryptoException | InvalidKeyException e) {
             throw new ProtocolException("Encrypting failed: " + e.getMessage(), e);
         }
 
@@ -634,7 +641,7 @@ public abstract class Signaling implements SignalingInterface {
                 final SharedKeyStore sks = this.server.getSessionSharedKey();
                 assert sks != null;
                 payload = sks.decrypt(box);
-            } catch (CryptoFailedException e) {
+            } catch (CryptoException e) {
                 throw new ProtocolException("Could not decrypt server message", e);
             }
         }
@@ -697,7 +704,7 @@ public abstract class Signaling implements SignalingInterface {
             final byte[] decrypted;
             try {
                 decrypted = this.decryptFromPeer(box);
-            } catch (CryptoFailedException e) {
+            } catch (CryptoException e) {
                 this.getLogger().error("Could not decrypt incoming message from peer " + nonce.getSource(), e);
                 return;
             }
@@ -716,7 +723,7 @@ public abstract class Signaling implements SignalingInterface {
             assert sks != null;
             final byte[] decrypted = sks.decrypt(box);
             message = MessageReader.read(decrypted);
-        } catch (CryptoFailedException e) {
+        } catch (CryptoException e) {
             this.getLogger().error("Could not decrypt incoming message from server", e);
             return;
         } catch (ValidationError | SerializationError e) {
@@ -835,11 +842,11 @@ public abstract class Signaling implements SignalingInterface {
         final SharedKeyStore sessionSharedKey = this.server.getSessionSharedKey();
         assert sessionSharedKey != null;
         try {
-            this.getLogger().debug("Expected server key is " + NaCl.asHex(expectedServerKey));
-            this.getLogger().debug("Server session key is " + NaCl.asHex(sessionSharedKey.getRemotePublicKey()));
+            this.getLogger().debug("Expected server key is " + HexHelper.asHex(expectedServerKey));
+            this.getLogger().debug("Server session key is " + HexHelper.asHex((sessionSharedKey.getRemotePublicKey())));
             // Note: We will not create a SharedKeyStore here since this will be done only once
             decrypted = this.permanentKey.decrypt(box, expectedServerKey);
-        } catch (CryptoFailedException e) {
+        } catch (CryptoException e) {
             throw new ValidationError("Could not decrypt signed_keys in server-auth message", e);
         } catch (InvalidKeyException e) {
             throw new ValidationError("Invalid key when trying to decrypt signed_keys in server-auth message", e);
@@ -1087,7 +1094,7 @@ public abstract class Signaling implements SignalingInterface {
     private Box encryptHandshakeDataForServer(
         @NonNull byte[] payload,
         @NonNull byte[] nonce
-    ) throws CryptoFailedException {
+    ) throws CryptoException {
         final SharedKeyStore sks = this.server.getSessionSharedKey();
         assert sks != null;
         return sks.encrypt(payload, nonce);
@@ -1098,7 +1105,7 @@ public abstract class Signaling implements SignalingInterface {
      */
     abstract Box encryptHandshakeDataForPeer(short receiver, String messageType,
                                              byte[] payload, byte[] nonce)
-        throws CryptoFailedException, InvalidKeyException, ProtocolException;
+        throws CryptoException, InvalidKeyException, ProtocolException;
 
     /**
      * Send data through the signaling channel.
@@ -1223,7 +1230,7 @@ public abstract class Signaling implements SignalingInterface {
     void handleSendError(SendError msg) throws SignalingException {
         // Get the message id from the SendError message
         final byte[] id = msg.getId();
-        final String idString = NaCl.asHex(id);
+        final String idString = HexHelper.asHex((id));
 
         // Determine the sender and receiver of the message
         final ByteBuffer buf = ByteBuffer.wrap(id);
@@ -1303,7 +1310,7 @@ public abstract class Signaling implements SignalingInterface {
      *
      * This method should primarily be used by tasks.
      */
-    public Box encryptForPeer(@NonNull byte[] data, @NonNull byte[] nonce) throws CryptoFailedException {
+    public Box encryptForPeer(@NonNull byte[] data, @NonNull byte[] nonce) throws CryptoException {
         try {
             return this.getPeerSessionSharedKey().encrypt(data, nonce);
         } catch (InvalidStateException e) {
@@ -1321,7 +1328,7 @@ public abstract class Signaling implements SignalingInterface {
     /**
      * Decrypt data from the peer.
      */
-    public byte[] decryptFromPeer(Box box) throws CryptoFailedException {
+    public byte[] decryptFromPeer(Box box) throws CryptoException {
         try {
             return this.getPeerSessionSharedKey().decrypt(box);
         } catch (InvalidStateException e) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017 Threema GmbH
+ * Copyright (c) 2016-2018 Threema GmbH
  *
  * Licensed under the Apache License, Version 2.0, <see LICENSE-APACHE file>
  * or the MIT license <see LICENSE-MIT file>, at your option. This file may not be
@@ -10,7 +10,6 @@ package org.saltyrtc.client.helpers;
 
 import org.saltyrtc.client.messages.Message;
 import org.saltyrtc.client.nonce.SignalingChannelNonce;
-import org.saltyrtc.vendor.com.neilalexander.jnacl.NaCl;
 
 import java.nio.ByteBuffer;
 import java.util.LinkedHashMap;
@@ -44,7 +43,7 @@ public class MessageHistory {
      */
     public synchronized void store(Message message, SignalingChannelNonce nonce) {
         final byte[] key = MessageHistory.getMessageKey(nonce);
-        this.history.put(NaCl.asHex(key).toLowerCase(), message);
+        this.history.put(HexHelper.asHex(key).toLowerCase(), message);
     }
 
     /**
@@ -68,7 +67,7 @@ public class MessageHistory {
      * If message is not found, null is returned.
      */
     public synchronized Message find(byte[] key) {
-        return this.history.get(NaCl.asHex(key).toLowerCase());
+        return this.history.get(HexHelper.asHex(key).toLowerCase());
     }
 
     /**

@@ -9,7 +9,7 @@
 package org.saltyrtc.client.nonce;
 
 import org.saltyrtc.client.cookie.Cookie;
-import org.saltyrtc.vendor.com.neilalexander.jnacl.NaCl;
+import org.saltyrtc.client.crypto.CryptoProvider;
 
 public abstract class Nonce {
 
@@ -18,7 +18,7 @@ public abstract class Nonce {
     protected long sequence;
 
     public static final int COOKIE_LENGTH = 16;
-    public static final int TOTAL_LENGTH = NaCl.NONCEBYTES;
+    public static final int TOTAL_LENGTH = CryptoProvider.NONCEBYTES;
 
     /**
      * Convert nonce to bytes.

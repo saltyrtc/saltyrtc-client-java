@@ -11,10 +11,10 @@ package org.saltyrtc.client.messages.s2c;
 import org.msgpack.core.MessagePacker;
 import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.annotations.Nullable;
+import org.saltyrtc.client.crypto.CryptoProvider;
 import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.helpers.ValidationHelper;
 import org.saltyrtc.client.messages.Message;
-import org.saltyrtc.vendor.com.neilalexander.jnacl.NaCl;
 
 import java.io.IOException;
 import java.util.List;
@@ -42,7 +42,7 @@ public class InitiatorServerAuth extends Message {
     public InitiatorServerAuth(Map<String, Object> map) throws ValidationError {
         ValidationHelper.validateType(map.get("type"), TYPE);
         final int COOKIE_LENGTH = 16;
-        final int SIGNED_KEYS_LENGTH = NaCl.PUBLICKEYBYTES * 2 + NaCl.BOXOVERHEAD;
+        final int SIGNED_KEYS_LENGTH = CryptoProvider.PUBLICKEYBYTES * 2 + CryptoProvider.BOXOVERHEAD;
         this.yourCookie = ValidationHelper.validateByteArray(map.get("your_cookie"), COOKIE_LENGTH, "your_cookie");
         this.responders = ValidationHelper.validateTypedList(map.get("responders"), Integer.class, "responders");
         if (map.containsKey("signed_keys") && map.get("signed_keys") != null) {
