@@ -16,7 +16,7 @@ import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.SaltyRTCBuilder;
 import org.saltyrtc.client.SaltyRTCServerInfo;
 import org.saltyrtc.client.crypto.CryptoProvider;
-import org.saltyrtc.client.crypto.JnaclCryptoProvider;
+import org.saltyrtc.client.tests.LazysodiumCryptoProvider;
 import org.saltyrtc.client.exceptions.ConnectionException;
 import org.saltyrtc.client.exceptions.InvalidStateException;
 import org.saltyrtc.client.helpers.HexHelper;
@@ -54,7 +54,7 @@ public class ConnectionTest {
 
     @Before
     public void setUp() throws Exception {
-        this.cryptoProvider = new JnaclCryptoProvider();
+        this.cryptoProvider = new LazysodiumCryptoProvider();
 
         // Get SSL context
         final SSLContext sslContext = SSLContextHelper.getSSLContext();

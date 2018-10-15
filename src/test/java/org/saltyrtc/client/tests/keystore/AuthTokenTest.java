@@ -12,7 +12,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.saltyrtc.client.crypto.CryptoException;
 import org.saltyrtc.client.crypto.CryptoProvider;
-import org.saltyrtc.client.crypto.JnaclCryptoProvider;
+import org.saltyrtc.client.tests.LazysodiumCryptoProvider;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
 import org.saltyrtc.client.keystore.AuthToken;
 import org.saltyrtc.client.keystore.Box;
@@ -28,7 +28,7 @@ public class AuthTokenTest {
 
     @Before
     public void setUp() {
-        this.at = new AuthToken(new JnaclCryptoProvider());
+        this.at = new AuthToken(new LazysodiumCryptoProvider());
     }
 
     @Test
@@ -48,7 +48,7 @@ public class AuthTokenTest {
         final byte[] nonce = {-87, -88, -82, 13, 100, -66, -61, 29, 26, -15, 104, -71, 9, 31, -18, -56, 23, -127, -21, 58, 18, -54, 107, 94, };
         final byte[] encrypted = {85, 79, -97, 53, -9, -64, -105, 64, -89, 52, -100, -122, -55, -71, 54, 102, -83, 15, -6, -78, 15, };
         // Decrypt
-        this.at = new AuthToken(new JnaclCryptoProvider(), authToken);
+        this.at = new AuthToken(new LazysodiumCryptoProvider(), authToken);
         final Box box = new Box(nonce, encrypted);
         final byte[] decrypted = this.at.decrypt(box);
         assertArrayEquals("hello".getBytes(), decrypted);
@@ -71,7 +71,7 @@ public class AuthTokenTest {
         }
 
         // Now decrypt with wrong keys
-        this.at = new AuthToken(new JnaclCryptoProvider());
+        this.at = new AuthToken(new LazysodiumCryptoProvider());
         // This will now fail with a CryptoException
         this.at.decrypt(box);
     }
@@ -79,7 +79,7 @@ public class AuthTokenTest {
     @Test(expected=InvalidKeyException.class)
     public void testInvalidKey() throws InvalidKeyException {
         final byte[] token = {42};
-        new AuthToken(new JnaclCryptoProvider(), token);
+        new AuthToken(new LazysodiumCryptoProvider(), token);
     }
 
 }

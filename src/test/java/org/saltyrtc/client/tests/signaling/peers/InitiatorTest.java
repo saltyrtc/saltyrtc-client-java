@@ -10,8 +10,9 @@ package org.saltyrtc.client.tests.signaling.peers;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.saltyrtc.client.crypto.CryptoException;
 import org.saltyrtc.client.crypto.CryptoProvider;
-import org.saltyrtc.client.crypto.JnaclCryptoProvider;
+import org.saltyrtc.client.tests.LazysodiumCryptoProvider;
 import org.saltyrtc.client.exceptions.InvalidStateException;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.client.signaling.peers.Initiator;
@@ -23,9 +24,9 @@ public class InitiatorTest {
     private CryptoProvider cryptoProvider;
 
     @Before
-    public void setUp() {
+    public void setUp() throws CryptoException {
         this.key = new byte[CryptoProvider.PUBLICKEYBYTES];
-        this.cryptoProvider = new JnaclCryptoProvider();
+        this.cryptoProvider = new LazysodiumCryptoProvider();
         this.cryptoProvider.generateKeypair(this.key, new byte[CryptoProvider.PRIVATEKEYBYTES]);
     }
 

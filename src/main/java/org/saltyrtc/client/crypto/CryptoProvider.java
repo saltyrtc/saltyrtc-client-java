@@ -22,7 +22,7 @@ public interface CryptoProvider {
     int BOXOVERHEAD = 16;
 
     /**
-     * Create a public/private key pair.
+     * Create a public/private key pair. Put the key material in the provided buffers.
      *
      * @param publickey A byte array with size PUBLICKEYBYTES
      * @param privatekey A byte array with size PRIVATEKEYBYTES

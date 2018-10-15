@@ -11,7 +11,7 @@ package org.saltyrtc.client.tests.keystore;
 import org.junit.Test;
 import org.saltyrtc.client.crypto.CryptoException;
 import org.saltyrtc.client.crypto.CryptoProvider;
-import org.saltyrtc.client.crypto.JnaclCryptoProvider;
+import org.saltyrtc.client.tests.LazysodiumCryptoProvider;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
 import org.saltyrtc.client.keystore.Box;
 import org.saltyrtc.client.keystore.KeyStore;
@@ -25,7 +25,7 @@ import static org.junit.Assert.assertEquals;
 public class SharedKeyStoreTest {
 
     private SecureRandom random = new SecureRandom();
-    private CryptoProvider cryptoProvider = new JnaclCryptoProvider();
+    private CryptoProvider cryptoProvider = new LazysodiumCryptoProvider();
 
     @Test
     public void testEncrypt() throws CryptoException, InvalidKeyException {

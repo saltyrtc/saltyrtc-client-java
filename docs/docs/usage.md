@@ -14,14 +14,13 @@ characteristics, therefore the crypto backend in this library is pluggable.
 
 In order to instantiate a `SaltyRTC` instance or a `KeyStore`, you need to
 provide an implementation of the `org.saltyrtc.client.crypto.CryptoProvider`
-interface. For ease of use, this library provides a pure-java implementation of
-such a CryptoProvider using [jnacl](https://github.com/neilalexander/jnacl). To
-use, simply create an instance of the `JnaclCryptoProvider`.
+interface. You can find an example implementation
+[in the testsuite](https://github.com/saltyrtc/saltyrtc-client-java/blob/master/src/test/java/org/saltyrtc/client/tests/LazysodiumCryptoInstance.java),
+but depending on your target platform and requirements you should probably provide
+your own.
 
 ```java
-import org.saltyrtc.client.crypto.JnaclCryptoProvider;
-
-final CryptoProvider cryptoProvider = new JnaclCryptoProvider();
+final CryptoProvider cryptoProvider = new MyCryptoProvider();
 ```
 
 ## The SaltyRTCBuilder
@@ -129,7 +128,7 @@ import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.tasks.webrtc.WebRTCTask;
 
 final SSLContext sslContext = SSLContext.getDefault();
-final CryptoProvider cryptoProvider = new JnaclCryptoProvider();
+final CryptoProvider cryptoProvider = new MyCryptoProvider();
 final SaltyRTC client = new SaltyRTCBuilder(cryptoProvider)
         .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
         .withKeyStore(new KeyStore(cryptoProvider))

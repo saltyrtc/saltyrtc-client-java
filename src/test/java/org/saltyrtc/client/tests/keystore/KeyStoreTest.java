@@ -12,7 +12,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.saltyrtc.client.crypto.CryptoException;
 import org.saltyrtc.client.crypto.CryptoProvider;
-import org.saltyrtc.client.crypto.JnaclCryptoProvider;
+import org.saltyrtc.client.tests.LazysodiumCryptoProvider;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
 import org.saltyrtc.client.helpers.HexHelper;
 import org.saltyrtc.client.helpers.RandomHelper;
@@ -32,7 +32,7 @@ public class KeyStoreTest {
 
     @Before
     public void setUp() {
-        this.cryptoProvider = new JnaclCryptoProvider();
+        this.cryptoProvider = new LazysodiumCryptoProvider();
         this.ks = new KeyStore(this.cryptoProvider);
     }
 
@@ -46,6 +46,7 @@ public class KeyStoreTest {
         final Box box = this.ks.encrypt(in, nonce, otherKey);
         assertEquals(nonce, box.getNonce());
         assertNotEquals(in, box.getData());
+        assertEquals(in.length + CryptoProvider.BOXOVERHEAD, box.getData().length);
     }
 
     @Test
