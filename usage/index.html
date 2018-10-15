@@ -73,6 +73,8 @@
             
                 <li class="toctree-l3"><a href="#usage">Usage</a></li>
                 
+                    <li><a class="toctree-l4" href="#the-cryptoprovider">The CryptoProvider</a></li>
+                
                     <li><a class="toctree-l4" href="#the-saltyrtcbuilder">The SaltyRTCBuilder</a></li>
                 
                     <li><a class="toctree-l4" href="#full-example">Full example</a></li>
@@ -151,11 +153,25 @@
 <p>This chapter gives a short introduction on how to use the SaltyRTC JavaScript client.</p>
 <p>To see a more practical example, you may also want to take a look at our <a href="https://github.com/saltyrtc/saltyrtc-demo">demo
 application</a>.</p>
+<h2 id="the-cryptoprovider">The CryptoProvider</h2>
+<p>SaltyRTC is based on the <a href="https://nacl.cr.yp.to/">NaCl</a> crypto system, which
+features both symmetric and asymmetric encryption. However, there are various
+implementations of NaCl for different target systems with different performance
+characteristics, therefore the crypto backend in this library is pluggable.</p>
+<p>In order to instantiate a <code>SaltyRTC</code> instance or a <code>KeyStore</code>, you need to
+provide an implementation of the <code>org.saltyrtc.client.crypto.CryptoProvider</code>
+interface. You can find an example implementation
+<a href="https://github.com/saltyrtc/saltyrtc-client-java/blob/master/src/test/java/org/saltyrtc/client/tests/LazysodiumCryptoInstance.java">in the testsuite</a>,
+but depending on your target platform and requirements you should probably provide
+your own.</p>
+<pre><code class="java">final CryptoProvider cryptoProvider = new MyCryptoProvider();
+</code></pre>
+
 <h2 id="the-saltyrtcbuilder">The SaltyRTCBuilder</h2>
 <p>To initialize a <code>SaltyRTC</code> instance, you can use the <code>SaltyRTCBuilder</code>.</p>
 <pre><code class="java">import org.saltyrtc.client.SaltyRTCBuilder;
 
-final SaltyRTCBuilder builder = new SaltyRTCBuilder();
+final SaltyRTCBuilder builder = new SaltyRTCBuilder(cryptoProvider);
 </code></pre>
 
 <h3 id="connection-info">Connection info</h3>
@@ -169,7 +185,7 @@ final SaltyRTCBuilder builder = new SaltyRTCBuilder();
 with the <code>KeyStore</code> class:</p>
 <pre><code class="java">import org.saltyrtc.client.keystore.KeyStore;
 
-final KeyStore keyStore = new KeyStore();
+final KeyStore keyStore = new KeyStore(cryptoProvider);
 builder.withKeyStore(keyStore);
 </code></pre>
 
@@ -217,13 +233,15 @@ either byte arrays or hex encoded strings.</p>
 <pre><code class="java">import javax.net.ssl.SSLContext;
 import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.SaltyRTCBuilder;
+import org.saltyrtc.client.crypto.CryptoProvider;
 import org.saltyrtc.client.keystore.KeyStore;
 import org.saltyrtc.tasks.webrtc.WebRTCTask;
 
 final SSLContext sslContext = SSLContext.getDefault();
-final SaltyRTC client = new SaltyRTCBuilder()
+final CryptoProvider cryptoProvider = new MyCryptoProvider();
+final SaltyRTC client = new SaltyRTCBuilder(cryptoProvider)
         .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
-        .withKeyStore(new KeyStore())
+        .withKeyStore(new KeyStore(cryptoProvider))
         .withPingInterval(60)
         .withWebsocketConnectTimeout(5000)
         .withServerKey(Config.SALTYRTC_SERVER_PUBLIC_KEY)
@@ -237,7 +255,7 @@ final SaltyRTC client = new SaltyRTCBuilder()
 <p>In order to reconnect to a session using a trusted key, you first need to
 restore your <code>KeyStore</code> with the permanent keypair originally used to establish
 the trusted session:</p>
-<pre><code class="java">final KeyStore keyStore = new KeyStore(ourPrivatePermanentKey);
+<pre><code class="java">final KeyStore keyStore = new KeyStore(cryptoProvider, ourPrivatePermanentKey);
 builder.withKeyStore(keyStore);
 </code></pre>
 
@@ -281,7 +299,7 @@ you can instead provide an implementation of <code>SaltyRTCServerInfo</code> tha
 dynamically determine the connection info based on the public key of the
 initiator.</p>
 <pre><code class="java">final SSLContext sslContext = SSLContext.getDefault();
-final SaltyRTC responder = new SaltyRTCBuilder()
+final SaltyRTC responder = new SaltyRTCBuilder(cryptoProvider)
     .connectTo(new SaltyRTCServerInfo() {
         @Override
         public String getHost(String initiatorPublicKey) {
