@@ -50,6 +50,22 @@ Include it in your project like this:
         maven { url "/tmp/maven" }
     }
 
+## Coding Guidelines
+
+Unfortunately we cannot use all Java 8 features, in order to be compatible with
+Android API <24. Please avoid using the following APIs:
+
+- `java.lang.annotation.Repeatable`
+- `AnnotatedElement.getAnnotationsByType(Class)`
+- `java.util.stream`
+- `java.lang.FunctionalInterface`
+- `java.lang.reflect.Method.isDefault()`
+- `java.util.function`
+
+The CI tests contains a script to ensure that these APIs aren't being called. You can also run it manually:
+
+    bash .circleci/check_android_support.sh
+
 ## Automated Testing
 
 ### 1. Preparing the Server
