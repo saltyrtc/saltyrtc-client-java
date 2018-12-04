@@ -38,6 +38,12 @@ jobs:
     docker:
       - image: saltyrtc/circleci-image:openjdk8
     steps: *test-steps
+  test-android-compat:
+    docker:
+      - image: circleci/openjdk:8
+    steps:
+      - checkout
+      - run: bash .circleci/check_android_support.sh
   deploy-docs:
     docker:
       - image: python:3.5
@@ -55,6 +61,11 @@ workflows:
   build:
     jobs:
       - test-openjdk8:
+          filters:
+            branches:
+              ignore:
+                - gh-pages
+      - test-android-compat:
           filters:
             branches:
               ignore:

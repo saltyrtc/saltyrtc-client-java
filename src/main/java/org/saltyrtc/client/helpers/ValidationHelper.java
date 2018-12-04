@@ -12,7 +12,6 @@ import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.signaling.CloseCode;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -130,10 +129,12 @@ public class ValidationHelper {
         }
         final Integer number = (Integer) value;
         final int[] codes = dropResponder ? CloseCode.CLOSE_CODES_DROP_RESPONDER : CloseCode.CLOSE_CODES_ALL;
-        return Arrays.stream(codes)
-            .filter(code -> code == number)
-            .findFirst()
-            .orElseThrow(() -> new ValidationError(name + " must be a valid close code"));
+        for (int code : codes) {
+            if (code == number) {
+                return number;
+            }
+        }
+        throw new ValidationError(name + " must be a valid close code");
     }
 
     @SuppressWarnings("unchecked")
