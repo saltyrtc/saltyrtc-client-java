@@ -8,14 +8,11 @@
 
 package org.saltyrtc.client.helpers;
 
-import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.tasks.Task;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * Utilities for working with tasks.
@@ -23,12 +20,16 @@ import java.util.stream.Collectors;
 public class TaskHelper {
 
     /**
-     * Return list of names of registered tasks.
+     * Iterate over all registered tasks, return list of task names.
      */
     public static List<String> getTaskNames(Task[] tasks) {
-        return Arrays.stream(tasks)
-            .map(Task::getName)
-            .collect(Collectors.toList());
+        // Sane languages could do this by calling .map
+        // with an anonymous function, but unfortunately Java 7 ain't :(
+        List<String> taskNames = new ArrayList<>();
+        for (Task task : tasks) {
+            taskNames.add(task.getName());
+        }
+        return taskNames;
     }
 
     /**
@@ -37,10 +38,13 @@ public class TaskHelper {
      *
      * @return The selected task, if a common task can be found.
      */
-    public static Optional<Task> chooseCommonTask(@NonNull Task[] ourTasks, @NonNull List<String> theirTasks) {
-        return Arrays.stream(ourTasks)
-            .filter(task -> theirTasks.contains(task.getName()))
-            .findFirst();
+    public static Optional<Task> chooseCommonTask(Task[] ourTasks, List<String> theirTasks) {
+        for (Task task : ourTasks) {
+            if (theirTasks.contains(task.getName())) {
+                return Optional.of(task);
+            }
+        }
+        return Optional.empty();
     }
 
 }
