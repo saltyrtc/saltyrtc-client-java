@@ -12,6 +12,14 @@ Possible log types:
 - `[security]` to invite users to upgrade in case of vulnerabilities.
 
 
+### v0.12.0 (2018-12-05)
+
+- [added] Add close code 3008 (timeout) (#87)
+- [added] Precalculate shared keys (#91)
+- [added] Add `CryptoProvider` abstraction to make NaCl implementation pluggable (#95)
+- [added] `Box` instances are now comparable
+- [changed] Use Java 8 (#93)
+
 ### v0.11.3 (2018-05-08)
 
 - [fixed] Fix potential NPE when WebSocket is closed (#85)
