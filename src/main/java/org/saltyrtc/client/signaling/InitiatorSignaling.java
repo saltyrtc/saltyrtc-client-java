@@ -357,8 +357,11 @@ public class InitiatorSignaling extends Signaling {
      * Store a new responder.
      */
     private void processNewResponder(short responderId) throws ConnectionException, SignalingException {
-        // Drop responder if it's already known
-        this.responders.remove(responderId);
+        // Discard previous responder (if any)
+        if (this.responders.remove(responderId) != null) {
+            this.getLogger().warn("Previous responder discarded (server should have sent " +
+                "'disconnected' message): " + responderId);
+        }
 
         // Create responder instance
         final Responder responder;
