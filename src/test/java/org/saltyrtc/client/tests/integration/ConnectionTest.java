@@ -273,6 +273,36 @@ public class ConnectionTest {
     }
 
     @Test
+    public void testDisconnectBeforePeerHandshake() throws Exception {
+        // Connect and wait for peer handshake
+        connect(SignalingState.PEER_HANDSHAKE, initiator);
+        assertEquals(SignalingState.PEER_HANDSHAKE, initiator.getSignalingState());
+
+        // Disconnect and wait until closed
+        disconnect(initiator);
+        assertEquals(SignalingState.CLOSED, initiator.getSignalingState());
+    }
+
+    @Test
+    public void testDisconnectAfterPeerHandshake() throws Exception {
+        final CountDownLatch peerDisconnected = new CountDownLatch(1);
+
+        // Connect both and wait until established
+        connect(SignalingState.TASK, initiator, responder);
+
+        // Disconnect initiator and wait until closed
+        disconnect(initiator);
+
+        // Expect 'peer-disconnected' message
+        responder.events.peerDisconnected.register(event -> {
+            peerDisconnected.countDown();
+            return true;
+        });
+        final boolean success = peerDisconnected.await(2, TimeUnit.SECONDS);
+        assertTrue(success);
+    }
+
+    @Test
     public void testTrustedHandshakeInitiatorFirst() throws Exception {
         // Create trusting peers
         final SSLContext sslContext = SSLContextHelper.getSSLContext();
