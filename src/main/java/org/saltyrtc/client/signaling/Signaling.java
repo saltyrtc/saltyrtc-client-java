@@ -360,6 +360,12 @@ public abstract class Signaling implements SignalingInterface {
 
                     // Parse and validate nonce
                     nonce = new SignalingChannelNonce(ByteBuffer.wrap(box.getNonce()));
+                    if (Signaling.this.getPeerWithId(nonce.getSource()) == null) {
+                        // Note: This can happen when a responder has been dropped
+                        //       but a message was still in flight.
+                        getLogger().debug("Ignoring message from unknown id: " + nonce.getSource());
+                        return;
+                    }
                     validateNonce(nonce);
 
                     // Check peer handover state
@@ -689,7 +695,7 @@ public abstract class Signaling implements SignalingInterface {
     /**
      * Message received from peer or server *after* the handshake is done.
      */
-    private void onSignalingMessage(Box box, SignalingChannelNonce nonce) throws SignalingException {
+    private void onSignalingMessage(Box box, SignalingChannelNonce nonce) throws SignalingException, ConnectionException {
         this.getLogger().debug("Message received");
         if (nonce.getSource() == SALTYRTC_ADDR_SERVER) {
             this.onSignalingServerMessage(box);
@@ -708,7 +714,7 @@ public abstract class Signaling implements SignalingInterface {
     /**
      * Signaling message received from server *after* the handshake is done.
      */
-    private void onSignalingServerMessage(Box box) throws SignalingException {
+    private void onSignalingServerMessage(Box box) throws SignalingException, ConnectionException {
         final Message message;
 
         try {
@@ -729,9 +735,14 @@ public abstract class Signaling implements SignalingInterface {
         } else if (message instanceof Disconnected) {
             this.handleDisconnected((Disconnected) message);
         } else {
-            this.getLogger().error("Invalid server message type: " + message.getType());
+            this.onUnhandledSignalingServerMessage(message);
         }
     }
+
+    /**
+     * Handle messages received from the server *after* the handshake is done.
+     */
+    abstract void onUnhandledSignalingServerMessage(@NonNull final Message msg) throws ConnectionException, SignalingException;
 
     /**
      * Signaling message received from peer *after* the handshake is done.

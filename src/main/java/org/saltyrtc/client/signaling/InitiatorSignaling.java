@@ -343,14 +343,36 @@ public class InitiatorSignaling extends Signaling {
     }
 
     /**
+     * Drop a new responder after a handshake with one responder has already
+     * completed.
+     *
+     * Note: This deviates from the intention of the specification to allow
+     *       for more than one connection towards a responder over the same
+     *       WebSocket connection.
+     */
+    void onUnhandledSignalingServerMessage(@NonNull final Message msg) throws ConnectionException, SignalingException {
+        if (msg instanceof NewResponder) {
+            this.getLogger().debug("Received new-responder message");
+            this.handleNewResponder((NewResponder) msg);
+        } else {
+            this.getLogger().warn("Unexpected server message type: " + msg.getType());
+        }
+    }
+
+    /**
      * A new responder wants to connect.
      */
     private void handleNewResponder(NewResponder msg) throws SignalingException, ConnectionException {
         // Validate responder id
         final short id = this.validateResponderId(msg.getId());
 
-        // Process responder
-        this.processNewResponder(id);
+        // Process or ignore responder
+        if (this.getState() == SignalingState.PEER_HANDSHAKE) {
+            this.processNewResponder(id);
+        } else {
+            this.getLogger().debug("Dropping responder " + msg.getId() + " in " + this.getState() + " state");
+            this.dropResponder(id, CloseCode.DROPPED_BY_INITIATOR);
+        }
     }
 
     /**
