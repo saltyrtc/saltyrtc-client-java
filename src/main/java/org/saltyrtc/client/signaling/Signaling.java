@@ -346,11 +346,14 @@ public abstract class Signaling implements SignalingInterface {
             @SuppressWarnings("UnqualifiedMethodAccess")
             public synchronized void onBinaryMessage(WebSocket websocket, byte[] binary) {
                 getLogger().debug("New binary message (" + binary.length + " bytes)");
-
-                // Update state if necessary
-                if (getState() == SignalingState.WS_CONNECTING) {
-                    getLogger().info("WebSocket connection open");
-                    setState(SignalingState.SERVER_HANDSHAKE);
+                switch (Signaling.this.getState()) {
+                    case WS_CONNECTING:
+                        getLogger().info("WebSocket connection open");
+                        Signaling.this.setState(SignalingState.SERVER_HANDSHAKE);
+                        break;
+                    case CLOSED:
+                        getLogger().debug("Ignoring message in state " + Signaling.this.getState());
+                        return;
                 }
 
                 SignalingChannelNonce nonce = null;
