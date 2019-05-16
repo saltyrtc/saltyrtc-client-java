@@ -20,7 +20,6 @@ import org.saltyrtc.client.events.*;
 import org.saltyrtc.client.exceptions.*;
 import org.saltyrtc.client.helpers.ArrayHelper;
 import org.saltyrtc.client.helpers.HexHelper;
-import org.saltyrtc.client.helpers.MessageHistory;
 import org.saltyrtc.client.helpers.MessageReader;
 import org.saltyrtc.client.keystore.AuthToken;
 import org.saltyrtc.client.keystore.Box;
@@ -113,9 +112,6 @@ public abstract class Signaling implements SignalingInterface {
     // Tasks
     @NonNull final Task[] tasks;
     Task task;
-
-    // Message history
-    private final MessageHistory history = new MessageHistory(10);
 
     public Signaling(SaltyRTC salty, String host, int port,
                      @Nullable SSLContext sslContext,
@@ -592,9 +588,6 @@ public abstract class Signaling implements SignalingInterface {
         } catch (CryptoException | InvalidKeyException e) {
             throw new ProtocolException("Encrypting failed: " + e.getMessage(), e);
         }
-
-        // Store message in message history
-        this.history.store(msg, nonce);
 
         return box.toBytes();
     }
@@ -1242,14 +1235,8 @@ public abstract class Signaling implements SignalingInterface {
             throw new ProtocolException("Received send-error message for a message not sent by us!");
         }
 
-        // Log info about message
-        final Message message = this.history.find(id);
-        if (message != null) {
-            this.getLogger().warn("SendError: Could not send " + message.getType() + " message " + idString);
-        } else {
-            this.getLogger().warn("SendError: Could not send unknown message: " + idString);
-        }
-
+        // Handle
+        this.getLogger().warn("SendError: Could not send unknown message: " + idString);
         this.handleSendError(destination);
     }
 
