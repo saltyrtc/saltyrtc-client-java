@@ -303,6 +303,184 @@ public class ConnectionTest {
     }
 
     @Test
+    public void testHandshakeRespondersFirstWithMultipleResponders() throws Exception {
+        final SSLContext sslContext = SSLContextHelper.getSSLContext();
+
+        // Create two responders
+        final SaltyRTC responder1 = new SaltyRTCBuilder(this.cryptoProvider)
+            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
+            .withKeyStore(new KeyStore(this.cryptoProvider))
+            .usingTasks(new Task[]{ new DummyTask() })
+            .initiatorInfo(initiator.getPublicPermanentKey(), initiator.getAuthToken())
+            .asResponder();
+        final SaltyRTC responder2 = new SaltyRTCBuilder(this.cryptoProvider)
+            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
+            .withKeyStore(new KeyStore(this.cryptoProvider))
+            .usingTasks(new Task[]{ new DummyTask() })
+            .initiatorInfo(initiator.getPublicPermanentKey(), initiator.getAuthToken())
+            .asResponder();
+
+        // Ensure one of them goes into the 'task' state, the other is being dropped
+        final CountDownLatch established = new CountDownLatch(1);
+        final CountDownLatch dropped = new CountDownLatch(1);
+        for (SaltyRTC responder: new SaltyRTC[]{responder1, responder2}) {
+            responder.events.signalingStateChanged.register(event -> {
+                if (event.getState() == SignalingState.TASK) {
+                    established.countDown();
+                    return true;
+                }
+                return false;
+            });
+            responder.events.close.register(event -> {
+                if (dropped.getCount() != 0) {
+                    assertEquals(CloseCode.DROPPED_BY_INITIATOR, event.getReason());
+                    dropped.countDown();
+                }
+                return true;
+            });
+        }
+
+        // Connect responders
+        connect(SignalingState.PEER_HANDSHAKE, responder1, responder2);
+
+        // Connect initiator
+        assertEquals(1, established.getCount());
+        assertEquals(1, dropped.getCount());
+        connect(SignalingState.TASK, initiator);
+
+        // Wait for dropped/established, then disconnect
+        assertTrue(established.await(2, TimeUnit.SECONDS));
+        assertTrue(dropped.await(2, TimeUnit.SECONDS));
+        disconnect(initiator, responder1, responder2);
+    }
+
+    @Test
+    public void testHandshakeInitiatorFirstWithMultipleResponders() throws Exception {
+        final SSLContext sslContext = SSLContextHelper.getSSLContext();
+
+        // Create two responders
+        final SaltyRTC responder1 = new SaltyRTCBuilder(this.cryptoProvider)
+            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
+            .withKeyStore(new KeyStore(this.cryptoProvider))
+            .usingTasks(new Task[]{ new DummyTask() })
+            .initiatorInfo(initiator.getPublicPermanentKey(), initiator.getAuthToken())
+            .asResponder();
+        final SaltyRTC responder2 = new SaltyRTCBuilder(this.cryptoProvider)
+            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
+            .withKeyStore(new KeyStore(this.cryptoProvider))
+            .usingTasks(new Task[]{ new DummyTask() })
+            .initiatorInfo(initiator.getPublicPermanentKey(), initiator.getAuthToken())
+            .asResponder();
+
+        // Ensure one of them goes into the 'task' state, the other is being dropped
+        final CountDownLatch firstResponderEstablished = new CountDownLatch(1);
+        final CountDownLatch secondResponderDropped = new CountDownLatch(1);
+        responder1.events.signalingStateChanged.register(event -> {
+            if (event.getState() == SignalingState.TASK) {
+                firstResponderEstablished.countDown();
+                return true;
+            }
+            return false;
+        });
+        responder2.events.close.register(event -> {
+            assertEquals(CloseCode.DROPPED_BY_INITIATOR, event.getReason());
+            secondResponderDropped.countDown();
+            return true;
+        });
+
+        // Connect initiator
+        connect(SignalingState.PEER_HANDSHAKE, initiator);
+
+        // Connect responders
+        // Note: We wait until the task kicked in as that has been a source of
+        //       errors in the past.
+        assertEquals(1, firstResponderEstablished.getCount());
+        assertEquals(1, secondResponderDropped.getCount());
+        connect(SignalingState.TASK, responder1);
+        connect(SignalingState.PEER_HANDSHAKE, responder2);
+
+        // Wait for dropped/established, then disconnect
+        assertTrue(firstResponderEstablished.await(2, TimeUnit.SECONDS));
+        assertTrue(secondResponderDropped.await(2, TimeUnit.SECONDS));
+        disconnect(initiator, responder1, responder2);
+    }
+
+    @Test
+    public void testHandshakeResponderWithMultipleInitiators() throws Exception {
+        final SSLContext sslContext = SSLContextHelper.getSSLContext();
+
+        // Create two initiators
+        final KeyStore keyStore = new KeyStore(this.cryptoProvider);
+        final SaltyRTC initiator1 = new SaltyRTCBuilder(this.cryptoProvider)
+            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
+            .withKeyStore(keyStore)
+            .usingTasks(new Task[]{ new DummyTask() })
+            .asInitiator();
+        final SaltyRTC initiator2 = new SaltyRTCBuilder(this.cryptoProvider)
+            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
+            .withKeyStore(keyStore)
+            .usingTasks(new Task[]{ new DummyTask() })
+            .asInitiator();
+
+        // Create single responder
+        final SaltyRTC responder = new SaltyRTCBuilder(this.cryptoProvider)
+            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
+            .withKeyStore(new KeyStore(this.cryptoProvider))
+            .usingTasks(new Task[]{ new DummyTask() })
+            .initiatorInfo(initiator1.getPublicPermanentKey(), initiator1.getAuthToken())
+            .asResponder();
+
+        // Bind closed events
+        final CountDownLatch responderClosedNormally = new CountDownLatch(1);
+        final CountDownLatch firstInitiatorDropped = new CountDownLatch(1);
+        final CountDownLatch secondInitiatorClosedNormally = new CountDownLatch(1);
+        responder.events.close.register(event -> {
+            assertEquals(CloseCode.CLOSING_NORMAL, event.getReason());
+            responderClosedNormally.countDown();
+            return true;
+        });
+        initiator1.events.close.register(event -> {
+            assertEquals(CloseCode.DROPPED_BY_INITIATOR, event.getReason());
+            firstInitiatorDropped.countDown();
+            return true;
+        });
+        initiator2.events.close.register(event -> {
+            assertEquals(CloseCode.CLOSING_NORMAL, event.getReason());
+            secondInitiatorClosedNormally.countDown();
+            return true;
+        });
+
+        // Connect responder
+        connect(SignalingState.PEER_HANDSHAKE, responder);
+
+        // Connect first initiator
+        // Note: We wait until the task kicked in as that has been a source of
+        //       errors in the past.
+        assertEquals(1, responderClosedNormally.getCount());
+        connect(SignalingState.TASK, initiator1);
+
+        // Connect second initiator and disconnect after the responder
+        // disconnected
+        assertEquals(1, responderClosedNormally.getCount());
+        assertEquals(1, firstInitiatorDropped.getCount());
+        initiator2.events.peerDisconnected.register(event -> {
+            initiator2.disconnect();
+            return true;
+        });
+        initiator2.connect();
+
+        // Ensure...
+        //
+        // - the responder closed normally,
+        // - the first initiator has been dropped by the second initiator,
+        //   and
+        // - the second initiator closed normally.
+        assertTrue(responderClosedNormally.await(2, TimeUnit.SECONDS));
+        assertTrue(firstInitiatorDropped.await(2, TimeUnit.SECONDS));
+        assertTrue(secondInitiatorClosedNormally.await(2, TimeUnit.SECONDS));
+    }
+
+    @Test
     public void testTrustedHandshakeInitiatorFirst() throws Exception {
         // Create trusting peers
         final SSLContext sslContext = SSLContextHelper.getSSLContext();
