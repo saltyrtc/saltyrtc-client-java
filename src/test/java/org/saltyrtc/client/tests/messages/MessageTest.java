@@ -202,7 +202,7 @@ public class MessageTest {
 
     @Test
     public void testSendErrorRoundtrip() throws SerializationError, ValidationError {
-        final SendError original = new SendError(RandomHelper.pseudoRandomBytes(32));
+        final SendError original = new SendError(RandomHelper.pseudoRandomBytes(8));
         final SendError returned = this.roundTrip(original);
         assertArrayEquals(original.getId(), returned.getId());
     }
