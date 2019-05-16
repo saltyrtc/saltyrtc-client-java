@@ -84,7 +84,7 @@ public class InitiatorSignaling extends Signaling {
         Responder responder = this.responders.get(source);
         if (responder != null) {
             try {
-                this.dropResponder(responder, e.getCloseCode());
+                this.dropResponder(responder.getId(), e.getCloseCode());
             } catch (SignalingException | ConnectionException ee) {
                 ee.printStackTrace();
                 // Ignore, we're handling these errors already
@@ -262,7 +262,7 @@ public class InitiatorSignaling extends Signaling {
                         payload = this.authToken.decrypt(box);
                     } catch (CryptoException e) {
                         this.getLogger().warn("Could not decrypt token message");
-                        this.dropResponder(responder, CloseCode.INITIATOR_COULD_NOT_DECRYPT);
+                        this.dropResponder(responder.getId(), CloseCode.INITIATOR_COULD_NOT_DECRYPT);
                         return;
                     }
                     msg = MessageReader.read(payload);
@@ -282,7 +282,7 @@ public class InitiatorSignaling extends Signaling {
                         payload = permanentSharedKey.decrypt(box);
                     } catch (CryptoException e) {
                         this.getLogger().warn("Could not decrypt key message");
-                        this.dropResponder(responder, CloseCode.INITIATOR_COULD_NOT_DECRYPT);
+                        this.dropResponder(responder.getId(), CloseCode.INITIATOR_COULD_NOT_DECRYPT);
                         return;
                     }
 
@@ -399,18 +399,18 @@ public class InitiatorSignaling extends Signaling {
      */
     private void dropOldestInactiveResponder() throws ConnectionException, SignalingException {
         this.getLogger().warn("Dropping oldest inactive responder");
-        Responder drop = null;
+        Responder responder = null;
         for (Responder r : this.responders.values()) {
             if (r.handshakeState == ResponderHandshakeState.NEW) {
-                if (drop == null) {
-                    drop = r;
-                } else if (r.getCounter() < drop.getCounter()) {
-                    drop = r;
+                if (responder == null) {
+                    responder = r;
+                } else if (r.getCounter() < responder.getCounter()) {
+                    responder = r;
                 }
             }
         }
-        if (drop != null) {
-            this.dropResponder(drop, CloseCode.DROPPED_BY_INITIATOR);
+        if (responder != null) {
+            this.dropResponder(responder.getId(), CloseCode.DROPPED_BY_INITIATOR);
         }
     }
 
@@ -503,12 +503,12 @@ public class InitiatorSignaling extends Signaling {
     /**
      * Drop specific responder.
      */
-    private void dropResponder(Responder responder, @Nullable Integer reason) throws SignalingException, ConnectionException {
-        final DropResponder msg = new DropResponder(responder.getId(), reason);
-        final byte[] packet = this.buildPacket(msg, responder);
-        this.getLogger().debug("Sending drop-responder " + responder.getId());
+    private void dropResponder(final short responderId, @Nullable Integer reason) throws SignalingException, ConnectionException {
+        final DropResponder msg = new DropResponder(responderId, reason);
+        final byte[] packet = this.buildPacket(msg, this.server);
+        this.getLogger().debug("Sending drop-responder " + responderId);
         this.send(packet, msg);
-        this.responders.remove(responder.getId());
+        this.responders.remove(responderId);
     }
 
     /**
@@ -517,7 +517,7 @@ public class InitiatorSignaling extends Signaling {
     private void dropResponders() throws SignalingException, ConnectionException {
         this.getLogger().debug("Dropping " + this.responders.size() + " other responders");
         for (Responder responder : this.responders.values()) {
-            this.dropResponder(responder, CloseCode.DROPPED_BY_INITIATOR);
+            this.dropResponder(responder.getId(), CloseCode.DROPPED_BY_INITIATOR);
         }
     }
 
