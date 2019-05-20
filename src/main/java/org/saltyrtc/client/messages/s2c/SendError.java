@@ -28,7 +28,7 @@ public class SendError extends Message {
 
     public SendError(Map<String, Object> map) throws ValidationError {
         ValidationHelper.validateType(map.get("type"), TYPE);
-        this.id = ValidationHelper.validateByteArray(map.get("id"), 32, "id");
+        this.id = ValidationHelper.validateByteArray(map.get("id"), 8, "id");
     }
 
     public byte[] getId() {
