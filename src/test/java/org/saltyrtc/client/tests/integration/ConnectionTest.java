@@ -15,6 +15,7 @@ import org.junit.Test;
 import org.saltyrtc.client.SaltyRTC;
 import org.saltyrtc.client.SaltyRTCBuilder;
 import org.saltyrtc.client.SaltyRTCServerInfo;
+import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.crypto.CryptoProvider;
 import org.saltyrtc.client.tests.LazysodiumCryptoProvider;
 import org.saltyrtc.client.exceptions.ConnectionException;
@@ -51,6 +52,68 @@ public class ConnectionTest {
     private SaltyRTC responder;
     private Map<String, Boolean> eventsCalled;
     private CryptoProvider cryptoProvider;
+
+    static void await(@NonNull final CountDownLatch latch) throws InterruptedException {
+        await(latch, 5);
+    }
+
+    static void await(@NonNull final CountDownLatch latch, long timeoutSeconds) throws InterruptedException {
+        if (!latch.await(timeoutSeconds, TimeUnit.SECONDS)) {
+            throw new RuntimeException("Timed out after " + timeoutSeconds + " seconds");
+        }
+    }
+
+    static void awaitState(@NonNull final SignalingState state, @NonNull final SaltyRTC... peers)
+        throws ConnectionException, InterruptedException {
+        assert peers.length > 0;
+
+        // Latches to wait for a specific state
+        final CountDownLatch done = new CountDownLatch(peers.length);
+
+        // Register event on all peers
+        for (@NonNull final SaltyRTC peer: peers) {
+            // Check current state
+            if (peer.getSignalingState() == state) {
+                done.countDown();
+                continue;
+            }
+
+            // Register state change event
+            peer.events.signalingStateChanged.register(event -> {
+                if (event.getState() == state) {
+                    done.countDown();
+                    return true;
+                }
+                return false;
+            });
+        }
+
+        // Wait for the state to fire on all peers
+        await(done);
+
+    }
+
+    static void connect(@NonNull final SignalingState state, @NonNull final SaltyRTC... peers)
+        throws ConnectionException, InterruptedException {
+        assert peers.length > 0;
+
+        // Connect all peers
+        for (@NonNull final SaltyRTC peer: peers) {
+            peer.connect();
+        }
+
+        // Wait until connected
+        awaitState(state, peers);
+    }
+
+    static void disconnect(@NonNull final SaltyRTC... peers) {
+        assert peers.length > 0;
+
+        // Disconnect all peers
+        for (@NonNull final SaltyRTC peer: peers) {
+            peer.disconnect();
+        }
+    }
 
     @Before
     public void setUp() throws Exception {
@@ -117,37 +180,23 @@ public class ConnectionTest {
         });
     }
 
+    @After
+    public void tearDown() {
+        disconnect(initiator, responder);
+    }
+
     @Test
     public void testHandshakeInitiatorFirst() throws Exception {
         // Signaling state should still be NEW
         assertEquals(SignalingState.NEW, initiator.getSignalingState());
         assertEquals(SignalingState.NEW, responder.getSignalingState());
 
-        // Latches to test connection state
-        final CountDownLatch connectedPeers = new CountDownLatch(2);
+        // Connect initiator, then the responder
+        connect(SignalingState.PEER_HANDSHAKE, initiator);
+        connect(SignalingState.TASK, responder);
+        awaitState(SignalingState.TASK, initiator);
 
-        // Register onConnect handler
-        initiator.events.signalingStateChanged.register(event -> {
-            if (event.getState() == SignalingState.TASK) {
-                connectedPeers.countDown();
-            }
-            return false;
-        });
-        responder.events.signalingStateChanged.register(event -> {
-            if (event.getState() == SignalingState.TASK) {
-                connectedPeers.countDown();
-            }
-            return false;
-        });
-
-        // Connect server
-        initiator.connect();
-        Thread.sleep(1000);
-        responder.connect();
-
-        // Wait for full handshake
-        final boolean bothConnected = connectedPeers.await(4, TimeUnit.SECONDS);
-        assertTrue(bothConnected);
+        // Ensure no error has been fired
         assertFalse(eventsCalled.get("initiatorError"));
         assertFalse(eventsCalled.get("responderError"));
 
@@ -156,11 +205,9 @@ public class ConnectionTest {
         assertEquals(SignalingState.TASK, responder.getSignalingState());
 
         // Disconnect
-        initiator.disconnect();
-        responder.disconnect();
+        disconnect(initiator, responder);
 
         // Await close events
-        Thread.sleep(300);
         assertTrue(eventsCalled.get("initiatorClosed"));
         assertTrue(eventsCalled.get("responderClosed"));
         assertFalse(eventsCalled.get("initiatorError"));
@@ -177,31 +224,12 @@ public class ConnectionTest {
         assertEquals(SignalingState.NEW, initiator.getSignalingState());
         assertEquals(SignalingState.NEW, responder.getSignalingState());
 
-        // Latches to test connection state
-        final CountDownLatch connectedPeers = new CountDownLatch(2);
+        // Connect responder, then the initiator
+        connect(SignalingState.PEER_HANDSHAKE, responder);
+        connect(SignalingState.TASK, initiator);
+        awaitState(SignalingState.TASK, responder);
 
-        // Register onConnect handler
-        responder.events.signalingStateChanged.register(event -> {
-            if (event.getState() == SignalingState.TASK) {
-                connectedPeers.countDown();
-            }
-            return false;
-        });
-        initiator.events.signalingStateChanged.register(event -> {
-            if (event.getState() == SignalingState.TASK) {
-                connectedPeers.countDown();
-            }
-            return false;
-        });
-
-        // Connect server
-        responder.connect();
-        Thread.sleep(1000);
-        initiator.connect();
-
-        // Wait for full handshake
-        final boolean bothConnected = connectedPeers.await(4, TimeUnit.SECONDS);
-        assertTrue(bothConnected);
+        // Ensure no error has been fired
         assertFalse(eventsCalled.get("responderError"));
         assertFalse(eventsCalled.get("initiatorError"));
 
@@ -210,11 +238,9 @@ public class ConnectionTest {
         assertEquals(SignalingState.TASK, initiator.getSignalingState());
 
         // Disconnect
-        responder.disconnect();
-        initiator.disconnect();
+        disconnect(initiator, responder);
 
         // Await close events
-        Thread.sleep(300);
         assertTrue(eventsCalled.get("responderClosed"));
         assertTrue(eventsCalled.get("initiatorClosed"));
         assertFalse(eventsCalled.get("responderError"));
@@ -227,44 +253,231 @@ public class ConnectionTest {
 
     @Test
     public void testConnectionSpeed() throws Exception {
-        // Max 1s for handshake
         final int MAX_DURATION = 1000;
-
-        // Latches to test connection state
-        final CountDownLatch connectedPeers = new CountDownLatch(2);
-        initiator.events.signalingStateChanged.register(event -> {
-            if (event.getState() == SignalingState.TASK) {
-                connectedPeers.countDown();
-            }
-            return false;
-        });
-        responder.events.signalingStateChanged.register(event -> {
-            if (event.getState() == SignalingState.TASK) {
-                connectedPeers.countDown();
-            }
-            return false;
-        });
-
-        // Connect server
         final long startTime = System.nanoTime();
-        initiator.connect();
-        responder.connect();
 
         // Wait for full handshake
-        final boolean bothConnected = connectedPeers.await(2 * MAX_DURATION, TimeUnit.MILLISECONDS);
+        connect(SignalingState.TASK, initiator, responder);
+
+        // Calculate duration
         final long endTime = System.nanoTime();
-        assertTrue(bothConnected);
         assertFalse(eventsCalled.get("responderError"));
         assertFalse(eventsCalled.get("initiatorError"));
         long durationMs = (endTime - startTime) / 1000 / 1000;
         System.out.println("Full handshake took " + durationMs + " milliseconds");
 
         // Disconnect
-        responder.disconnect();
-        initiator.disconnect();
-
+        disconnect(initiator, responder);
         assertTrue("Duration time (" + durationMs + "ms) should be less than " + MAX_DURATION + "ms",
                    durationMs < MAX_DURATION);
+    }
+
+    @Test
+    public void testDisconnectBeforePeerHandshake() throws Exception {
+        // Connect and wait for peer handshake
+        connect(SignalingState.PEER_HANDSHAKE, initiator);
+        assertEquals(SignalingState.PEER_HANDSHAKE, initiator.getSignalingState());
+
+        // Disconnect and wait until closed
+        disconnect(initiator);
+        assertEquals(SignalingState.CLOSED, initiator.getSignalingState());
+    }
+
+    @Test
+    public void testDisconnectAfterPeerHandshake() throws Exception {
+        final CountDownLatch peerDisconnected = new CountDownLatch(1);
+
+        // Connect both and wait until established
+        connect(SignalingState.TASK, initiator, responder);
+
+        // Disconnect initiator and wait until closed
+        disconnect(initiator);
+
+        // Expect 'peer-disconnected' message
+        responder.events.peerDisconnected.register(event -> {
+            peerDisconnected.countDown();
+            return true;
+        });
+        final boolean success = peerDisconnected.await(2, TimeUnit.SECONDS);
+        assertTrue(success);
+    }
+
+    @Test
+    public void testHandshakeRespondersFirstWithMultipleResponders() throws Exception {
+        final SSLContext sslContext = SSLContextHelper.getSSLContext();
+
+        // Create two responders
+        final SaltyRTC responder1 = new SaltyRTCBuilder(this.cryptoProvider)
+            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
+            .withKeyStore(new KeyStore(this.cryptoProvider))
+            .usingTasks(new Task[]{ new DummyTask() })
+            .initiatorInfo(initiator.getPublicPermanentKey(), initiator.getAuthToken())
+            .asResponder();
+        final SaltyRTC responder2 = new SaltyRTCBuilder(this.cryptoProvider)
+            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
+            .withKeyStore(new KeyStore(this.cryptoProvider))
+            .usingTasks(new Task[]{ new DummyTask() })
+            .initiatorInfo(initiator.getPublicPermanentKey(), initiator.getAuthToken())
+            .asResponder();
+
+        // Ensure one of them goes into the 'task' state, the other is being dropped
+        final CountDownLatch established = new CountDownLatch(1);
+        final CountDownLatch dropped = new CountDownLatch(1);
+        for (SaltyRTC responder: new SaltyRTC[]{responder1, responder2}) {
+            responder.events.signalingStateChanged.register(event -> {
+                if (event.getState() == SignalingState.TASK) {
+                    established.countDown();
+                    return true;
+                }
+                return false;
+            });
+            responder.events.close.register(event -> {
+                if (dropped.getCount() != 0) {
+                    assertEquals(CloseCode.DROPPED_BY_INITIATOR, event.getReason());
+                    dropped.countDown();
+                }
+                return true;
+            });
+        }
+
+        // Connect responders
+        connect(SignalingState.PEER_HANDSHAKE, responder1, responder2);
+
+        // Connect initiator
+        assertEquals(1, established.getCount());
+        assertEquals(1, dropped.getCount());
+        connect(SignalingState.TASK, initiator);
+
+        // Wait for dropped/established, then disconnect
+        assertTrue(established.await(2, TimeUnit.SECONDS));
+        assertTrue(dropped.await(2, TimeUnit.SECONDS));
+        disconnect(initiator, responder1, responder2);
+    }
+
+    @Test
+    public void testHandshakeInitiatorFirstWithMultipleResponders() throws Exception {
+        final SSLContext sslContext = SSLContextHelper.getSSLContext();
+
+        // Create two responders
+        final SaltyRTC responder1 = new SaltyRTCBuilder(this.cryptoProvider)
+            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
+            .withKeyStore(new KeyStore(this.cryptoProvider))
+            .usingTasks(new Task[]{ new DummyTask() })
+            .initiatorInfo(initiator.getPublicPermanentKey(), initiator.getAuthToken())
+            .asResponder();
+        final SaltyRTC responder2 = new SaltyRTCBuilder(this.cryptoProvider)
+            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
+            .withKeyStore(new KeyStore(this.cryptoProvider))
+            .usingTasks(new Task[]{ new DummyTask() })
+            .initiatorInfo(initiator.getPublicPermanentKey(), initiator.getAuthToken())
+            .asResponder();
+
+        // Ensure one of them goes into the 'task' state, the other is being dropped
+        final CountDownLatch firstResponderEstablished = new CountDownLatch(1);
+        final CountDownLatch secondResponderDropped = new CountDownLatch(1);
+        responder1.events.signalingStateChanged.register(event -> {
+            if (event.getState() == SignalingState.TASK) {
+                firstResponderEstablished.countDown();
+                return true;
+            }
+            return false;
+        });
+        responder2.events.close.register(event -> {
+            assertEquals(CloseCode.DROPPED_BY_INITIATOR, event.getReason());
+            secondResponderDropped.countDown();
+            return true;
+        });
+
+        // Connect initiator
+        connect(SignalingState.PEER_HANDSHAKE, initiator);
+
+        // Connect responders
+        // Note: We wait until the task kicked in as that has been a source of
+        //       errors in the past.
+        assertEquals(1, firstResponderEstablished.getCount());
+        assertEquals(1, secondResponderDropped.getCount());
+        connect(SignalingState.TASK, responder1);
+        connect(SignalingState.PEER_HANDSHAKE, responder2);
+
+        // Wait for dropped/established, then disconnect
+        assertTrue(firstResponderEstablished.await(2, TimeUnit.SECONDS));
+        assertTrue(secondResponderDropped.await(2, TimeUnit.SECONDS));
+        disconnect(initiator, responder1, responder2);
+    }
+
+    @Test
+    public void testHandshakeResponderWithMultipleInitiators() throws Exception {
+        final SSLContext sslContext = SSLContextHelper.getSSLContext();
+
+        // Create two initiators
+        final KeyStore keyStore = new KeyStore(this.cryptoProvider);
+        final SaltyRTC initiator1 = new SaltyRTCBuilder(this.cryptoProvider)
+            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
+            .withKeyStore(keyStore)
+            .usingTasks(new Task[]{ new DummyTask() })
+            .asInitiator();
+        final SaltyRTC initiator2 = new SaltyRTCBuilder(this.cryptoProvider)
+            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
+            .withKeyStore(keyStore)
+            .usingTasks(new Task[]{ new DummyTask() })
+            .asInitiator();
+
+        // Create single responder
+        final SaltyRTC responder = new SaltyRTCBuilder(this.cryptoProvider)
+            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
+            .withKeyStore(new KeyStore(this.cryptoProvider))
+            .usingTasks(new Task[]{ new DummyTask() })
+            .initiatorInfo(initiator1.getPublicPermanentKey(), initiator1.getAuthToken())
+            .asResponder();
+
+        // Bind closed events
+        final CountDownLatch responderClosedNormally = new CountDownLatch(1);
+        final CountDownLatch firstInitiatorDropped = new CountDownLatch(1);
+        final CountDownLatch secondInitiatorClosedNormally = new CountDownLatch(1);
+        responder.events.close.register(event -> {
+            assertEquals(CloseCode.CLOSING_NORMAL, event.getReason());
+            responderClosedNormally.countDown();
+            return true;
+        });
+        initiator1.events.close.register(event -> {
+            assertEquals(CloseCode.DROPPED_BY_INITIATOR, event.getReason());
+            firstInitiatorDropped.countDown();
+            return true;
+        });
+        initiator2.events.close.register(event -> {
+            assertEquals(CloseCode.CLOSING_NORMAL, event.getReason());
+            secondInitiatorClosedNormally.countDown();
+            return true;
+        });
+
+        // Connect responder
+        connect(SignalingState.PEER_HANDSHAKE, responder);
+
+        // Connect first initiator
+        // Note: We wait until the task kicked in as that has been a source of
+        //       errors in the past.
+        assertEquals(1, responderClosedNormally.getCount());
+        connect(SignalingState.TASK, initiator1);
+
+        // Connect second initiator and disconnect after the responder
+        // disconnected
+        assertEquals(1, responderClosedNormally.getCount());
+        assertEquals(1, firstInitiatorDropped.getCount());
+        initiator2.events.peerDisconnected.register(event -> {
+            initiator2.disconnect();
+            return true;
+        });
+        initiator2.connect();
+
+        // Ensure...
+        //
+        // - the responder closed normally,
+        // - the first initiator has been dropped by the second initiator,
+        //   and
+        // - the second initiator closed normally.
+        assertTrue(responderClosedNormally.await(2, TimeUnit.SECONDS));
+        assertTrue(firstInitiatorDropped.await(2, TimeUnit.SECONDS));
+        assertTrue(secondInitiatorClosedNormally.await(2, TimeUnit.SECONDS));
     }
 
     @Test
@@ -288,40 +501,17 @@ public class ConnectionTest {
         assertEquals(SignalingState.NEW, trustingInitiator.getSignalingState());
         assertEquals(SignalingState.NEW, trustingResponder.getSignalingState());
 
-        // Latches to test connection state
-        final CountDownLatch connectedPeers = new CountDownLatch(2);
-        trustingInitiator.events.signalingStateChanged.register(event -> {
-            if (event.getState() == SignalingState.TASK) {
-                connectedPeers.countDown();
-            }
-            return false;
-        });
-        trustingResponder.events.signalingStateChanged.register(event -> {
-            if (event.getState() == SignalingState.TASK) {
-                connectedPeers.countDown();
-            }
-            return false;
-        });
-
-        // Connect server
-        trustingInitiator.connect();
-        Thread.sleep(1000);
-        trustingResponder.connect();
-
-        // Wait for full handshake
-        final boolean bothConnected = connectedPeers.await(4, TimeUnit.SECONDS);
-        assertTrue(bothConnected);
+        // Connect initiator, then the responder
+        connect(SignalingState.PEER_HANDSHAKE, trustingInitiator);
+        connect(SignalingState.TASK, trustingResponder);
+        awaitState(SignalingState.TASK, trustingInitiator);
 
         // Signaling state should be TASK
         assertEquals(SignalingState.TASK, trustingInitiator.getSignalingState());
         assertEquals(SignalingState.TASK, trustingResponder.getSignalingState());
 
         // Disconnect
-        trustingInitiator.disconnect();
-        trustingResponder.disconnect();
-
-        // Await close events
-        Thread.sleep(300);
+        disconnect(trustingInitiator, trustingResponder);
 
         // Signaling state should be CLOSED
         assertEquals(SignalingState.CLOSED, trustingInitiator.getSignalingState());
@@ -349,42 +539,17 @@ public class ConnectionTest {
         assertEquals(SignalingState.NEW, trustingInitiator.getSignalingState());
         assertEquals(SignalingState.NEW, trustingResponder.getSignalingState());
 
-        // Latches to test connection state
-        final CountDownLatch connectedPeers = new CountDownLatch(2);
-
-        // Register onConnect handler
-        trustingInitiator.events.signalingStateChanged.register(event -> {
-            if (event.getState() == SignalingState.TASK) {
-                connectedPeers.countDown();
-            }
-            return false;
-        });
-        trustingResponder.events.signalingStateChanged.register(event -> {
-            if (event.getState() == SignalingState.TASK) {
-                connectedPeers.countDown();
-            }
-            return false;
-        });
-
-        // Connect server
-        trustingResponder.connect();
-        Thread.sleep(1000);
-        trustingInitiator.connect();
-
-        // Wait for full handshake
-        final boolean bothConnected = connectedPeers.await(4, TimeUnit.SECONDS);
-        assertTrue(bothConnected);
+        // Connect responder, then the initiator
+        connect(SignalingState.PEER_HANDSHAKE, trustingResponder);
+        connect(SignalingState.TASK, trustingInitiator);
+        awaitState(SignalingState.TASK, trustingResponder);
 
         // Signaling state should be TASK
         assertEquals(SignalingState.TASK, trustingInitiator.getSignalingState());
         assertEquals(SignalingState.TASK, trustingResponder.getSignalingState());
 
         // Disconnect
-        trustingInitiator.disconnect();
-        trustingResponder.disconnect();
-
-        // Await close events
-        Thread.sleep(300);
+        disconnect(trustingInitiator, trustingResponder);
 
         // Signaling state should be CLOSED
         assertEquals(SignalingState.CLOSED, trustingInitiator.getSignalingState());
@@ -415,31 +580,10 @@ public class ConnectionTest {
         assertEquals(SignalingState.NEW, initiator.getSignalingState());
         assertEquals(SignalingState.NEW, responder.getSignalingState());
 
-        // Latches to test connection state
-        final CountDownLatch connectedPeers = new CountDownLatch(2);
-
-        // Register onConnect handler
-        initiator.events.signalingStateChanged.register(event -> {
-            if (event.getState() == SignalingState.TASK) {
-                connectedPeers.countDown();
-            }
-            return false;
-        });
-        responder.events.signalingStateChanged.register(event -> {
-            if (event.getState() == SignalingState.TASK) {
-                connectedPeers.countDown();
-            }
-            return false;
-        });
-
-        // Connect server
-        responder.connect();
-        Thread.sleep(1000);
-        initiator.connect();
-
-        // Wait for full handshake
-        final boolean bothConnected = connectedPeers.await(4, TimeUnit.SECONDS);
-        assertTrue(bothConnected);
+        // Connect responder, then the initiator
+        connect(SignalingState.PEER_HANDSHAKE, responder);
+        connect(SignalingState.TASK, initiator);
+        awaitState(SignalingState.TASK, responder);
 
         // Signaling state should be TASK
         assertEquals(SignalingState.TASK, initiator.getSignalingState());
@@ -450,7 +594,7 @@ public class ConnectionTest {
         assertTrue(responder.getTask() instanceof PingPongTask);
 
         // Wait for ping-pong-messages
-        Thread.sleep(500);
+        Thread.sleep(100);
 
         // Check whether ping-pong happened
         assertTrue(responderTask.sentPong);
@@ -459,11 +603,7 @@ public class ConnectionTest {
         assertFalse(initiatorTask.sentPong);
 
         // Disconnect
-        initiator.disconnect();
-        responder.disconnect();
-
-        // Await close events
-        Thread.sleep(300);
+        disconnect(initiator, responder);
 
         // Signaling state should be CLOSED
         assertEquals(SignalingState.CLOSED, initiator.getSignalingState());
@@ -479,21 +619,8 @@ public class ConnectionTest {
             .usingTasks(new Task[]{ new DummyTask() })
             .asInitiator();
 
-        // Look for signaling changes
-        final CountDownLatch closed = new CountDownLatch(1);
-        initiator.events.signalingStateChanged.register(
-            event -> {
-                if (event.getState() == SignalingState.PEER_HANDSHAKE) {
-                    closed.countDown();
-                }
-                return false;
-            }
-        );
-
-        // Connect server and wait for peer handshake
-        initiator.connect();
-        final boolean success = closed.await(2, TimeUnit.SECONDS);
-        assertTrue(success);
+        // Connect and wait for peer handshake
+        connect(SignalingState.PEER_HANDSHAKE, initiator);
     }
 
     @Test
@@ -506,7 +633,7 @@ public class ConnectionTest {
             .asInitiator();
 
         // Look for signaling changes
-        final CountDownLatch closed = new CountDownLatch(1);
+        final CountDownLatch errored = new CountDownLatch(1);
         initiator.events.signalingStateChanged.register(event -> {
             if (event.getState() == SignalingState.PEER_HANDSHAKE) {
                 fail("Server handshake succeeded even though server key was wrong");
@@ -515,16 +642,16 @@ public class ConnectionTest {
         });
         initiator.events.close.register(event -> {
             if (event.getReason() == CloseCode.PROTOCOL_ERROR) {
-                closed.countDown();
+                errored.countDown();
             } else {
                 fail("Signaling was closed without a protocol error");
             }
             return false;
         });
 
-        // Connect server and wait for connection closing
+        // Connect and wait for protocol error
         initiator.connect();
-        final boolean success = closed.await(2, TimeUnit.SECONDS);
+        final boolean success = errored.await(2, TimeUnit.SECONDS);
         assertTrue(success);
     }
 
@@ -538,19 +665,8 @@ public class ConnectionTest {
             .usingTasks(new Task[]{ new DummyTask() })
             .asResponder();
 
-        // Look for signaling changes
-        final CountDownLatch closed = new CountDownLatch(1);
-        responder.events.signalingStateChanged.register(event -> {
-            if (event.getState() == SignalingState.PEER_HANDSHAKE) {
-                closed.countDown();
-            }
-            return false;
-        });
-
-        // Connect server and wait for peer handshake
-        responder.connect();
-        final boolean success = closed.await(2, TimeUnit.SECONDS);
-        assertTrue(success);
+        // Connect and wait for peer handshake
+        connect(SignalingState.PEER_HANDSHAKE, responder);
     }
 
     @Test
@@ -564,7 +680,7 @@ public class ConnectionTest {
             .asResponder();
 
         // Look for signaling changes
-        final CountDownLatch closed = new CountDownLatch(1);
+        final CountDownLatch errored = new CountDownLatch(1);
         responder.events.signalingStateChanged.register(event -> {
             if (event.getState() == SignalingState.PEER_HANDSHAKE) {
                 fail("Server handshake succeeded even though server key was wrong");
@@ -573,92 +689,17 @@ public class ConnectionTest {
         });
         responder.events.close.register(event -> {
             if (event.getReason() == CloseCode.PROTOCOL_ERROR) {
-                closed.countDown();
+                errored.countDown();
             } else {
                 fail("Signaling was closed without a protocol error");
             }
             return false;
         });
 
-        // Connect server and wait for connection closing
+        // Connect and wait for protocol error
         responder.connect();
-        final boolean success = closed.await(2, TimeUnit.SECONDS);
+        final boolean success = errored.await(2, TimeUnit.SECONDS);
         assertTrue(success);
-    }
-
-    @Test
-    public void testApplicationMessagePingPong() throws Exception {
-        // Create peers
-        final SSLContext sslContext = SSLContextHelper.getSSLContext();
-        final SaltyRTC initiator = new SaltyRTCBuilder(this.cryptoProvider)
-            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
-            .withKeyStore(new KeyStore(this.cryptoProvider))
-            .usingTasks(new Task[]{ new DummyTask() })
-            .asInitiator();
-        final SaltyRTC responder = new SaltyRTCBuilder(this.cryptoProvider)
-            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
-            .withKeyStore(new KeyStore(this.cryptoProvider))
-            .usingTasks(new Task[]{ new DummyTask() })
-            .initiatorInfo(initiator.getPublicPermanentKey(), initiator.getAuthToken())
-            .asResponder();
-
-        // Latches to test connection state
-        final CountDownLatch connectedPeers = new CountDownLatch(2);
-        final CountDownLatch messagesReceived = new CountDownLatch(2);
-
-        // Register onConnect handler
-        initiator.events.signalingStateChanged.register(event -> {
-            if (event.getState() == SignalingState.TASK) {
-                connectedPeers.countDown();
-            }
-            return false;
-        });
-        responder.events.signalingStateChanged.register(event -> {
-            if (event.getState() == SignalingState.TASK) {
-                connectedPeers.countDown();
-            }
-            return false;
-        });
-
-        // Connect server
-        responder.connect();
-        Thread.sleep(1000);
-        initiator.connect();
-
-        // Wait for full handshake
-        final boolean bothConnected = connectedPeers.await(4, TimeUnit.SECONDS);
-        assertTrue(bothConnected);
-
-        // Signaling state should be TASK
-        assertEquals(SignalingState.TASK, initiator.getSignalingState());
-        assertEquals(SignalingState.TASK, responder.getSignalingState());
-
-        // Add application message handlers
-        initiator.events.applicationData.register(event -> {
-            messagesReceived.countDown();
-            return false;
-        });
-        responder.events.applicationData.register(event -> {
-            messagesReceived.countDown();
-            Assert.assertEquals(event.getData(), "ping");
-            try {
-                responder.sendApplicationMessage("pong");
-            } catch (ConnectionException | InvalidStateException e) {
-                e.printStackTrace();
-            }
-            return false;
-        });
-
-        // Send ping message
-        initiator.sendApplicationMessage("ping");
-
-        // Wait for ping-pong-messages
-        final boolean bothReceived = messagesReceived.await(2, TimeUnit.SECONDS);
-        assertTrue(bothReceived);
-
-        // Disconnect
-        initiator.disconnect();
-        responder.disconnect();
     }
 
     @Test
@@ -687,25 +728,55 @@ public class ConnectionTest {
             .usingTasks(new Task[]{ new DummyTask() })
             .asResponder();
 
-        // Look for signaling changes
-        final CountDownLatch closed = new CountDownLatch(1);
-        responder.events.signalingStateChanged.register(event -> {
-            if (event.getState() == SignalingState.PEER_HANDSHAKE) {
-                closed.countDown();
+        // Connect and wait for peer handshake
+        connect(SignalingState.PEER_HANDSHAKE, responder);
+    }
+
+    @Test
+    public void testApplicationMessagePingPong() throws Exception {
+        // Create peers
+        final SSLContext sslContext = SSLContextHelper.getSSLContext();
+        final SaltyRTC initiator = new SaltyRTCBuilder(this.cryptoProvider)
+            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
+            .withKeyStore(new KeyStore(this.cryptoProvider))
+            .usingTasks(new Task[]{ new DummyTask() })
+            .asInitiator();
+        final SaltyRTC responder = new SaltyRTCBuilder(this.cryptoProvider)
+            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslContext)
+            .withKeyStore(new KeyStore(this.cryptoProvider))
+            .usingTasks(new Task[]{ new DummyTask() })
+            .initiatorInfo(initiator.getPublicPermanentKey(), initiator.getAuthToken())
+            .asResponder();
+        final CountDownLatch messagesReceived = new CountDownLatch(2);
+
+        // Connect both
+        connect(SignalingState.TASK, initiator, responder);
+
+        // Add application message handlers
+        initiator.events.applicationData.register(event -> {
+            messagesReceived.countDown();
+            return false;
+        });
+        responder.events.applicationData.register(event -> {
+            Assert.assertEquals(event.getData(), "ping");
+            try {
+                responder.sendApplicationMessage("pong");
+            } catch (ConnectionException | InvalidStateException e) {
+                e.printStackTrace();
             }
+            messagesReceived.countDown();
             return false;
         });
 
-        // Connect server and wait for peer handshake
-        responder.connect();
-        final boolean success = closed.await(2, TimeUnit.SECONDS);
-        assertTrue(success);
-    }
+        // Send ping message
+        initiator.sendApplicationMessage("ping");
 
-    @After
-    public void tearDown() {
-        initiator.disconnect();
-        responder.disconnect();
+        // Wait for ping-pong-messages
+        final boolean bothReceived = messagesReceived.await(2, TimeUnit.SECONDS);
+        assertTrue(bothReceived);
+
+        // Disconnect
+        disconnect(initiator, responder);
     }
 
 }

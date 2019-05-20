@@ -420,6 +420,22 @@ public class ResponderSignaling extends Signaling {
     }
 
     /**
+     * Close when a new initiator has connected.
+     *
+     * Note: This deviates from the intention of the specification to allow
+     *       for more than one connection towards an initiator over the same
+     *       WebSocket connection.
+     */
+    void onUnhandledSignalingServerMessage(@NonNull final Message msg) throws ConnectionException, SignalingException {
+        if (msg instanceof NewInitiator) {
+            this.getLogger().debug("Received new-initiator message after peer handshake completed, closing");
+            this.resetConnection(CloseCode.CLOSING_NORMAL);
+        } else {
+            this.getLogger().warn("Unexpected server message type: " + msg.getType());
+        }
+    }
+
+    /**
      * A new initiator replaces the old one.
      */
     private void handleNewInitiator(@SuppressWarnings("unused") NewInitiator msg) throws SignalingException, ConnectionException {

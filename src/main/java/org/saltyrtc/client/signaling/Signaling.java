@@ -346,11 +346,14 @@ public abstract class Signaling implements SignalingInterface {
             @SuppressWarnings("UnqualifiedMethodAccess")
             public synchronized void onBinaryMessage(WebSocket websocket, byte[] binary) {
                 getLogger().debug("New binary message (" + binary.length + " bytes)");
-
-                // Update state if necessary
-                if (getState() == SignalingState.WS_CONNECTING) {
-                    getLogger().info("WebSocket connection open");
-                    setState(SignalingState.SERVER_HANDSHAKE);
+                switch (Signaling.this.getState()) {
+                    case WS_CONNECTING:
+                        getLogger().info("WebSocket connection open");
+                        Signaling.this.setState(SignalingState.SERVER_HANDSHAKE);
+                        break;
+                    case CLOSED:
+                        getLogger().debug("Ignoring message in state " + Signaling.this.getState());
+                        return;
                 }
 
                 SignalingChannelNonce nonce = null;
@@ -360,6 +363,12 @@ public abstract class Signaling implements SignalingInterface {
 
                     // Parse and validate nonce
                     nonce = new SignalingChannelNonce(ByteBuffer.wrap(box.getNonce()));
+                    if (Signaling.this.getPeerWithId(nonce.getSource()) == null) {
+                        // Note: This can happen when a responder has been dropped
+                        //       but a message was still in flight.
+                        getLogger().debug("Ignoring message from unknown id: " + nonce.getSource());
+                        return;
+                    }
                     validateNonce(nonce);
 
                     // Check peer handover state
@@ -689,7 +698,7 @@ public abstract class Signaling implements SignalingInterface {
     /**
      * Message received from peer or server *after* the handshake is done.
      */
-    private void onSignalingMessage(Box box, SignalingChannelNonce nonce) throws SignalingException {
+    private void onSignalingMessage(Box box, SignalingChannelNonce nonce) throws SignalingException, ConnectionException {
         this.getLogger().debug("Message received");
         if (nonce.getSource() == SALTYRTC_ADDR_SERVER) {
             this.onSignalingServerMessage(box);
@@ -708,7 +717,7 @@ public abstract class Signaling implements SignalingInterface {
     /**
      * Signaling message received from server *after* the handshake is done.
      */
-    private void onSignalingServerMessage(Box box) throws SignalingException {
+    private void onSignalingServerMessage(Box box) throws SignalingException, ConnectionException {
         final Message message;
 
         try {
@@ -729,9 +738,14 @@ public abstract class Signaling implements SignalingInterface {
         } else if (message instanceof Disconnected) {
             this.handleDisconnected((Disconnected) message);
         } else {
-            this.getLogger().error("Invalid server message type: " + message.getType());
+            this.onUnhandledSignalingServerMessage(message);
         }
     }
+
+    /**
+     * Handle messages received from the server *after* the handshake is done.
+     */
+    abstract void onUnhandledSignalingServerMessage(@NonNull final Message msg) throws ConnectionException, SignalingException;
 
     /**
      * Signaling message received from peer *after* the handshake is done.

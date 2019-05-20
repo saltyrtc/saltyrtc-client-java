@@ -84,7 +84,7 @@ public class InitiatorSignaling extends Signaling {
         Responder responder = this.responders.get(source);
         if (responder != null) {
             try {
-                this.dropResponder(responder, e.getCloseCode());
+                this.dropResponder(responder.getId(), e.getCloseCode());
             } catch (SignalingException | ConnectionException ee) {
                 ee.printStackTrace();
                 // Ignore, we're handling these errors already
@@ -262,7 +262,7 @@ public class InitiatorSignaling extends Signaling {
                         payload = this.authToken.decrypt(box);
                     } catch (CryptoException e) {
                         this.getLogger().warn("Could not decrypt token message");
-                        this.dropResponder(responder, CloseCode.INITIATOR_COULD_NOT_DECRYPT);
+                        this.dropResponder(responder.getId(), CloseCode.INITIATOR_COULD_NOT_DECRYPT);
                         return;
                     }
                     msg = MessageReader.read(payload);
@@ -282,7 +282,7 @@ public class InitiatorSignaling extends Signaling {
                         payload = permanentSharedKey.decrypt(box);
                     } catch (CryptoException e) {
                         this.getLogger().warn("Could not decrypt key message");
-                        this.dropResponder(responder, CloseCode.INITIATOR_COULD_NOT_DECRYPT);
+                        this.dropResponder(responder.getId(), CloseCode.INITIATOR_COULD_NOT_DECRYPT);
                         return;
                     }
 
@@ -343,22 +343,47 @@ public class InitiatorSignaling extends Signaling {
     }
 
     /**
+     * Drop a new responder after a handshake with one responder has already
+     * completed.
+     *
+     * Note: This deviates from the intention of the specification to allow
+     *       for more than one connection towards a responder over the same
+     *       WebSocket connection.
+     */
+    void onUnhandledSignalingServerMessage(@NonNull final Message msg) throws ConnectionException, SignalingException {
+        if (msg instanceof NewResponder) {
+            this.getLogger().debug("Received new-responder message");
+            this.handleNewResponder((NewResponder) msg);
+        } else {
+            this.getLogger().warn("Unexpected server message type: " + msg.getType());
+        }
+    }
+
+    /**
      * A new responder wants to connect.
      */
     private void handleNewResponder(NewResponder msg) throws SignalingException, ConnectionException {
         // Validate responder id
         final short id = this.validateResponderId(msg.getId());
 
-        // Process responder
-        this.processNewResponder(id);
+        // Process or ignore responder
+        if (this.getState() == SignalingState.PEER_HANDSHAKE) {
+            this.processNewResponder(id);
+        } else {
+            this.getLogger().debug("Dropping responder " + msg.getId() + " in " + this.getState() + " state");
+            this.dropResponder(id, CloseCode.DROPPED_BY_INITIATOR);
+        }
     }
 
     /**
      * Store a new responder.
      */
     private void processNewResponder(short responderId) throws ConnectionException, SignalingException {
-        // Drop responder if it's already known
-        this.responders.remove(responderId);
+        // Discard previous responder (if any)
+        if (this.responders.remove(responderId) != null) {
+            this.getLogger().warn("Previous responder discarded (server should have sent " +
+                "'disconnected' message): " + responderId);
+        }
 
         // Create responder instance
         final Responder responder;
@@ -396,18 +421,18 @@ public class InitiatorSignaling extends Signaling {
      */
     private void dropOldestInactiveResponder() throws ConnectionException, SignalingException {
         this.getLogger().warn("Dropping oldest inactive responder");
-        Responder drop = null;
+        Responder responder = null;
         for (Responder r : this.responders.values()) {
             if (r.handshakeState == ResponderHandshakeState.NEW) {
-                if (drop == null) {
-                    drop = r;
-                } else if (r.getCounter() < drop.getCounter()) {
-                    drop = r;
+                if (responder == null) {
+                    responder = r;
+                } else if (r.getCounter() < responder.getCounter()) {
+                    responder = r;
                 }
             }
         }
-        if (drop != null) {
-            this.dropResponder(drop, CloseCode.DROPPED_BY_INITIATOR);
+        if (responder != null) {
+            this.dropResponder(responder.getId(), CloseCode.DROPPED_BY_INITIATOR);
         }
     }
 
@@ -500,12 +525,12 @@ public class InitiatorSignaling extends Signaling {
     /**
      * Drop specific responder.
      */
-    private void dropResponder(Responder responder, @Nullable Integer reason) throws SignalingException, ConnectionException {
-        final DropResponder msg = new DropResponder(responder.getId(), reason);
-        final byte[] packet = this.buildPacket(msg, responder);
-        this.getLogger().debug("Sending drop-responder " + responder.getId());
+    private void dropResponder(final short responderId, @Nullable Integer reason) throws SignalingException, ConnectionException {
+        final DropResponder msg = new DropResponder(responderId, reason);
+        final byte[] packet = this.buildPacket(msg, this.server);
+        this.getLogger().debug("Sending drop-responder " + responderId);
         this.send(packet, msg);
-        this.responders.remove(responder.getId());
+        this.responders.remove(responderId);
     }
 
     /**
@@ -514,7 +539,7 @@ public class InitiatorSignaling extends Signaling {
     private void dropResponders() throws SignalingException, ConnectionException {
         this.getLogger().debug("Dropping " + this.responders.size() + " other responders");
         for (Responder responder : this.responders.values()) {
-            this.dropResponder(responder, CloseCode.DROPPED_BY_INITIATOR);
+            this.dropResponder(responder.getId(), CloseCode.DROPPED_BY_INITIATOR);
         }
     }
 
