@@ -16,6 +16,8 @@ import org.saltyrtc.client.exceptions.InvalidKeyException;
 import org.saltyrtc.client.helpers.HexHelper;
 import org.slf4j.Logger;
 
+import java.util.Objects;
+
 /**
  * Handle encrypting and decrypting messages for the peers.
  *
@@ -58,7 +60,7 @@ public class KeyStore {
      */
     public KeyStore(@NonNull CryptoProvider cryptoProvider, @NonNull byte[] privateKey) throws CryptoException {
         LOG.debug("Deriving public key from private key");
-        this.privateKey = privateKey;
+        this.privateKey = Objects.requireNonNull(privateKey);
         this.publicKey = cryptoProvider.derivePublicKey(privateKey);
         LOG.debug("Public key: " + HexHelper.asHex(this.publicKey));
         this.cryptoProvider = cryptoProvider;
@@ -79,10 +81,10 @@ public class KeyStore {
      */
     public KeyStore(@NonNull final CryptoProvider cryptoProvider, @NonNull byte[] publicKey, @NonNull byte[] privateKey) {
         LOG.debug("Using existing keypair");
-        this.privateKey = privateKey;
-        this.publicKey = publicKey;
+        this.privateKey = Objects.requireNonNull(privateKey);
+        this.publicKey = Objects.requireNonNull(publicKey);
         LOG.debug("Public key: " + HexHelper.asHex(this.publicKey));
-        this.cryptoProvider = cryptoProvider;
+        this.cryptoProvider = Objects.requireNonNull(cryptoProvider);
     }
 
     /**
@@ -101,7 +103,9 @@ public class KeyStore {
      * @throws InvalidKeyException Thrown if the `publicKey` bytes are not a valid public key
      */
     public SharedKeyStore getSharedKeyStore(@NonNull byte[] publicKey) throws InvalidKeyException {
-        return new SharedKeyStore(this.cryptoProvider, this.privateKey, publicKey);
+        return new SharedKeyStore(Objects.requireNonNull(this.cryptoProvider),
+            Objects.requireNonNull(this.privateKey),
+            Objects.requireNonNull(publicKey));
     }
 
     public byte[] getPublicKey() {

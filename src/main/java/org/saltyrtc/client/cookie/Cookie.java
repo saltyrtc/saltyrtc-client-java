@@ -18,10 +18,10 @@ import java.util.Arrays;
  * This data structure is immutable, but it can be cloned
  * using a copy constructor.
  */
-public class Cookie {
+public final class Cookie {
     public static final int COOKIE_LENGTH = 16;
 
-    private byte[] bytes;
+    private final byte[] bytes;
 
     public Cookie() {
         this.bytes = RandomHelper.secureRandomBytes(COOKIE_LENGTH);

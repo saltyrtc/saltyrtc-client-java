@@ -11,6 +11,8 @@ import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.exceptions.ProtocolException;
 
+import java.util.Optional;
+
 /**
  * A SaltyRTC cookie pair.
  *
@@ -27,7 +29,7 @@ public class CookiePair {
 	/**
      * Create a new cookie pair with a predefined peer cookie.
      */
-    public CookiePair(Cookie theirs) {
+    public CookiePair(@NonNull Cookie theirs) {
         Cookie cookie;
         do {
             cookie = new Cookie();
@@ -41,7 +43,7 @@ public class CookiePair {
      *
      * May throw ProtocolException if both cookies are the same.
      */
-    public CookiePair(Cookie ours, Cookie theirs) throws ProtocolException {
+    public CookiePair(@NonNull Cookie ours, @NonNull Cookie theirs) throws ProtocolException {
         if (theirs.equals(ours)) {
             throw new ProtocolException("Their cookie matches our cookie");
         }
@@ -54,13 +56,9 @@ public class CookiePair {
         return this.ours;
     }
 
-    public boolean hasTheirs() {
-        return this.theirs != null;
-    }
-
     @Nullable
-    public Cookie getTheirs() {
-        return this.theirs;
+    public Optional<Cookie> getTheirs() {
+        return Optional.ofNullable(this.theirs);
     }
 
 	/**

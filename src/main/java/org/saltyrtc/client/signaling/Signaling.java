@@ -44,10 +44,7 @@ import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Base class for initiator and responder signaling.
@@ -796,9 +793,9 @@ public abstract class Signaling implements SignalingInterface {
      * Send a client-auth message to the server.
      */
     private void sendClientAuth() throws SignalingException, ConnectionException {
-        final Cookie serverCookie = this.server.getCookiePair().getTheirs();
-        assert serverCookie != null;
-        final byte[] yourCookie = serverCookie.getBytes();
+        final Optional<Cookie> serverCookie = this.server.getCookiePair().getTheirs();
+        assert serverCookie.isPresent();
+        final byte[] yourCookie = serverCookie.get().getBytes();
 
         final List<String> subprotocols = Collections.singletonList(Signaling.SALTYRTC_SUBPROTOCOL);
 
@@ -1072,8 +1069,8 @@ public abstract class Signaling implements SignalingInterface {
      */
     private void validateNonceCookie(SignalingChannelNonce nonce) throws ValidationError, SignalingException {
         final Peer peer = this.getPeerWithId(nonce.getSource());
-        if (peer != null && peer.getCookiePair().hasTheirs()) {
-            if (!nonce.getCookie().equals(peer.getCookiePair().getTheirs())) {
+        if (peer != null && peer.getCookiePair().getTheirs().isPresent()) {
+            if (!nonce.getCookie().equals(peer.getCookiePair().getTheirs().get())) {
                 throw new ValidationError(peer.getName() + " cookie changed");
             }
         }
