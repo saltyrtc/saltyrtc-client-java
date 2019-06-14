@@ -23,7 +23,6 @@ import org.saltyrtc.client.signaling.Signaling;
 import org.saltyrtc.client.signaling.SignalingRole;
 import org.saltyrtc.client.signaling.state.SignalingState;
 import org.saltyrtc.client.tasks.Task;
-import org.slf4j.Logger;
 
 import javax.net.ssl.SSLContext;
 
