@@ -9,6 +9,7 @@
 package org.saltyrtc.client;
 
 import org.saltyrtc.client.annotations.NonNull;
+import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.crypto.CryptoProvider;
 import org.saltyrtc.client.exceptions.InvalidBuilderStateException;
 import org.saltyrtc.client.exceptions.InvalidKeyException;
@@ -58,7 +59,7 @@ public class SaltyRTCBuilder {
     /**
      * Validate the specified host, throw an IllegalArgumentException if it's invalid.
      */
-    private void validateHost(String host) {
+    private void validateHost(@NonNull String host) {
         if (host.endsWith("/")) {
             throw new IllegalArgumentException("SaltyRTC host may not end with a slash");
         }
@@ -115,7 +116,9 @@ public class SaltyRTCBuilder {
      * @param sslContext The SSL context used to create the encrypted WebSocket connection.
      * @throws IllegalArgumentException Thrown if the host string is invalid.
      */
-    public SaltyRTCBuilder connectTo(String host, int port, SSLContext sslContext) {
+    public SaltyRTCBuilder connectTo(@NonNull String host,
+                                     int port,
+                                     @Nullable SSLContext sslContext) {
         this.validateHost(host);
         this.host = host;
         this.port = port;
@@ -127,7 +130,7 @@ public class SaltyRTCBuilder {
     /**
      * Provide a class that can determine SaltyRTC signalling server connection info.
      */
-    public SaltyRTCBuilder connectTo(SaltyRTCServerInfo serverInfo) {
+    public SaltyRTCBuilder connectTo(@NonNull SaltyRTCServerInfo serverInfo) {
         this.serverInfo = serverInfo;
         this.hasConnectionInfo = true;
         return this;
@@ -140,7 +143,7 @@ public class SaltyRTCBuilder {
      * @param keyStore The KeyStore instance containing the public and private permanent key to
      * use.
      */
-    public SaltyRTCBuilder withKeyStore(KeyStore keyStore) {
+    public SaltyRTCBuilder withKeyStore(@NonNull KeyStore keyStore) {
         this.keyStore = keyStore;
         this.hasKeyStore = true;
         return this;
@@ -151,7 +154,7 @@ public class SaltyRTCBuilder {
      *
      * @param peerTrustedKey The trusted public key of the peer.
      */
-    public SaltyRTCBuilder withTrustedPeerKey(byte[] peerTrustedKey) {
+    public SaltyRTCBuilder withTrustedPeerKey(@NonNull byte[] peerTrustedKey) {
         this.peerTrustedKey = peerTrustedKey;
         this.hasTrustedPeerKey = true;
         return this;
@@ -162,7 +165,7 @@ public class SaltyRTCBuilder {
      *
      * @param peerTrustedKeyHex The trusted public key of the peer (hex encoded).
      */
-    public SaltyRTCBuilder withTrustedPeerKey(String peerTrustedKeyHex) {
+    public SaltyRTCBuilder withTrustedPeerKey(@NonNull String peerTrustedKeyHex) {
         return this.withTrustedPeerKey(HexHelper.hexStringToByteArray(peerTrustedKeyHex));
     }
 
@@ -177,7 +180,7 @@ public class SaltyRTCBuilder {
      *
      * @param serverKey The public permanent key of the server.
      */
-    public SaltyRTCBuilder withServerKey(byte[] serverKey) {
+    public SaltyRTCBuilder withServerKey(@NonNull byte[] serverKey) {
         this.serverKey = serverKey;
         return this;
     }
@@ -193,7 +196,7 @@ public class SaltyRTCBuilder {
      *
      * @param serverKeyHex The public permanent key of the server (hex encoded).
      */
-    public SaltyRTCBuilder withServerKey(String serverKeyHex) {
+    public SaltyRTCBuilder withServerKey(@NonNull String serverKeyHex) {
         return this.withServerKey(HexHelper.hexStringToByteArray(serverKeyHex));
     }
 
@@ -254,7 +257,8 @@ public class SaltyRTCBuilder {
      * @param initiatorPublicKey The public key of the initiator.
      * @param authToken The secret auth token.
      */
-    public SaltyRTCBuilder initiatorInfo(byte[] initiatorPublicKey, byte[] authToken) {
+    public SaltyRTCBuilder initiatorInfo(@NonNull byte[] initiatorPublicKey,
+                                         @NonNull byte[] authToken) {
         this.initiatorPublicKey = initiatorPublicKey;
         this.authToken = authToken;
         this.hasInitiatorInfo = true;
@@ -267,7 +271,8 @@ public class SaltyRTCBuilder {
      * @param initiatorPublicKeyHex The public key of the initiator (hex encoded).
      * @param authTokenHex The secret auth token (hex encoded).
      */
-    public SaltyRTCBuilder initiatorInfo(String initiatorPublicKeyHex, String authTokenHex) {
+    public SaltyRTCBuilder initiatorInfo(@NonNull String initiatorPublicKeyHex,
+                                         @NonNull String authTokenHex) {
         return this.initiatorInfo(
             HexHelper.hexStringToByteArray(initiatorPublicKeyHex),
             HexHelper.hexStringToByteArray(authTokenHex)
@@ -277,7 +282,7 @@ public class SaltyRTCBuilder {
     /**
      * Set a list of tasks in order of descending preference.
      */
-    public SaltyRTCBuilder usingTasks(Task[] tasks) {
+    public SaltyRTCBuilder usingTasks(@NonNull Task[] tasks) {
         if (tasks.length < 1) {
             throw new IllegalArgumentException("You must specify at least 1 task");
         }
@@ -289,7 +294,8 @@ public class SaltyRTCBuilder {
     /**
      * If a SaltyRTCServerInfo instance is provided, dynamically determine host and port.
      */
-    private void processServerInfo(@NonNull SaltyRTCServerInfo serverInfo, byte[] publicKey) {
+    private void processServerInfo(@NonNull SaltyRTCServerInfo serverInfo,
+                                   @NonNull byte[] publicKey) {
         final String hexPublicKey = HexHelper.asHex(publicKey);
         this.host = serverInfo.getHost(hexPublicKey);
         this.port = serverInfo.getPort(hexPublicKey);
