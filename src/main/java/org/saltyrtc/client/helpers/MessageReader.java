@@ -10,18 +10,11 @@ package org.saltyrtc.client.helpers;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import org.msgpack.jackson.dataformat.MessagePackFactory;
 import org.saltyrtc.client.exceptions.SerializationError;
 import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.messages.Message;
-import org.saltyrtc.client.messages.c2c.Application;
-import org.saltyrtc.client.messages.c2c.Close;
-import org.saltyrtc.client.messages.c2c.InitiatorAuth;
-import org.saltyrtc.client.messages.c2c.Key;
-import org.saltyrtc.client.messages.c2c.ResponderAuth;
-import org.saltyrtc.client.messages.c2c.TaskMessage;
-import org.saltyrtc.client.messages.c2c.Token;
+import org.saltyrtc.client.messages.c2c.*;
 import org.saltyrtc.client.messages.s2c.*;
 
 import java.io.IOException;

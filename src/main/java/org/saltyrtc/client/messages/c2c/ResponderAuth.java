@@ -9,7 +9,6 @@
 package org.saltyrtc.client.messages.c2c;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import org.msgpack.core.MessagePacker;
 import org.msgpack.jackson.dataformat.MessagePackFactory;
 import org.saltyrtc.client.exceptions.ValidationError;
