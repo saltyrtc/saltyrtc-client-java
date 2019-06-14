@@ -157,27 +157,12 @@ public class ResponderSignaling extends Signaling {
         this.getLogger().debug("Server assigned address 0x" + HexHelper.asHex(new int[] { this.address }));
 
         // Validate cookie
-        // TODO: Move into validateRepeatedCookie method
-        final Cookie repeatedCookie = new Cookie(msg.getYourCookie());
-        final Cookie ourCookie = this.server.getCookiePair().getOurs();
-        if (!repeatedCookie.equals(ourCookie)) {
-            this.getLogger().error("Bad repeated cookie in server-auth message");
-            this.getLogger().debug("Their response: " + Arrays.toString(repeatedCookie.getBytes()) +
-                    ", our cookie: " + Arrays.toString(ourCookie.getBytes()));
-            throw new ProtocolException("Bad repeated cookie in server-auth message");
-        }
+        validateRepeatedCookie(
+            this.server.getCookiePair().getOurs(),
+            new Cookie(msg.getYourCookie())
+        );
 
-        // Validate expected server key
-        if (this.expectedServerKey != null) {
-            try {
-                this.validateSignedKeys(msg.getSignedKeys(), nonce, this.expectedServerKey);
-            } catch (ValidationError e) {
-                this.getLogger().error(e.getMessage());
-                throw new ProtocolException("Verification of signed_keys failed", e);
-            }
-        } else if (msg.getSignedKeys() != null) {
-            this.getLogger().warn("Server sent signed keys, but we're not verifying them.");
-        }
+        validateExpectedServerKey(msg.getSignedKeys(), nonce);
 
         // Store whether initiator is connected
         this.initiator.setConnected(msg.isInitiatorConnected());
@@ -278,7 +263,10 @@ public class ResponderSignaling extends Signaling {
      */
     private void handleAuth(InitiatorAuth msg, SignalingChannelNonce nonce) throws SignalingException {
         // Validate cookie
-        this.validateRepeatedCookie(this.initiator, msg.getYourCookie());
+        this.validateRepeatedCookie(
+            this.initiator.getCookiePair().getOurs(),
+            new Cookie(msg.getYourCookie())
+        );
 
         // Validation of task list and data already happens in the `InitiatorAuth` constructor
 

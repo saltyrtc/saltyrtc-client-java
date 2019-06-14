@@ -21,7 +21,7 @@ import java.util.Arrays;
 public class Cookie {
     public static final int COOKIE_LENGTH = 16;
 
-    private byte[] bytes;
+    private final byte[] bytes;
 
     public Cookie() {
         this.bytes = RandomHelper.secureRandomBytes(COOKIE_LENGTH);

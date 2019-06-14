@@ -1084,14 +1084,30 @@ public abstract class Signaling implements SignalingInterface {
      * @param theirCookie The cookie bytes of the peer.
      * @throws ProtocolException Thrown if repeated cookie does not match our own cookie.
      */
-    void validateRepeatedCookie(Peer peer, byte[] theirCookie) throws ProtocolException {
-        // Verify the cookie
+    void validateRepeatedCookie(Cookie ourCookie, Cookie theirCookie) throws ProtocolException {
         final Cookie repeatedCookie = new Cookie(theirCookie);
-        final Cookie ourCookie = peer.getCookiePair().getOurs();
         if (!repeatedCookie.equals(ourCookie)) {
-            this.getLogger().debug("Peer repeated cookie: " + Arrays.toString(theirCookie));
+            this.getLogger().debug("Peer repeated cookie: " + Arrays.toString(theirCookie.getBytes()));
             this.getLogger().debug("Our cookie: " + Arrays.toString(ourCookie.getBytes()));
             throw new ProtocolException("Peer repeated cookie does not match our cookie");
+        }
+    }
+
+    /**
+     * Validate server key.
+     * @param signedKeys The `signed_keys` field from the server-auth message.
+     * @param nonce The incoming message nonce.
+     * @throws ProtocolException Thrown if validation of signed keys failed.
+     */
+    void validateExpectedServerKey(byte[] signedKeys, SignalingChannelNonce nonce) throws ProtocolException {
+        if (this.expectedServerKey != null) {
+            try {
+                this.validateSignedKeys(signedKeys, nonce, this.expectedServerKey);
+            } catch (ValidationError e) {
+                throw new ProtocolException("Verification of signed keys failed", e);
+            }
+        } else if (signedKeys != null) {
+            this.getLogger().warn("Server sent signed keys, but we're not verifying them.");
         }
     }
 
