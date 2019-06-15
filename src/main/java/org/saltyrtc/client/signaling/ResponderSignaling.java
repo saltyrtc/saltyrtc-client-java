@@ -426,7 +426,7 @@ public class ResponderSignaling extends Signaling {
      *       for more than one connection towards an initiator over the same
      *       WebSocket connection.
      */
-    void onUnhandledSignalingServerMessage(@NonNull final Message msg) throws ConnectionException, SignalingException {
+    void onUnhandledSignalingServerMessage(@NonNull final Message msg) {
         if (msg instanceof NewInitiator) {
             this.getLogger().debug("Received new-initiator message after peer handshake completed, closing");
             this.resetConnection(CloseCode.CLOSING_NORMAL);
