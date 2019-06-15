@@ -8,11 +8,12 @@
 
 package org.saltyrtc.client.helpers;
 
+import org.saltyrtc.client.annotations.NonNull;
+import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.tasks.Task;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Utilities for working with tasks.
@@ -36,15 +37,16 @@ public class TaskHelper {
      * Choose the first task in our own list of supported tasks that is also contained in the list
      * of supported tasks provided by the peer.
      *
-     * @return The selected task, if a common task can be found.
+     * @return The selected task if a common task can be found.
      */
-    public static Optional<Task> chooseCommonTask(Task[] ourTasks, List<String> theirTasks) {
+    @Nullable
+    public static Task chooseCommonTask(@NonNull Task[] ourTasks, @NonNull List<String> theirTasks) {
         for (Task task : ourTasks) {
             if (theirTasks.contains(task.getName())) {
-                return Optional.of(task);
+                return task;
             }
         }
-        return Optional.empty();
+        return null;
     }
 
 }
