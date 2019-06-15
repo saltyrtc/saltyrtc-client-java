@@ -128,7 +128,7 @@ public class ValidationHelper {
             throw new ValidationError(name + " must be an Integer");
         }
         final Integer number = (Integer) value;
-        final int[] codes = dropResponder ? CloseCode.CLOSE_CODES_DROP_RESPONDER : CloseCode.CLOSE_CODES_ALL;
+        final List<Integer> codes = dropResponder ? CloseCode.CLOSE_CODES_DROP_RESPONDER : CloseCode.CLOSE_CODES_ALL;
         for (int code : codes) {
             if (code == number) {
                 return number;

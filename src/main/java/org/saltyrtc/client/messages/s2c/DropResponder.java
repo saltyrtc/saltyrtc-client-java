@@ -53,11 +53,7 @@ public class DropResponder extends Message {
         ValidationHelper.validateType(map.get("type"), TYPE);
         this.id = ValidationHelper.validateInteger(map.get("id"), 0x00, 0xff, "id");
         if (map.containsKey("reason")) {
-            List<Integer> validRange = new ArrayList<>();
-            for (int i = 0; i < CloseCode.CLOSE_CODES_DROP_RESPONDER.length; i++) {
-                validRange.add(CloseCode.CLOSE_CODES_DROP_RESPONDER[i]);
-            }
-            this.reason = ValidationHelper.validateInteger(map.get("reason"), validRange, "reason");
+            this.reason = ValidationHelper.validateInteger(map.get("reason"), CloseCode.CLOSE_CODES_DROP_RESPONDER, "reason");
         }
     }
 

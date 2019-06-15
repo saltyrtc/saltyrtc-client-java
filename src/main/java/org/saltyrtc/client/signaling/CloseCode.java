@@ -8,6 +8,10 @@
 
 package org.saltyrtc.client.signaling;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 /**
  * WebSocket close codes
  */
@@ -80,18 +84,18 @@ public class CloseCode {
     /**
      * Valid close codes for drop-responder messages.
      */
-    public static final int[] CLOSE_CODES_DROP_RESPONDER = new int[] {
+    public static final List<Integer> CLOSE_CODES_DROP_RESPONDER = Collections.unmodifiableList(Arrays.asList(
         PROTOCOL_ERROR, INTERNAL_ERROR, DROPPED_BY_INITIATOR, INITIATOR_COULD_NOT_DECRYPT
-    };
+    ));
 
     /**
      * All valid close codes.
      */
-    public static final int[] CLOSE_CODES_ALL = new int[] {
+    public static final List<Integer> CLOSE_CODES_ALL = Collections.unmodifiableList(Arrays.asList(
         GOING_AWAY, NO_SHARED_SUBPROTOCOL, PATH_FULL, PROTOCOL_ERROR, INTERNAL_ERROR,
         HANDOVER, DROPPED_BY_INITIATOR, INITIATOR_COULD_NOT_DECRYPT, NO_SHARED_TASK,
-        INVALID_KEY, TIMEOUT,
-    };
+        INVALID_KEY, TIMEOUT
+    ));
 
     /**
      * Explain the close code.

@@ -27,7 +27,7 @@ public class EventRegistryTest {
     private EventHandler<MessageEvent> adder;
     private EventHandler<MessageEvent> clearer;
 
-    class MessageEvent implements Event {
+    static class MessageEvent implements Event {
         private String message;
         String getMessage() { return this.message; }
         MessageEvent(String message) { this.message = message; }

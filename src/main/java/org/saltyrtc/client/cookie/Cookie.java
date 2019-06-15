@@ -21,7 +21,7 @@ import java.util.Arrays;
 public class Cookie {
     public static final int COOKIE_LENGTH = 16;
 
-    private byte[] bytes;
+    private final byte[] bytes;
 
     public Cookie() {
         this.bytes = RandomHelper.secureRandomBytes(COOKIE_LENGTH);
@@ -32,15 +32,15 @@ public class Cookie {
             throw new IllegalArgumentException(
                     "Bad cookie length, must be " + COOKIE_LENGTH + " bytes");
         }
-        this.bytes = bytes;
+        this.bytes = Arrays.copyOf(bytes, bytes.length);
     }
 
     public Cookie(Cookie cookie) {
-        this.bytes = cookie.getBytes();
+        this.bytes = Arrays.copyOf(cookie.getBytes(), cookie.getBytes().length);
     }
 
     public byte[] getBytes() {
-        return bytes;
+        return Arrays.copyOf(this.bytes, this.bytes.length);
     }
 
     @Override

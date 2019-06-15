@@ -35,21 +35,23 @@ class SSLContextHelper {
             // Initialize KeyStore
             final String password = "saltyrtc";
             java.security.KeyStore ks = java.security.KeyStore.getInstance("JKS");
-            try {
-                ks.load(new FileInputStream(kf), password.toCharArray());
+
+            try (FileInputStream fis = new FileInputStream(kf)) {
+                ks.load(fis, password.toCharArray());
+
+                // Initialize TrustManager
+                TrustManagerFactory tmf = TrustManagerFactory.getInstance("SunX509");
+                tmf.init(ks);
+
+                // Initialize SSLContext
+                sslContext = SSLContext.getInstance("TLS");
+                sslContext.init(null, tmf.getTrustManagers(), null);
             } catch (FileNotFoundException e) {
                 // Should not happen, as we check previously.
                 e.printStackTrace();
                 throw new RuntimeException("FileNotFoundException");
             }
 
-            // Initialize TrustManager
-            TrustManagerFactory tmf = TrustManagerFactory.getInstance("SunX509");
-            tmf.init(ks);
-
-            // Initialize SSLContext
-            sslContext = SSLContext.getInstance("TLS");
-            sslContext.init(null, tmf.getTrustManagers(), null);
         } else {
             System.out.println("Using default SSLContext");
             sslContext = SSLContext.getDefault();
