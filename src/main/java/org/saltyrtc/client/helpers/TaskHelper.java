@@ -40,7 +40,7 @@ public class TaskHelper {
      * @return The selected task if a common task can be found.
      */
     @Nullable
-    public static Task chooseCommonTask(@NonNull Task[] ourTasks, @NonNull List<String> theirTasks) {
+    public static Task chooseCommonTask(@NonNull final Task[] ourTasks, @NonNull final List<String> theirTasks) {
         for (Task task : ourTasks) {
             if (theirTasks.contains(task.getName())) {
                 return task;
