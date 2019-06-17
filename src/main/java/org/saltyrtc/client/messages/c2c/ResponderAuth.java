@@ -51,10 +51,10 @@ public class ResponderAuth extends Message {
      * @throws ValidationError if validation fails
      */
     private void validateTasksData(List<String> tasks, Map<String, Map<Object, Object>> data) throws ValidationError {
-        if (tasks.size() < 1) {
+        if (tasks.isEmpty()) {
             throw new ValidationError("Task names must not be empty");
         }
-        if (data.size() < 1) {
+        if (data.isEmpty()) {
             throw new ValidationError("Task data must not be empty");
         }
         if (data.size() != tasks.size()) {
