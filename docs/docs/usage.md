@@ -5,6 +5,9 @@ This chapter gives a short introduction on how to use the SaltyRTC JavaScript cl
 To see a more practical example, you may also want to take a look at our [demo
 application](https://github.com/saltyrtc/saltyrtc-demo).
 
+Plase note that instances of this library are not considered thread-safe. Thus, an application
+using more than one thread needs to take care of synchronisation itself.
+
 ## The CryptoProvider
 
 SaltyRTC is based on the [NaCl](https://nacl.cr.yp.to/) crypto system, which
