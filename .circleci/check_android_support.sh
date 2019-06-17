@@ -14,6 +14,7 @@ stream2=$(grep -r --include \*.java Arrays.stream "$REPO_ROOT")
 functionalinterface=$(grep -r --include \*.java java.lang.FunctionalInterface "$REPO_ROOT")
 reflectisdefault=$(grep -r --include \*.java java.lang.reflect.isDefault "$REPO_ROOT")
 function=$(grep -r --include \*.java java.util.function "$REPO_ROOT")
+optional=$(grep -r --include \*.java java.util.Optional "$REPO_ROOT")
 
 if [[ ! -z $repeatable ]]; then
     echo -e "Error: Usage of java.lang.annotation.Repeatable found:\n$repeatable"
@@ -41,6 +42,10 @@ if [[ ! -z $reflectisdefault ]]; then
 fi
 if [[ ! -z $function ]]; then
     echo -e "Error: Usage of java.util.function found:\n$function"
+    PASS=0
+fi
+if [[ ! -z $optional ]]; then
+    echo -e "Error: Usage of java.util.Optional found:\n$optional"
     PASS=0
 fi
 

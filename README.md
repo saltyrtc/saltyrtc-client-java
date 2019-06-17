@@ -61,6 +61,7 @@ Android API <24. Please avoid using the following APIs:
 - `java.lang.FunctionalInterface`
 - `java.lang.reflect.Method.isDefault()`
 - `java.util.function`
+- `java.util.Optional`
 
 The CI tests contains a script to ensure that these APIs aren't being called. You can also run it manually:
 
