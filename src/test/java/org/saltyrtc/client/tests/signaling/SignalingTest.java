@@ -35,12 +35,14 @@ public class SignalingTest {
     public void testWsPath() throws Exception {
         // Create signaling instances for initiator and responder
         final InitiatorSignaling initiator = new InitiatorSignaling(
-                null, Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, null, new LazysodiumCryptoProvider(), null, null, null,
+                null, Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, null, new LazysodiumCryptoProvider(),
+                SaltyRTCBuilder.DualStackMode.BOTH, null, null, null,
                 new KeyStore(this.cryptoProvider), null, null,
                 new Task[] { new DummyTask() },
                 0);
         final ResponderSignaling responder = new ResponderSignaling(
-                null, Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, null, new LazysodiumCryptoProvider(), null, null, null,
+                null, Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, null, new LazysodiumCryptoProvider(),
+                SaltyRTCBuilder.DualStackMode.BOTH, null, null, null,
                 new KeyStore(this.cryptoProvider), initiator.getPublicPermanentKey(), initiator.getAuthToken(), null, null,
                 new Task[] { new DummyTask() },
                 0);
@@ -150,5 +152,4 @@ public class SignalingTest {
         boolean linearBackoff = (boolean) fLinearBackoff.get(sig);
         assertFalse(linearBackoff);
     }
-
 }

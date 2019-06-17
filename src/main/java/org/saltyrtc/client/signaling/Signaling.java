@@ -11,6 +11,7 @@ package org.saltyrtc.client.signaling;
 import com.neovisionaries.ws.client.*;
 import org.saltyrtc.chunkedDc.UnsignedHelper;
 import org.saltyrtc.client.SaltyRTC;
+import org.saltyrtc.client.SaltyRTCBuilder;
 import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.cookie.Cookie;
@@ -57,7 +58,6 @@ import java.util.Map;
  */
 @SuppressWarnings("WeakerAccess")
 public abstract class Signaling implements SignalingInterface {
-
     static final String SALTYRTC_SUBPROTOCOL = "v1.saltyrtc.org";
     static final short SALTYRTC_WS_CONNECT_TIMEOUT = 3000;
     static final short SALTYRTC_WS_CONNECT_ATTEMPTS_MAX = 20;
@@ -79,6 +79,7 @@ public abstract class Signaling implements SignalingInterface {
     final private int wsConnectTimeoutInitial;
     final private int wsConnectAttemptsMax;
     final private boolean wsConnectLinearBackoff;
+    final private DualStackMode wsDualStackMode;
     private int wsConnectTimeout;
     private int wsConnectAttempt = 0;
 
@@ -116,6 +117,7 @@ public abstract class Signaling implements SignalingInterface {
     public Signaling(SaltyRTC salty, String host, int port,
                      @Nullable SSLContext sslContext,
                      @NonNull CryptoProvider cryptoProvider,
+                     @NonNull SaltyRTCBuilder.DualStackMode wsDualStackMode,
                      @Nullable Integer wsConnectTimeout,
                      @Nullable Integer wsConnectAttemptsMax,
                      @Nullable Boolean wsConnectLinearBackoff,
@@ -140,6 +142,21 @@ public abstract class Signaling implements SignalingInterface {
         this.tasks = tasks;
         this.server = new Server();
         this.pingInterval = pingInterval;
+
+        // Convert dual stack mode
+        switch (wsDualStackMode) {
+            case BOTH:
+                this.wsDualStackMode = DualStackMode.BOTH;
+                break;
+            case IPV4_ONLY:
+                this.wsDualStackMode = DualStackMode.IPV4_ONLY;
+                break;
+            case IPV6_ONLY:
+                this.wsDualStackMode = DualStackMode.IPV6_ONLY;
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown dual stack mode: " + wsDualStackMode);
+        }
 
         // When the handover is complete, notify event handlers and close the WebSocket.
         this.handoverState.handoverComplete.register(event -> {
@@ -533,6 +550,7 @@ public abstract class Signaling implements SignalingInterface {
 
         // Create WebSocket client instance
         this.ws = new WebSocketFactory()
+                .setDualStackMode(this.wsDualStackMode)
                 .setConnectionTimeout(this.wsConnectTimeout)
                 .setSSLContext(this.sslContext)
                 .setVerifyHostname(true)
