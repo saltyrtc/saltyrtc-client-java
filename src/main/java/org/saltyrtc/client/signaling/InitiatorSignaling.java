@@ -482,9 +482,10 @@ public class InitiatorSignaling extends Signaling {
         // Validation of task list and data already happens in the `ResponderAuth` constructor
 
         // Select task
-        final Task task = TaskHelper
-            .chooseCommonTask(this.tasks, msg.getTasks())
-            .orElseThrow(() -> new SignalingException(CloseCode.NO_SHARED_TASK, "No shared task could be found"));
+        final Task task = TaskHelper.chooseCommonTask(this.tasks, msg.getTasks());
+        if (task == null) {
+            throw new SignalingException(CloseCode.NO_SHARED_TASK, "No shared task could be found");
+        }
         this.getLogger().info("Task " + task.getName() + " has been selected");
 
         // Initialize task
@@ -597,8 +598,7 @@ public class InitiatorSignaling extends Signaling {
         if (id == SALTYRTC_ADDR_SERVER) {
             return this.server;
         } else if (this.isResponderId(id)) {
-            //noinspection ConstantConditions
-            if (this.getState() == SignalingState.TASK && this.responder != null & this.responder.getId() == id) {
+            if (this.getState() == SignalingState.TASK && this.responder != null && this.responder.getId() == id) {
                 return this.responder;
             } else if (this.responders.containsKey(id)) {
                 return this.responders.get(id);

@@ -14,9 +14,6 @@ import java.util.Arrays;
 
 /**
  * A SaltyRTC cookie.
- *
- * This data structure is immutable, but it can be cloned
- * using a copy constructor.
  */
 public class Cookie {
     public static final int COOKIE_LENGTH = 16;

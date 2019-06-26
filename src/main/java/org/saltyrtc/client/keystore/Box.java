@@ -86,4 +86,11 @@ public class Box {
         return Arrays.equals(this.data, other.getData())
             && Arrays.equals(this.nonce, other.getNonce());
     }
+
+    @Override
+    public int hashCode() {
+        int result = Arrays.hashCode(nonce);
+        result = 31 * result + Arrays.hashCode(data);
+        return result;
+    }
 }

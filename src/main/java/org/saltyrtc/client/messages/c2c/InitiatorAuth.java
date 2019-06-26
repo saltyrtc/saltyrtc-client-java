@@ -53,10 +53,10 @@ public class InitiatorAuth extends Message {
         if (task.isEmpty()) {
             throw new ValidationError("Task name must not be empty");
         }
-        if (data.size() < 1) {
+        if (data.isEmpty()) {
             throw new ValidationError("Task data must not be empty");
         }
-        if (data.size() > 1) {
+        if (data.size() != 1) {
             throw new ValidationError("Task data must contain exactly 1 key");
         }
         if (!data.containsKey(task)) {
