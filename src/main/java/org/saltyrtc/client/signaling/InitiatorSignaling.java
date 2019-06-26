@@ -599,7 +599,7 @@ public class InitiatorSignaling extends Signaling {
             return this.server;
         } else if (this.isResponderId(id)) {
             //noinspection ConstantConditions
-            if (this.getState() == SignalingState.TASK && this.responder != null & this.responder.getId() == id) {
+            if (this.getState() == SignalingState.TASK && this.responder != null && this.responder.getId() == id) {
                 return this.responder;
             } else if (this.responders.containsKey(id)) {
                 return this.responders.get(id);
