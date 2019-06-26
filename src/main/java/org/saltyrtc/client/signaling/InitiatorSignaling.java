@@ -598,7 +598,7 @@ public class InitiatorSignaling extends Signaling {
         if (id == SALTYRTC_ADDR_SERVER) {
             return this.server;
         } else if (this.isResponderId(id)) {
-            if ((this.getState() == SignalingState.TASK) && (this.responder != null) && (this.responder.getId() == id)) {
+            if (this.getState() == SignalingState.TASK && this.responder != null && this.responder.getId() == id) {
                 return this.responder;
             } else if (this.responders.containsKey(id)) {
                 return this.responders.get(id);
