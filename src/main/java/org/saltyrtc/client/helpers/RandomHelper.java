@@ -13,6 +13,9 @@ import java.util.Random;
 
 public class RandomHelper {
 
+    private static Random random = new Random();
+    private static SecureRandom secureRandom = new SecureRandom();
+
     /**
      * Return n random bytes using a PRNG.
      *
@@ -20,7 +23,7 @@ public class RandomHelper {
      */
     public static byte[] pseudoRandomBytes(int count) {
         final byte[] bytes = new byte[count];
-        new Random().nextBytes(bytes);
+        random.nextBytes(bytes);
         return bytes;
     }
 
@@ -29,8 +32,7 @@ public class RandomHelper {
      */
     public static byte[] secureRandomBytes(int count) {
         final byte[] bytes = new byte[count];
-        SecureRandom random = new SecureRandom();
-        random.nextBytes(bytes);
+        secureRandom.nextBytes(bytes);
         return bytes;
     }
 }
