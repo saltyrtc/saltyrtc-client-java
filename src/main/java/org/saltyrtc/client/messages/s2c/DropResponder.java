@@ -28,13 +28,13 @@ public class DropResponder extends Message {
     @NonNull
     private Integer id;
     @Nullable
-    private Integer reason;
+    private CloseCode reason;
 
     public DropResponder(@NonNull Integer id) {
         this.id = id;
     }
 
-    public DropResponder(@NonNull Integer id, @Nullable Integer reason) {
+    public DropResponder(@NonNull Integer id, @Nullable CloseCode reason) {
         this(id);
         this.reason = reason;
     }
@@ -44,7 +44,7 @@ public class DropResponder extends Message {
         this.id = (int) id;
     }
 
-    public DropResponder(short id, @Nullable Integer reason) {
+    public DropResponder(short id, @Nullable CloseCode reason) {
         this(id);
         this.reason = reason;
     }
@@ -54,10 +54,12 @@ public class DropResponder extends Message {
         this.id = ValidationHelper.validateInteger(map.get("id"), 0x00, 0xff, "id");
         if (map.containsKey("reason")) {
             List<Integer> validRange = new ArrayList<>();
-            for (int i = 0; i < CloseCode.CLOSE_CODES_DROP_RESPONDER.length; i++) {
-                validRange.add(CloseCode.CLOSE_CODES_DROP_RESPONDER[i]);
+            for (CloseCode closeCode : CloseCode.CLOSE_CODES_DROP_RESPONDER) {
+                validRange.add(closeCode.code);
             }
-            this.reason = ValidationHelper.validateInteger(map.get("reason"), validRange, "reason");
+            this.reason = CloseCode.getByCode(
+                ValidationHelper.validateInteger(map.get("reason"), validRange, "reason")
+            );
         }
     }
 
@@ -67,7 +69,7 @@ public class DropResponder extends Message {
     }
 
     @Nullable
-    public Integer getReason() {
+    public CloseCode getReason() {
         return reason;
     }
 
@@ -81,7 +83,7 @@ public class DropResponder extends Message {
                     .packInt(this.id);
         if (hasReason) {
             packer.packString("reason")
-                .packInt(this.reason);
+                .packInt(this.reason.code);
         }
     }
 

@@ -144,7 +144,7 @@ public abstract class Signaling implements SignalingInterface {
         // When the handover is complete, notify event handlers and close the WebSocket.
         this.handoverState.handoverComplete.register(event -> {
             Signaling.this.salty.events.handover.notifyHandlers(new HandoverEvent());
-            Signaling.this.ws.sendClose(CloseCode.HANDOVER);
+            Signaling.this.ws.sendClose(CloseCode.HANDOVER.code);
             return false;
         });
     }
@@ -222,7 +222,7 @@ public abstract class Signaling implements SignalingInterface {
      * will also be called synchronously with the states `CLOSING` and `CLOSED`. Therefore make sure not to call
      * this method again from within your `SignalingStateChangedEvent` event handlers, or deadlocks may occur!
      */
-    synchronized void disconnect(int reason) {
+    synchronized void disconnect(@NonNull final CloseCode reason) {
         this.setState(SignalingState.CLOSING);
 
         // Send close message if necessary
@@ -232,15 +232,15 @@ public abstract class Signaling implements SignalingInterface {
 
         // Close WebSocket instance
         if (this.ws != null) {
-            this.getLogger().debug("Disconnecting WebSocket (reason: " + reason + ")");
-            this.ws.disconnect(reason);
+            this.getLogger().debug("Disconnecting WebSocket (reason: " + reason.code + ")");
+            this.ws.disconnect(reason.code);
         }
         this.ws = null;
 
         // Close task connections
         if (this.task != null) {
-            this.getLogger().debug("Closing task connections (reason: " + reason + ")");
-            this.task.close(reason);
+            this.getLogger().debug("Closing task connections (reason: " + reason.code + ")");
+            this.task.close(reason.code);
         }
 
         // Update state
@@ -261,11 +261,10 @@ public abstract class Signaling implements SignalingInterface {
     /**
      * Reset the connection.
      */
-    public synchronized void resetConnection(@Nullable Integer reason) {
+    public synchronized void resetConnection(@Nullable CloseCode reason) {
         // Disconnect
         if (this.state != SignalingState.NEW) {
-            final int code = reason != null ? reason : CloseCode.CLOSING_NORMAL;
-            this.disconnect(code);
+            this.disconnect(reason != null ? reason : CloseCode.CLOSING_NORMAL);
         }
 
         // Reset
@@ -417,7 +416,7 @@ public abstract class Signaling implements SignalingInterface {
                     e.printStackTrace();
                     Signaling.this.resetConnection(CloseCode.INTERNAL_ERROR);
                 } catch (SignalingException e) {
-                    getLogger().error("Signaling error: " + CloseCode.explain(e.getCloseCode()));
+                    getLogger().error("Signaling error: " + e.getCloseCode().explanation);
                     e.printStackTrace();
                     switch (Signaling.this.getState()) {
                         case NEW:
@@ -452,53 +451,33 @@ public abstract class Signaling implements SignalingInterface {
                 // Log details to debug log
                 final String closer = closedByServer ? "server" : "client";
                 final WebSocketFrame frame = closedByServer ? serverCloseFrame : clientCloseFrame;
-                final int closeCode = frame == null ? 0 : frame.getCloseCode();
-                String closeReason = frame == null ? null : frame.getCloseReason();
-                if (closeReason == null) {
-                    closeReason = CloseCode.explain(closeCode);
-                }
+
+                final CloseCode closeCode = frame == null ? null : CloseCode.getByCode(frame.getCloseCode());
+                String closeReason = closeCode == null ? "Unknown" : closeCode.explanation;
+
                 getLogger().debug("WebSocket connection closed by " + closer +
                                   " with code " + closeCode + ": " + closeReason);
 
                 // Log some of the codes on higher log levels too
                 if (closedByServer) {
-                    switch (closeCode) {
-                        case 0:
-                            getLogger().warn("WebSocket closed (no close frame provided)");
-                            break;
-                        case CloseCode.CLOSING_NORMAL:
-                            getLogger().info("WebSocket closed normally");
-                            break;
-                        case CloseCode.TIMEOUT:
-                            getLogger().info("WebSocket closed due to timeout");
-                            break;
-                        case CloseCode.GOING_AWAY:
-                            getLogger().warn("WebSocket closed, server is being shut down");
-                            break;
-                        case CloseCode.NO_SHARED_SUBPROTOCOL:
-                            getLogger().warn("WebSocket closed: No shared sub-protocol could be found");
-                            break;
-                        case CloseCode.PATH_FULL:
-                            getLogger().warn("WebSocket closed: Path full (no free responder byte)");
-                            break;
-                        case CloseCode.PROTOCOL_ERROR:
-                            getLogger().error("WebSocket closed: Protocol error");
-                            break;
-                        case CloseCode.INTERNAL_ERROR:
-                            getLogger().error("WebSocket closed: Internal server error");
-                            break;
-                        case CloseCode.DROPPED_BY_INITIATOR:
-                            getLogger().info("WebSocket closed: Dropped by initiator");
-                            break;
-                        case CloseCode.INITIATOR_COULD_NOT_DECRYPT:
-                            getLogger().warn("WebSocket closed: Initiator could not decrypt message");
-                            break;
-                        case CloseCode.NO_SHARED_TASK:
-                            getLogger().warn("WebSocket closed: No shared task was found");
-                            break;
-                        case CloseCode.INVALID_KEY:
-                            getLogger().error("WebSocket closed: An invalid public permanent server key was specified");
-                            break;
+                    if (closeCode == null) {
+                        getLogger().warn("WebSocket closed (no close frame provided)");
+                    } else {
+                        switch (closeCode) {
+                            case CLOSING_NORMAL:
+                            case TIMEOUT:
+                            case DROPPED_BY_INITIATOR:
+                                getLogger().info("WebSocket closed: " + closeCode.explanation);
+                                break;
+                            case PROTOCOL_ERROR:
+                            case INTERNAL_ERROR:
+                            case INVALID_KEY:
+                                getLogger().error("WebSocket closed: " + closeCode.explanation);
+                                break;
+                            default:
+                                // If not otherwise specified all close codes are logged at the WARN level
+                                getLogger().warn("WebSocket closed: " + closeCode.explanation);
+                        }
                     }
                 }
                 // Note: Don't check for signaling state here, it will already have been resetted.
@@ -898,7 +877,7 @@ public abstract class Signaling implements SignalingInterface {
     /**
      * Send a close message to the peer.
      */
-    public void sendClose(int reason) {
+    public void sendClose(CloseCode reason) {
         final Close msg = new Close(reason);
         final byte[] packet;
         try {
@@ -1212,11 +1191,11 @@ public abstract class Signaling implements SignalingInterface {
     }
 
     private void handleClose(Close msg) {
-        final Integer closeCode = msg.getReason();
-        this.getLogger().warn("Received close message. Reason: " + CloseCode.explain(closeCode));
+        final CloseCode closeCode = msg.getReason();
+        this.getLogger().warn("Received close message. Reason: " + closeCode.explanation);
 
         // Notify the task
-        this.task.close(closeCode);
+        this.task.close(closeCode.code);
 
         // Reset signaling
         this.resetConnection(CloseCode.GOING_AWAY);

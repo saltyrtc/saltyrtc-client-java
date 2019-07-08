@@ -23,10 +23,7 @@ import org.saltyrtc.client.messages.c2c.Token;
 import org.saltyrtc.client.messages.s2c.*;
 import org.saltyrtc.client.signaling.CloseCode;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertArrayEquals;
@@ -172,7 +169,7 @@ public class MessageTest {
 
     @Test
     public void testDropResponderRoundtripWithReason() throws SerializationError, ValidationError {
-        final DropResponder original = new DropResponder(42, 3001);
+        final DropResponder original = new DropResponder(42, CloseCode.PROTOCOL_ERROR);
         final DropResponder returned = this.roundTrip(original);
         assertEquals(original.getId(), returned.getId());
         assertEquals(original.getReason(), returned.getReason());
@@ -186,17 +183,6 @@ public class MessageTest {
             fail("No ValidationError thrown");
         } catch (ValidationError e) {
             assertEquals("id must be < 255", e.getMessage());
-        }
-    }
-
-    @Test
-    public void testDropResponderReasonValidation() throws SerializationError {
-        final DropResponder original = new DropResponder(0xff, 6000);
-        try {
-            this.roundTrip(original);
-            fail("No ValidationError thrown");
-        } catch (ValidationError e) {
-            assertEquals("reason is not valid", e.getMessage());
         }
     }
 
@@ -250,8 +236,12 @@ public class MessageTest {
 
     @Test
     public void testCloseValidation() throws SerializationError {
-        final Close original = new Close(4000);
+        Map<String, Object> map = new HashMap<>();
+        map.put("type", "close");
+        map.put("reason", 4000);  // Invalid close code
+
         try {
+            final Close original = new Close(map);
             this.roundTrip(original);
             fail("No ValidationError thrown");
         } catch (ValidationError e) {

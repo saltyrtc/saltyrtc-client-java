@@ -12,6 +12,7 @@ import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.signaling.CloseCode;
 
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 
@@ -123,15 +124,15 @@ public class ValidationHelper {
         return (String) value;
     }
 
-    public static Integer validateCloseCode(Object value, boolean dropResponder, String name) throws ValidationError {
+    public static CloseCode validateCloseCode(Object value, boolean dropResponder, String name) throws ValidationError {
         if (!(value instanceof Integer)) {
             throw new ValidationError(name + " must be an Integer");
         }
         final Integer number = (Integer) value;
-        final int[] codes = dropResponder ? CloseCode.CLOSE_CODES_DROP_RESPONDER : CloseCode.CLOSE_CODES_ALL;
-        for (int code : codes) {
-            if (code == number) {
-                return number;
+        final EnumSet<CloseCode> codes = dropResponder ? CloseCode.CLOSE_CODES_DROP_RESPONDER : EnumSet.allOf(CloseCode.class);
+        for (CloseCode code : codes) {
+            if (code.code == number) {
+                return code;
             }
         }
         throw new ValidationError(name + " must be a valid close code");

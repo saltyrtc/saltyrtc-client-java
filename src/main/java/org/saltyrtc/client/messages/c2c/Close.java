@@ -12,6 +12,7 @@ import org.msgpack.core.MessagePacker;
 import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.helpers.ValidationHelper;
 import org.saltyrtc.client.messages.Message;
+import org.saltyrtc.client.signaling.CloseCode;
 
 import java.io.IOException;
 import java.util.Map;
@@ -20,9 +21,9 @@ public class Close extends Message {
 
     public static final String TYPE = "close";
 
-    private Integer reason;
+    private CloseCode reason;
 
-    public Close(Integer reason) {
+    public Close(CloseCode reason) {
         this.reason = reason;
     }
 
@@ -31,7 +32,7 @@ public class Close extends Message {
         this.reason = ValidationHelper.validateCloseCode(map.get("reason"), false, "reason");
     }
 
-    public Integer getReason() {
+    public CloseCode getReason() {
         return this.reason;
     }
 
@@ -41,7 +42,7 @@ public class Close extends Message {
                 .packString("type")
                     .packString(TYPE)
                 .packString("reason")
-                    .packInt(this.reason);
+                    .packInt(this.reason.code);
     }
 
     @Override

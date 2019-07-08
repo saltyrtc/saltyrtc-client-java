@@ -8,45 +8,52 @@
 
 package org.saltyrtc.client.signaling;
 
+import org.saltyrtc.client.annotations.Nullable;
+
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * WebSocket close codes
  */
-@SuppressWarnings("WeakerAccess")
-public class CloseCode {
+
+public enum CloseCode {
+
     /**
      * Normal closing of websocket.
      */
-    public static final int CLOSING_NORMAL = 1000;
+    CLOSING_NORMAL(1000, "Normal closing"),
 
     /**
      * The endpoint is going away.
      */
-    public static final int GOING_AWAY = 1001;
+    GOING_AWAY(1001, "The endpoint is going away"),
 
     /**
      * No shared sub-protocol could be found.
      */
-    public static final int NO_SHARED_SUBPROTOCOL = 1002;
+    NO_SHARED_SUBPROTOCOL(1002, "No shared subprotocol could be found"),
 
     /**
      * No free responder byte.
      */
-    public static final int PATH_FULL = 3000;
+    PATH_FULL(3000, "No free responder byte"),
 
     /**
      * Invalid message, invalid path length, ...
      */
-    public static final int PROTOCOL_ERROR = 3001;
+    PROTOCOL_ERROR(3001, "Protocol error"),
 
     /**
      * Syntax error, ...
      */
-    public static final int INTERNAL_ERROR = 3002;
+    INTERNAL_ERROR(3002, "Internal error"),
 
     /**
      * Handover of the signaling channel.
      */
-    public static final int HANDOVER = 3003;
+    HANDOVER(3003, "Handover finished"),
 
     /**
      * Dropped by initiator.
@@ -55,74 +62,53 @@ public class CloseCode {
      *
      * For a responder, it means that an initiator requested to drop the responder.
      */
-    public static final int DROPPED_BY_INITIATOR = 3004;
+    DROPPED_BY_INITIATOR(3004, "Dropped by initiator"),
 
     /**
      * Initiator could not decrypt a message.
      */
-    public static final int INITIATOR_COULD_NOT_DECRYPT = 3005;
+    INITIATOR_COULD_NOT_DECRYPT(3005, "Initiator could not decrypt a message"),
 
     /**
      * No shared task was found.
      */
-    public static final int NO_SHARED_TASK = 3006;
+    NO_SHARED_TASK(3006, "No shared task was found"),
 
     /**
      * Invalid key.
      */
-    public static final int INVALID_KEY = 3007;
+    INVALID_KEY(3007, "Invalid key"),
 
     /**
      * Timeout.
      */
-    public static final int TIMEOUT = 3008;
+    TIMEOUT(3008, "Timeout");
 
     /**
      * Valid close codes for drop-responder messages.
      */
-    public static final int[] CLOSE_CODES_DROP_RESPONDER = new int[] {
-        PROTOCOL_ERROR, INTERNAL_ERROR, DROPPED_BY_INITIATOR, INITIATOR_COULD_NOT_DECRYPT
-    };
+    public static final EnumSet<CloseCode> CLOSE_CODES_DROP_RESPONDER = EnumSet.of(
+      PROTOCOL_ERROR, INTERNAL_ERROR, DROPPED_BY_INITIATOR, INITIATOR_COULD_NOT_DECRYPT
+    );
 
-    /**
-     * All valid close codes.
-     */
-    public static final int[] CLOSE_CODES_ALL = new int[] {
-        GOING_AWAY, NO_SHARED_SUBPROTOCOL, PATH_FULL, PROTOCOL_ERROR, INTERNAL_ERROR,
-        HANDOVER, DROPPED_BY_INITIATOR, INITIATOR_COULD_NOT_DECRYPT, NO_SHARED_TASK,
-        INVALID_KEY, TIMEOUT,
-    };
+    private static final Map<Integer, CloseCode> lookup = new HashMap<>();
 
-    /**
-     * Explain the close code.
-     */
-    public static String explain(int code) {
-        switch (code) {
-            case CLOSING_NORMAL:
-                return "Normal closing";
-            case GOING_AWAY:
-                return "The endpoint is going away";
-            case NO_SHARED_SUBPROTOCOL:
-                return "No shared subprotocol could be found";
-            case PATH_FULL:
-                return "No free responder byte";
-            case PROTOCOL_ERROR:
-                return "Protocol error";
-            case INTERNAL_ERROR:
-                return "Internal error";
-            case HANDOVER:
-                return "Handover finished";
-            case DROPPED_BY_INITIATOR:
-                return "Dropped by initiator";
-            case INITIATOR_COULD_NOT_DECRYPT:
-                return "Initiator could not decrypt a message";
-            case NO_SHARED_TASK:
-                return "No shared task was found";
-            case INVALID_KEY:
-                return "Invalid key";
-            case TIMEOUT:
-                return "Timeout";
+    static {
+        for (CloseCode closeCode : CloseCode.values()) {
+            lookup.put(closeCode.code, closeCode);
         }
-        return "Unknown";
+    }
+
+    public final int code;
+    public final String explanation;
+
+    CloseCode(final int code, final String explanation) {
+        this.code = code;
+        this.explanation = explanation;
+    }
+
+    @Nullable
+    public static CloseCode getByCode(final int code) {
+        return lookup.get(code);
     }
 }

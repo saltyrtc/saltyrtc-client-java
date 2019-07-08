@@ -8,18 +8,20 @@
 
 package org.saltyrtc.client.events;
 
+import org.saltyrtc.client.signaling.CloseCode;
+
 /**
  * The connection is closed.
  */
 public class CloseEvent implements Event {
 
-    private final int reason;
+    private final CloseCode reason;
 
-    public CloseEvent(int reason) {
+    public CloseEvent(CloseCode reason) {
         this.reason = reason;
     }
 
-    public int getReason() {
+    public CloseCode getReason() {
         return this.reason;
     }
 }

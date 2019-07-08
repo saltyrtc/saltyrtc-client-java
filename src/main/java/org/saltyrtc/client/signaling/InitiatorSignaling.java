@@ -525,7 +525,7 @@ public class InitiatorSignaling extends Signaling {
     /**
      * Drop specific responder.
      */
-    private void dropResponder(final short responderId, @Nullable Integer reason) throws SignalingException, ConnectionException {
+    private void dropResponder(final short responderId, @Nullable CloseCode reason) throws SignalingException, ConnectionException {
         final DropResponder msg = new DropResponder(responderId, reason);
         final byte[] packet = this.buildPacket(msg, this.server);
         this.getLogger().debug("Sending drop-responder " + responderId);

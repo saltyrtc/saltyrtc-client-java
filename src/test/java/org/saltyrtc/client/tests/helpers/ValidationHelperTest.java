@@ -11,6 +11,7 @@ package org.saltyrtc.client.tests.helpers;
 import org.junit.Test;
 import org.saltyrtc.client.exceptions.ValidationError;
 import org.saltyrtc.client.helpers.ValidationHelper;
+import org.saltyrtc.client.signaling.CloseCode;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -243,15 +244,15 @@ public class ValidationHelperTest {
     @Test
     public void testValidateCloseCode() throws ValidationError {
         Object closeCode = 1002;
-        final Integer validated = ValidationHelper.validateCloseCode(closeCode, false, "Number");
-        assertEquals(Integer.valueOf(1002), validated);
+        final CloseCode validated = ValidationHelper.validateCloseCode(closeCode, false, "Number");
+        assertEquals(CloseCode.NO_SHARED_SUBPROTOCOL, validated);
     }
 
     @Test
     public void testValidateCloseCodeDroppedResponder() throws ValidationError {
         Object closeCode = 3004;
-        final Integer validated = ValidationHelper.validateCloseCode(closeCode, true, "Number");
-        assertEquals(Integer.valueOf(3004), validated);
+        final CloseCode validated = ValidationHelper.validateCloseCode(closeCode, true, "Number");
+        assertEquals(CloseCode.DROPPED_BY_INITIATOR, validated);
     }
 
     @Test

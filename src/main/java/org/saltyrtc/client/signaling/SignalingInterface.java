@@ -79,7 +79,7 @@ public interface SignalingInterface {
      *
      * @param reason The close code. See `CloseCode` class for possible values.
      */
-    void sendClose(int reason);
+    void sendClose(CloseCode reason);
 
     /**
      * Close and reset the connection with the specified close code.
@@ -89,6 +89,6 @@ public interface SignalingInterface {
      *
      * @param reason The close code to use.
      */
-    void resetConnection(@Nullable Integer reason);
+    void resetConnection(@Nullable CloseCode reason);
 
 }

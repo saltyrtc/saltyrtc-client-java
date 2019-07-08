@@ -8,6 +8,8 @@
 
 package org.saltyrtc.client.exceptions;
 
+import org.saltyrtc.client.signaling.CloseCode;
+
 /**
  * A SaltyRTC signaling error.
  *
@@ -15,24 +17,24 @@ package org.saltyrtc.client.exceptions;
  */
 public class SignalingException extends Exception {
 
-    private final int closeCode;
+    private final CloseCode closeCode;
 
-    public SignalingException(int closeCode, String message) {
+    public SignalingException(CloseCode closeCode, String message) {
         super(message);
         this.closeCode = closeCode;
     }
 
-    public SignalingException(int closeCode, String message, Throwable cause) {
+    public SignalingException(CloseCode closeCode, String message, Throwable cause) {
         super(message, cause);
         this.closeCode = closeCode;
     }
 
-    public SignalingException(int closeCode, Throwable cause) {
+    public SignalingException(CloseCode closeCode, Throwable cause) {
         super(cause);
         this.closeCode = closeCode;
     }
 
-    public int getCloseCode() {
+    public CloseCode getCloseCode() {
         return this.closeCode;
     }
 }
