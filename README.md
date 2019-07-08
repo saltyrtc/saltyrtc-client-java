@@ -77,7 +77,7 @@ The CI tests contains a script to ensure that these APIs aren't being called. Yo
 First, clone the `saltyrtc-server-python` repository.
 
     git clone https://github.com/saltyrtc/saltyrtc-server-python
-    cd saltyrtc-server.python
+    cd saltyrtc-server-python
 
 Then create a test certificate for localhost, valid for 5 years.
 
