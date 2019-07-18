@@ -294,20 +294,18 @@ public abstract class Signaling implements SignalingInterface {
         WebSocketAdapter listener = new WebSocketAdapter() {
             @Override
             @SuppressWarnings("UnqualifiedMethodAccess")
-            public void onConnected(WebSocket websocket, Map<String, List<String>> headers) {
-                synchronized (this) {
-                    if (getState() == SignalingState.WS_CONNECTING) {
-                        getLogger().info("WebSocket connection established");
-                        setState(SignalingState.SERVER_HANDSHAKE);
-                    } else {
-                        getLogger().warn("Got onConnected event, but WebSocket connection already open");
-                    }
+            public synchronized void onConnected(WebSocket websocket, Map<String, List<String>> headers) {
+                if (getState() == SignalingState.WS_CONNECTING) {
+                    getLogger().info("WebSocket connection established");
+                    setState(SignalingState.SERVER_HANDSHAKE);
+                } else {
+                    getLogger().warn("Got onConnected event, but WebSocket connection already open");
                 }
             }
 
             @Override
             @SuppressWarnings("UnqualifiedMethodAccess")
-            public void onConnectError(WebSocket websocket, WebSocketException ex) throws Exception {
+            public synchronized void onConnectError(WebSocket websocket, WebSocketException ex) throws Exception {
                 getLogger().error("Could not connect to websocket (" + ex.getError().toString() + "): " + ex.getMessage());
                 if (Signaling.this.wsConnectAttemptsMax <= 0 || Signaling.this.wsConnectAttempt < Signaling.this.wsConnectAttemptsMax) {
                     // Increase #attempts (and timeout if needed)
@@ -336,7 +334,7 @@ public abstract class Signaling implements SignalingInterface {
 
             @Override
             @SuppressWarnings("UnqualifiedMethodAccess")
-            public void onTextMessage(WebSocket websocket, String text) {
+            public synchronized void onTextMessage(WebSocket websocket, String text) {
                 getLogger().debug("New string message: " + text);
                 getLogger().error("Protocol error: Received string message, but only binary messages are valid.");
                 Signaling.this.resetConnection(CloseCode.PROTOCOL_ERROR);
@@ -445,7 +443,7 @@ public abstract class Signaling implements SignalingInterface {
 
             @Override
             @SuppressWarnings("UnqualifiedMethodAccess")
-            public void onDisconnected(WebSocket websocket,
+            public synchronized void onDisconnected(WebSocket websocket,
                                        @Nullable WebSocketFrame serverCloseFrame,
                                        @Nullable WebSocketFrame clientCloseFrame,
                                        boolean closedByServer) {
@@ -522,7 +520,7 @@ public abstract class Signaling implements SignalingInterface {
 
             @Override
             @SuppressWarnings("UnqualifiedMethodAccess")
-            public void handleCallbackError(WebSocket websocket, Throwable cause) {
+            public synchronized void handleCallbackError(WebSocket websocket, Throwable cause) {
                 getLogger().error("WebSocket callback error: " + cause);
                 cause.printStackTrace();
                 Signaling.this.resetConnection(CloseCode.INTERNAL_ERROR);
