@@ -39,21 +39,21 @@ public class CombinedSequence {
     /**
      * Return the sequence number.
      */
-    public long getSequenceNumber() {
+    public synchronized long getSequenceNumber() {
         return sequenceNumber;
     }
 
     /**
      * Return the overflow number.
      */
-    public int getOverflow() {
+    public synchronized int getOverflow() {
         return overflow;
     }
 
     /**
      * Return the combined sequence number.
      */
-    public long getCombinedSequence() {
+    public synchronized long getCombinedSequence() {
         long combined = (long)this.overflow << 32 | this.sequenceNumber;
         assert combined >= 0 && combined < (1L << 48); // Sanity check
         return combined;
