@@ -443,7 +443,7 @@ public abstract class Signaling implements SignalingInterface {
 
             @Override
             @SuppressWarnings("UnqualifiedMethodAccess")
-            public void onDisconnected(WebSocket websocket,
+            public synchronized void onDisconnected(WebSocket websocket,
                                        @Nullable WebSocketFrame serverCloseFrame,
                                        @Nullable WebSocketFrame clientCloseFrame,
                                        boolean closedByServer) {
@@ -500,11 +500,9 @@ public abstract class Signaling implements SignalingInterface {
                     }
                 }
                 // Note: Don't check for signaling state here, it will already have been resetted.
-                synchronized (this) {
-                    if (closeCode != CloseCode.HANDOVER) {
-                        Signaling.this.salty.events.close.notifyHandlers(new CloseEvent(closeCode));
-                        setState(SignalingState.CLOSED);
-                    }
+                if (closeCode != CloseCode.HANDOVER) {
+                    Signaling.this.salty.events.close.notifyHandlers(new CloseEvent(closeCode));
+                    setState(SignalingState.CLOSED);
                 }
             }
 
