@@ -71,14 +71,14 @@ public abstract class Signaling implements SignalingInterface {
     abstract Logger getLogger();
 
     // WebSocket
+    private WebSocket ws;
     private final String host;
     private final int port;
     private final SSLContext sslContext;
-    private WebSocket ws;
-    final private int pingInterval;
-    final private int wsConnectTimeoutInitial;
-    final private int wsConnectAttemptsMax;
-    final private boolean wsConnectLinearBackoff;
+    private final int pingInterval;
+    private final int wsConnectTimeoutInitial;
+    private final int wsConnectAttemptsMax;
+    private final boolean wsConnectLinearBackoff;
     private int wsConnectTimeout;
     private int wsConnectAttempt = 0;
 
@@ -217,12 +217,8 @@ public abstract class Signaling implements SignalingInterface {
 
     /**
      * Disconnect from the SaltyRTC server.
-     *
-     * This is a synchronous operation. The event handlers for the `SignalingStateChangedEvent`
-     * will also be called synchronously with the states `CLOSING` and `CLOSED`. Therefore make sure not to call
-     * this method again from within your `SignalingStateChangedEvent` event handlers, or deadlocks may occur!
      */
-    synchronized void disconnect(int reason) {
+    void disconnect(int reason) {
         this.setState(SignalingState.CLOSING);
 
         // Send close message if necessary
@@ -249,10 +245,6 @@ public abstract class Signaling implements SignalingInterface {
 
     /**
      * Disconnect from the SaltyRTC server.
-     *
-     * This is a synchronous operation. The event handlers for the `SignalingStateChangedEvent`
-     * will also be called synchronously with the states `CLOSING` and `CLOSED`. Therefore make sure not to call
-     * this method again from within your `SignalingStateChangedEvent` event handlers, or deadlocks may occur!
      */
     public void disconnect() {
         this.disconnect(CloseCode.CLOSING_NORMAL);
@@ -261,7 +253,7 @@ public abstract class Signaling implements SignalingInterface {
     /**
      * Reset the connection.
      */
-    public synchronized void resetConnection(@Nullable Integer reason) {
+    public void resetConnection(@Nullable Integer reason) {
         // Disconnect
         if (this.state != SignalingState.NEW) {
             final int code = reason != null ? reason : CloseCode.CLOSING_NORMAL;
@@ -294,215 +286,225 @@ public abstract class Signaling implements SignalingInterface {
         WebSocketAdapter listener = new WebSocketAdapter() {
             @Override
             @SuppressWarnings("UnqualifiedMethodAccess")
-            public synchronized void onConnected(WebSocket websocket, Map<String, List<String>> headers) {
-                if (getState() == SignalingState.WS_CONNECTING) {
-                    getLogger().info("WebSocket connection established");
-                    setState(SignalingState.SERVER_HANDSHAKE);
-                } else {
-                    getLogger().warn("Got onConnected event, but WebSocket connection already open");
-                }
-            }
-
-            @Override
-            @SuppressWarnings("UnqualifiedMethodAccess")
-            public synchronized void onConnectError(WebSocket websocket, WebSocketException ex) throws Exception {
-                getLogger().error("Could not connect to websocket (" + ex.getError().toString() + "): " + ex.getMessage());
-                if (Signaling.this.wsConnectAttemptsMax <= 0 || Signaling.this.wsConnectAttempt < Signaling.this.wsConnectAttemptsMax) {
-                    // Increase #attempts (and timeout if needed)
-                    if (Signaling.this.wsConnectLinearBackoff) {
-                        Signaling.this.wsConnectTimeout += Signaling.this.wsConnectTimeoutInitial;
-                    }
-                    Signaling.this.wsConnectAttempt += 1;
-
-                    // Log retry attempt
-                    final String retryConstraint;
-                    if (Signaling.this.wsConnectAttemptsMax <= 0) {
-                        retryConstraint = "infinitely";
+            public void onConnected(WebSocket websocket, Map<String, List<String>> headers) {
+                synchronized (Signaling.this) {
+                    if (getState() == SignalingState.WS_CONNECTING) {
+                        getLogger().info("WebSocket connection established");
+                        setState(SignalingState.SERVER_HANDSHAKE);
                     } else {
-                        retryConstraint = Signaling.this.wsConnectAttempt + "/" + Signaling.this.wsConnectAttemptsMax;
+                        getLogger().warn("Got onConnected event, but WebSocket connection already open");
                     }
-                    getLogger().info("Retrying to reconnect (" + retryConstraint + ")...");
-
-                    // Retry WS connection
-                    Signaling.this.setState(SignalingState.WS_CONNECTING);
-                    Signaling.this.ws.recreate(Signaling.this.wsConnectTimeout).connectAsynchronously();
-                } else {
-                    getLogger().info("Giving up.");
-                    setState(SignalingState.ERROR);
                 }
             }
 
             @Override
             @SuppressWarnings("UnqualifiedMethodAccess")
-            public synchronized void onTextMessage(WebSocket websocket, String text) {
-                getLogger().debug("New string message: " + text);
-                getLogger().error("Protocol error: Received string message, but only binary messages are valid.");
-                Signaling.this.resetConnection(CloseCode.PROTOCOL_ERROR);
+            public void onConnectError(WebSocket websocket, WebSocketException ex) throws Exception {
+                synchronized (Signaling.this) {
+                    getLogger().error("Could not connect to websocket (" + ex.getError().toString() + "): " + ex.getMessage());
+                    if (Signaling.this.wsConnectAttemptsMax <= 0 || Signaling.this.wsConnectAttempt < Signaling.this.wsConnectAttemptsMax) {
+                        // Increase #attempts (and timeout if needed)
+                        if (Signaling.this.wsConnectLinearBackoff) {
+                            Signaling.this.wsConnectTimeout += Signaling.this.wsConnectTimeoutInitial;
+                        }
+                        Signaling.this.wsConnectAttempt += 1;
+
+                        // Log retry attempt
+                        final String retryConstraint;
+                        if (Signaling.this.wsConnectAttemptsMax <= 0) {
+                            retryConstraint = "infinitely";
+                        } else {
+                            retryConstraint = Signaling.this.wsConnectAttempt + "/" + Signaling.this.wsConnectAttemptsMax;
+                        }
+                        getLogger().info("Retrying to reconnect (" + retryConstraint + ")...");
+
+                        // Retry WS connection
+                        Signaling.this.setState(SignalingState.WS_CONNECTING);
+                        Signaling.this.ws.recreate(Signaling.this.wsConnectTimeout).connectAsynchronously();
+                    } else {
+                        getLogger().info("Giving up.");
+                        setState(SignalingState.ERROR);
+                    }
+                }
             }
 
             @Override
             @SuppressWarnings("UnqualifiedMethodAccess")
-            public synchronized void onBinaryMessage(WebSocket websocket, byte[] binary) {
-                getLogger().debug("New binary message (" + binary.length + " bytes)");
-                switch (Signaling.this.getState()) {
-                    case WS_CONNECTING:
-                        getLogger().info("WebSocket connection open");
-                        Signaling.this.setState(SignalingState.SERVER_HANDSHAKE);
-                        break;
-                    case CLOSED:
-                        getLogger().debug("Ignoring message in state " + Signaling.this.getState());
-                        return;
+            public void onTextMessage(WebSocket websocket, String text) {
+                synchronized (Signaling.this) {
+                    getLogger().debug("New string message: " + text);
+                    getLogger().error("Protocol error: Received string message, but only binary messages are valid.");
+                    Signaling.this.resetConnection(CloseCode.PROTOCOL_ERROR);
                 }
+            }
 
-                SignalingChannelNonce nonce = null;
-                try {
-                    // Parse buffer
-                    final Box box = new Box(ByteBuffer.wrap(binary), SignalingChannelNonce.TOTAL_LENGTH);
-
-                    // Parse and validate nonce
-                    nonce = new SignalingChannelNonce(ByteBuffer.wrap(box.getNonce()));
-                    if (Signaling.this.getPeerWithId(nonce.getSource()) == null) {
-                        // Note: This can happen when a responder has been dropped
-                        //       but a message was still in flight.
-                        getLogger().debug("Ignoring message from unknown id: " + nonce.getSource());
-                        return;
-                    }
-                    validateNonce(nonce);
-
-                    // Check peer handover state
-                    if (nonce.getSource() != SALTYRTC_ADDR_SERVER && Signaling.this.handoverState.getPeer()) {
-                        getLogger().error("Protocol error: Received WebSocket message from peer " +
-                            "even though it has already handed over to task.");
-                        Signaling.this.resetConnection(CloseCode.PROTOCOL_ERROR);
-                        return;
-                    }
-
-                    // Dispatch message
+            @Override
+            @SuppressWarnings("UnqualifiedMethodAccess")
+            public void onBinaryMessage(WebSocket websocket, byte[] binary) {
+                synchronized (Signaling.this) {
+                    getLogger().debug("New binary message (" + binary.length + " bytes)");
                     switch (Signaling.this.getState()) {
-                        case SERVER_HANDSHAKE:
-                            Signaling.this.onServerHandshakeMessage(box, nonce);
+                        case WS_CONNECTING:
+                            getLogger().info("WebSocket connection open");
+                            Signaling.this.setState(SignalingState.SERVER_HANDSHAKE);
                             break;
-                        case PEER_HANDSHAKE:
-                            Signaling.this.onPeerHandshakeMessage(box, nonce);
-                            break;
-                        case TASK:
-                            Signaling.this.onSignalingMessage(box, nonce);
-                            break;
-                        default:
-                            getLogger().warn("Received message in " + Signaling.this.getState().name() +
-                                    " signaling state. Ignoring.");
+                        case CLOSED:
+                            getLogger().debug("Ignoring message in state " + Signaling.this.getState());
+                            return;
                     }
-                // TODO: The following errors could also be handled using `handleCallbackError` on the websocket.
-                } catch (ValidationError e) {
-                    if (e.critical) {
+
+                    SignalingChannelNonce nonce = null;
+                    try {
+                        // Parse buffer
+                        final Box box = new Box(ByteBuffer.wrap(binary), SignalingChannelNonce.TOTAL_LENGTH);
+
+                        // Parse and validate nonce
+                        nonce = new SignalingChannelNonce(ByteBuffer.wrap(box.getNonce()));
+                        if (Signaling.this.getPeerWithId(nonce.getSource()) == null) {
+                            // Note: This can happen when a responder has been dropped
+                            //       but a message was still in flight.
+                            getLogger().debug("Ignoring message from unknown id: " + nonce.getSource());
+                            return;
+                        }
+                        validateNonce(nonce);
+
+                        // Check peer handover state
+                        if (nonce.getSource() != SALTYRTC_ADDR_SERVER && Signaling.this.handoverState.getPeer()) {
+                            getLogger().error("Protocol error: Received WebSocket message from peer " +
+                                "even though it has already handed over to task.");
+                            Signaling.this.resetConnection(CloseCode.PROTOCOL_ERROR);
+                            return;
+                        }
+
+                        // Dispatch message
+                        switch (Signaling.this.getState()) {
+                            case SERVER_HANDSHAKE:
+                                Signaling.this.onServerHandshakeMessage(box, nonce);
+                                break;
+                            case PEER_HANDSHAKE:
+                                Signaling.this.onPeerHandshakeMessage(box, nonce);
+                                break;
+                            case TASK:
+                                Signaling.this.onSignalingMessage(box, nonce);
+                                break;
+                            default:
+                                getLogger().warn("Received message in " + Signaling.this.getState().name() +
+                                    " signaling state. Ignoring.");
+                        }
+                        // TODO: The following errors could also be handled using `handleCallbackError` on the websocket.
+                    } catch (ValidationError e) {
+                        if (e.critical) {
+                            getLogger().error("Protocol error: Invalid incoming message: " + e.getMessage());
+                            e.printStackTrace();
+                            Signaling.this.resetConnection(CloseCode.PROTOCOL_ERROR);
+                        } else {
+                            getLogger().warn("Dropping invalid message: " + e.getMessage());
+                            e.printStackTrace();
+                        }
+                    } catch (SerializationError e) {
                         getLogger().error("Protocol error: Invalid incoming message: " + e.getMessage());
                         e.printStackTrace();
                         Signaling.this.resetConnection(CloseCode.PROTOCOL_ERROR);
-                    } else {
-                        getLogger().warn("Dropping invalid message: " + e.getMessage());
+                    } catch (InternalException e) {
+                        getLogger().error("Internal server error: " + e.getMessage());
                         e.printStackTrace();
-                    }
-                } catch (SerializationError e) {
-                    getLogger().error("Protocol error: Invalid incoming message: " + e.getMessage());
-                    e.printStackTrace();
-                    Signaling.this.resetConnection(CloseCode.PROTOCOL_ERROR);
-                } catch (InternalException e) {
-                    getLogger().error("Internal server error: " + e.getMessage());
-                    e.printStackTrace();
-                    Signaling.this.resetConnection(CloseCode.INTERNAL_ERROR);
-                } catch (ConnectionException e) {
-                    getLogger().error("Connection error: " + e.getMessage());
-                    e.printStackTrace();
-                    Signaling.this.resetConnection(CloseCode.INTERNAL_ERROR);
-                } catch (SignalingException e) {
-                    getLogger().error("Signaling error: " + CloseCode.explain(e.getCloseCode()));
-                    e.printStackTrace();
-                    switch (Signaling.this.getState()) {
-                        case NEW:
-                        case WS_CONNECTING:
-                        case SERVER_HANDSHAKE:
-                            // Close connection
-                            Signaling.this.resetConnection(e.getCloseCode());
-                            break;
-                        case PEER_HANDSHAKE:
-                            // Handle error depending on role
-                            Signaling.this.handlePeerHandshakeSignalingError(e, nonce.getSource());
-                            break;
-                        case TASK:
-                            // Close websocket connection
-                            Signaling.this.sendClose(e.getCloseCode());
-                            Signaling.this.resetConnection(CloseCode.CLOSING_NORMAL);
-                            break;
-                        case CLOSING:
-                        case CLOSED:
-                            // Ignore
-                            break;
+                        Signaling.this.resetConnection(CloseCode.INTERNAL_ERROR);
+                    } catch (ConnectionException e) {
+                        getLogger().error("Connection error: " + e.getMessage());
+                        e.printStackTrace();
+                        Signaling.this.resetConnection(CloseCode.INTERNAL_ERROR);
+                    } catch (SignalingException e) {
+                        getLogger().error("Signaling error: " + CloseCode.explain(e.getCloseCode()));
+                        e.printStackTrace();
+                        switch (Signaling.this.getState()) {
+                            case NEW:
+                            case WS_CONNECTING:
+                            case SERVER_HANDSHAKE:
+                                // Close connection
+                                Signaling.this.resetConnection(e.getCloseCode());
+                                break;
+                            case PEER_HANDSHAKE:
+                                // Handle error depending on role
+                                Signaling.this.handlePeerHandshakeSignalingError(e, nonce.getSource());
+                                break;
+                            case TASK:
+                                // Close websocket connection
+                                Signaling.this.sendClose(e.getCloseCode());
+                                Signaling.this.resetConnection(CloseCode.CLOSING_NORMAL);
+                                break;
+                            case CLOSING:
+                            case CLOSED:
+                                // Ignore
+                                break;
+                        }
                     }
                 }
             }
 
             @Override
             @SuppressWarnings("UnqualifiedMethodAccess")
-            public synchronized void onDisconnected(WebSocket websocket,
+            public void onDisconnected(WebSocket websocket,
                                        @Nullable WebSocketFrame serverCloseFrame,
                                        @Nullable WebSocketFrame clientCloseFrame,
                                        boolean closedByServer) {
-                // Log details to debug log
-                final String closer = closedByServer ? "server" : "client";
-                final WebSocketFrame frame = closedByServer ? serverCloseFrame : clientCloseFrame;
-                final int closeCode = frame == null ? 0 : frame.getCloseCode();
-                String closeReason = frame == null ? null : frame.getCloseReason();
-                if (closeReason == null) {
-                    closeReason = CloseCode.explain(closeCode);
-                }
-                getLogger().debug("WebSocket connection closed by " + closer +
-                                  " with code " + closeCode + ": " + closeReason);
-
-                // Log some of the codes on higher log levels too
-                if (closedByServer) {
-                    switch (closeCode) {
-                        case 0:
-                            getLogger().warn("WebSocket closed (no close frame provided)");
-                            break;
-                        case CloseCode.CLOSING_NORMAL:
-                            getLogger().info("WebSocket closed normally");
-                            break;
-                        case CloseCode.TIMEOUT:
-                            getLogger().info("WebSocket closed due to timeout");
-                            break;
-                        case CloseCode.GOING_AWAY:
-                            getLogger().warn("WebSocket closed, server is being shut down");
-                            break;
-                        case CloseCode.NO_SHARED_SUBPROTOCOL:
-                            getLogger().warn("WebSocket closed: No shared sub-protocol could be found");
-                            break;
-                        case CloseCode.PATH_FULL:
-                            getLogger().warn("WebSocket closed: Path full (no free responder byte)");
-                            break;
-                        case CloseCode.PROTOCOL_ERROR:
-                            getLogger().error("WebSocket closed: Protocol error");
-                            break;
-                        case CloseCode.INTERNAL_ERROR:
-                            getLogger().error("WebSocket closed: Internal server error");
-                            break;
-                        case CloseCode.DROPPED_BY_INITIATOR:
-                            getLogger().info("WebSocket closed: Dropped by initiator");
-                            break;
-                        case CloseCode.INITIATOR_COULD_NOT_DECRYPT:
-                            getLogger().warn("WebSocket closed: Initiator could not decrypt message");
-                            break;
-                        case CloseCode.NO_SHARED_TASK:
-                            getLogger().warn("WebSocket closed: No shared task was found");
-                            break;
-                        case CloseCode.INVALID_KEY:
-                            getLogger().error("WebSocket closed: An invalid public permanent server key was specified");
-                            break;
+                synchronized (Signaling.this) {
+                    // Log details to debug log
+                    final String closer = closedByServer ? "server" : "client";
+                    final WebSocketFrame frame = closedByServer ? serverCloseFrame : clientCloseFrame;
+                    final int closeCode = frame == null ? 0 : frame.getCloseCode();
+                    String closeReason = frame == null ? null : frame.getCloseReason();
+                    if (closeReason == null) {
+                        closeReason = CloseCode.explain(closeCode);
                     }
-                }
-                // Note: Don't check for signaling state here, it will already have been resetted.
-                if (closeCode != CloseCode.HANDOVER) {
-                    Signaling.this.salty.events.close.notifyHandlers(new CloseEvent(closeCode));
-                    setState(SignalingState.CLOSED);
+                    getLogger().debug("WebSocket connection closed by " + closer +
+                        " with code " + closeCode + ": " + closeReason);
+
+                    // Log some of the codes on higher log levels too
+                    if (closedByServer) {
+                        switch (closeCode) {
+                            case 0:
+                                getLogger().warn("WebSocket closed (no close frame provided)");
+                                break;
+                            case CloseCode.CLOSING_NORMAL:
+                                getLogger().info("WebSocket closed normally");
+                                break;
+                            case CloseCode.TIMEOUT:
+                                getLogger().info("WebSocket closed due to timeout");
+                                break;
+                            case CloseCode.GOING_AWAY:
+                                getLogger().warn("WebSocket closed, server is being shut down");
+                                break;
+                            case CloseCode.NO_SHARED_SUBPROTOCOL:
+                                getLogger().warn("WebSocket closed: No shared sub-protocol could be found");
+                                break;
+                            case CloseCode.PATH_FULL:
+                                getLogger().warn("WebSocket closed: Path full (no free responder byte)");
+                                break;
+                            case CloseCode.PROTOCOL_ERROR:
+                                getLogger().error("WebSocket closed: Protocol error");
+                                break;
+                            case CloseCode.INTERNAL_ERROR:
+                                getLogger().error("WebSocket closed: Internal server error");
+                                break;
+                            case CloseCode.DROPPED_BY_INITIATOR:
+                                getLogger().info("WebSocket closed: Dropped by initiator");
+                                break;
+                            case CloseCode.INITIATOR_COULD_NOT_DECRYPT:
+                                getLogger().warn("WebSocket closed: Initiator could not decrypt message");
+                                break;
+                            case CloseCode.NO_SHARED_TASK:
+                                getLogger().warn("WebSocket closed: No shared task was found");
+                                break;
+                            case CloseCode.INVALID_KEY:
+                                getLogger().error("WebSocket closed: An invalid public permanent server key was specified");
+                                break;
+                        }
+                    }
+                    // Note: Don't check for signaling state here, it will already have been resetted.
+                    if (closeCode != CloseCode.HANDOVER) {
+                        Signaling.this.salty.events.close.notifyHandlers(new CloseEvent(closeCode));
+                        setState(SignalingState.CLOSED);
+                    }
                 }
             }
 
@@ -515,15 +517,19 @@ public abstract class Signaling implements SignalingInterface {
             @Override
             @SuppressWarnings("UnqualifiedMethodAccess")
             public void onError(WebSocket websocket, WebSocketException cause) {
-                getLogger().warn("A WebSocket error occured: " + cause.getMessage(), cause);
+                synchronized (Signaling.this) {
+                    getLogger().warn("A WebSocket error occured: " + cause.getMessage(), cause);
+                }
             }
 
             @Override
             @SuppressWarnings("UnqualifiedMethodAccess")
-            public synchronized void handleCallbackError(WebSocket websocket, Throwable cause) {
-                getLogger().error("WebSocket callback error: " + cause);
-                cause.printStackTrace();
-                Signaling.this.resetConnection(CloseCode.INTERNAL_ERROR);
+            public void handleCallbackError(WebSocket websocket, Throwable cause) {
+                synchronized (Signaling.this) {
+                    getLogger().error("WebSocket callback error: " + cause);
+                    cause.printStackTrace();
+                    Signaling.this.resetConnection(CloseCode.INTERNAL_ERROR);
+                }
             }
         };
 

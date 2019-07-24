@@ -78,7 +78,7 @@ public class InitiatorSignaling extends Signaling {
     /**
      * Handle signaling errors during peer handshake.
      */
-    synchronized void handlePeerHandshakeSignalingError(@NonNull SignalingException e, short source) {
+    void handlePeerHandshakeSignalingError(@NonNull SignalingException e, short source) {
         // Simply drop the responder
         Responder responder = this.responders.get(source);
         if (responder != null) {
@@ -544,7 +544,7 @@ public class InitiatorSignaling extends Signaling {
     }
 
     @Override
-    synchronized void handleSendError(short receiver) throws SignalingException {
+    void handleSendError(short receiver) throws SignalingException {
         // Validate receiver byte
         if (!this.isResponderId(receiver)) {
             throw new ProtocolException("Outgoing c2c messages must have been sent to a responder");

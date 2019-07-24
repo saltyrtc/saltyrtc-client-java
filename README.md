@@ -36,9 +36,6 @@ Maven:
 Documentation can be found at
 [https://saltyrtc.github.io/saltyrtc-client-java/](https://saltyrtc.github.io/saltyrtc-client-java/).
 
-Plase note that instances of this library are not considered thread-safe. Thus, an application
-using more than one thread needs to take care of synchronisation itself.
-
 ## Manual Testing
 
 To try a development version of the library, you can build a local version to

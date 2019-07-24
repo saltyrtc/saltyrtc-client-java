@@ -38,7 +38,7 @@ public class SaltyRTC {
     private boolean debug = false;
 
     // Reference to signaling class
-    private Signaling signaling;
+    private final Signaling signaling;
 
     // Event registry
     public final SaltyRTC.Events events = new SaltyRTC.Events();
@@ -102,22 +102,30 @@ public class SaltyRTC {
     }
 
     public KeyStore getKeyStore() {
-        return this.signaling.getKeyStore();
+        synchronized (this.signaling) {
+            return this.signaling.getKeyStore();
+        }
     }
 
     public byte[] getPublicPermanentKey() {
-        return this.signaling.getPublicPermanentKey();
+        synchronized (this.signaling) {
+            return this.signaling.getPublicPermanentKey();
+        }
     }
 
     public byte[] getAuthToken() {
-        return this.signaling.getAuthToken();
+        synchronized (this.signaling) {
+            return this.signaling.getAuthToken();
+        }
     }
 
     /**
      * Return the current signaling state.
      */
     public SignalingState getSignalingState() {
-        return this.signaling.getState();
+        synchronized (this.signaling) {
+            return this.signaling.getState();
+        }
     }
 
     /**
@@ -125,7 +133,9 @@ public class SaltyRTC {
      */
     @Nullable
     public Task getTask() {
-        return this.signaling.getTask();
+        synchronized (this.signaling) {
+            return this.signaling.getTask();
+        }
     }
 
     /**
@@ -137,7 +147,9 @@ public class SaltyRTC {
      * @throws ConnectionException if setting up the WebSocket connection fails.
      */
     public void connect() throws ConnectionException {
-        this.signaling.connect();
+        synchronized (this.signaling) {
+            this.signaling.connect();
+        }
     }
 
     /**
@@ -147,11 +159,13 @@ public class SaltyRTC {
      * @throws InvalidStateException if the SaltyRTC instance is not currently in the TASK signaling state.
      */
     public void sendApplicationMessage(Object data) throws ConnectionException, InvalidStateException {
-        if (this.signaling.getState() != SignalingState.TASK) {
-            throw new InvalidStateException(
-                "Application messages can only be sent in TASK state, not in " + this.signaling.getState().name());
+        synchronized (this.signaling) {
+            if (this.signaling.getState() != SignalingState.TASK) {
+                throw new InvalidStateException(
+                    "Application messages can only be sent in TASK state, not in " + this.signaling.getState().name());
+            }
+            this.signaling.sendApplication(new Application(data));
         }
-        this.signaling.sendApplication(new Application(data));
     }
 
     /**
@@ -162,7 +176,9 @@ public class SaltyRTC {
      * this method again from within your `SignalingStateChangedEvent` event handlers, or deadlocks may occur!
      */
     public void disconnect() {
-        this.signaling.disconnect();
+        synchronized (this.signaling) {
+            this.signaling.disconnect();
+        }
     }
 
     /**
