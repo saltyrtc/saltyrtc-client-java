@@ -307,7 +307,8 @@ public abstract class Signaling implements SignalingInterface {
             @SuppressWarnings("UnqualifiedMethodAccess")
             public synchronized void onConnectError(WebSocket websocket, WebSocketException ex) throws Exception {
                 getLogger().error("Could not connect to websocket (" + ex.getError().toString() + "): " + ex.getMessage());
-                if (Signaling.this.wsConnectAttemptsMax <= 0 || Signaling.this.wsConnectAttempt < Signaling.this.wsConnectAttemptsMax) {
+                if (Signaling.this.ws != null && (Signaling.this.wsConnectAttemptsMax <= 0 ||
+                    Signaling.this.wsConnectAttempt < Signaling.this.wsConnectAttemptsMax)) {
                     // Increase #attempts (and timeout if needed)
                     if (Signaling.this.wsConnectLinearBackoff) {
                         Signaling.this.wsConnectTimeout += Signaling.this.wsConnectTimeoutInitial;
