@@ -9,6 +9,7 @@
 package org.saltyrtc.client.signaling;
 
 import org.saltyrtc.client.SaltyRTC;
+import org.saltyrtc.client.SaltyRTCBuilder;
 import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.cookie.Cookie;
@@ -60,6 +61,7 @@ public class InitiatorSignaling extends Signaling {
     public InitiatorSignaling(SaltyRTC saltyRTC, String host, int port,
                               @Nullable SSLContext sslContext,
                               @NonNull CryptoProvider cryptoProvider,
+                              @NonNull SaltyRTCBuilder.DualStackMode wsDualStackMode,
                               @Nullable Integer wsConnectTimeout,
                               @Nullable Integer wsConnectAttemptsMax,
                               @Nullable Boolean wsConnectLinearBackoff,
@@ -68,7 +70,8 @@ public class InitiatorSignaling extends Signaling {
                               @Nullable byte[] expectedServerKey,
                               @NonNull Task[] tasks,
                               int pingInterval) {
-        super(saltyRTC, host, port, sslContext, cryptoProvider, wsConnectTimeout, wsConnectAttemptsMax, wsConnectLinearBackoff,
+        super(saltyRTC, host, port, sslContext, cryptoProvider,
+              wsDualStackMode, wsConnectTimeout, wsConnectAttemptsMax, wsConnectLinearBackoff,
               permanentKey, responderTrustedKey, expectedServerKey, SignalingRole.Initiator, tasks, pingInterval);
         if (responderTrustedKey == null) {
             this.authToken = new AuthToken(cryptoProvider);

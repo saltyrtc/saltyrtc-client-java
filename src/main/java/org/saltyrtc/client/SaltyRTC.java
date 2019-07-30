@@ -48,13 +48,15 @@ public class SaltyRTC {
     SaltyRTC(KeyStore permanentKey, String host, int port,
              @Nullable SSLContext sslContext,
              @NonNull CryptoProvider cryptoProvider,
+             @NonNull SaltyRTCBuilder.DualStackMode wsDualStackMode,
              @Nullable Integer wsConnectTimeout,
              @Nullable Integer wsConnectAttemptsMax,
              @Nullable Boolean wsConnectLinearBackoff,
              @Nullable byte[] serverKey,
              Task[] tasks, int pingInterval) {
         this.signaling = new InitiatorSignaling(
-            this, host, port, sslContext, cryptoProvider, wsConnectTimeout, wsConnectAttemptsMax, wsConnectLinearBackoff,
+            this, host, port, sslContext, cryptoProvider,
+            wsDualStackMode, wsConnectTimeout, wsConnectAttemptsMax, wsConnectLinearBackoff,
             permanentKey, null, serverKey, tasks, pingInterval);
     }
 
@@ -63,6 +65,7 @@ public class SaltyRTC {
     SaltyRTC(KeyStore permanentKey, String host, int port,
              @Nullable SSLContext sslContext,
              @NonNull CryptoProvider cryptoProvider,
+             @NonNull SaltyRTCBuilder.DualStackMode wsDualStackMode,
              @Nullable Integer wsConnectTimeout,
              @Nullable Integer wsConnectAttemptsMax,
              @Nullable Boolean wsConnectLinearBackoff,
@@ -70,7 +73,8 @@ public class SaltyRTC {
              @Nullable byte[] serverKey, Task[] tasks, int pingInterval)
              throws InvalidKeyException {
         this.signaling = new ResponderSignaling(
-            this, host, port, sslContext, cryptoProvider, wsConnectTimeout, wsConnectAttemptsMax, wsConnectLinearBackoff,
+            this, host, port, sslContext, cryptoProvider,
+            wsDualStackMode, wsConnectTimeout, wsConnectAttemptsMax, wsConnectLinearBackoff,
             permanentKey, initiatorPublicKey, authToken, null, serverKey, tasks, pingInterval);
     }
 
@@ -79,6 +83,7 @@ public class SaltyRTC {
     SaltyRTC(KeyStore permanentKey, String host, int port,
              @Nullable SSLContext sslContext,
              @NonNull CryptoProvider cryptoProvider,
+             @NonNull SaltyRTCBuilder.DualStackMode wsDualStackMode,
              @Nullable Integer wsConnectTimeout,
              @Nullable Integer wsConnectAttemptsMax,
              @Nullable Boolean wsConnectLinearBackoff,
@@ -88,12 +93,14 @@ public class SaltyRTC {
         switch (role) {
             case Initiator:
                 this.signaling = new InitiatorSignaling(
-                    this, host, port, sslContext, cryptoProvider, wsConnectTimeout, wsConnectAttemptsMax, wsConnectLinearBackoff,
+                    this, host, port, sslContext, cryptoProvider,
+                    wsDualStackMode, wsConnectTimeout, wsConnectAttemptsMax, wsConnectLinearBackoff,
                     permanentKey, peerTrustedKey, serverKey, tasks, pingInterval);
                 break;
             case Responder:
                 this.signaling = new ResponderSignaling(
-                    this, host, port, sslContext, cryptoProvider, wsConnectTimeout, wsConnectAttemptsMax, wsConnectLinearBackoff,
+                    this, host, port, sslContext, cryptoProvider,
+                    wsDualStackMode, wsConnectTimeout, wsConnectAttemptsMax, wsConnectLinearBackoff,
                     permanentKey, null, null, peerTrustedKey, serverKey, tasks, pingInterval);
                 break;
             default:

@@ -9,6 +9,7 @@
 package org.saltyrtc.client.signaling;
 
 import org.saltyrtc.client.SaltyRTC;
+import org.saltyrtc.client.SaltyRTCBuilder;
 import org.saltyrtc.client.annotations.NonNull;
 import org.saltyrtc.client.annotations.Nullable;
 import org.saltyrtc.client.cookie.Cookie;
@@ -58,6 +59,7 @@ public class ResponderSignaling extends Signaling {
     public ResponderSignaling(SaltyRTC saltyRTC, String host, int port,
                               @Nullable SSLContext sslContext,
                               @NonNull CryptoProvider cryptoProvider,
+                              @NonNull SaltyRTCBuilder.DualStackMode wsDualStackMode,
                               @Nullable Integer wsConnectTimeout,
                               @Nullable Integer wsConnectAttemptsMax,
                               @Nullable Boolean wsConnectLinearBackoff,
@@ -68,7 +70,8 @@ public class ResponderSignaling extends Signaling {
                               @NonNull Task[] tasks,
                               int pingInterval)
                               throws InvalidKeyException {
-        super(saltyRTC, host, port, sslContext, cryptoProvider, wsConnectTimeout, wsConnectAttemptsMax, wsConnectLinearBackoff,
+        super(saltyRTC, host, port, sslContext, cryptoProvider,
+              wsDualStackMode, wsConnectTimeout, wsConnectAttemptsMax, wsConnectLinearBackoff,
               permanentKey, initiatorTrustedKey, expectedServerKey, SignalingRole.Responder, tasks, pingInterval);
         if (initiatorTrustedKey != null) {
             if (initiatorPublicKey != null || authToken != null) {
