@@ -2,8 +2,6 @@ buildscript {
     repositories {
         jcenter()
     }
-    dependencies {
-    }
 }
 
 plugins {
@@ -13,12 +11,12 @@ plugins {
     // Publishing on bintray
     id 'maven'
     id 'maven-publish'
-    id 'com.jfrog.bintray' version '1.7'
+    id 'com.jfrog.bintray' version '1.8.4'
 }
 
 apply plugin: 'maven'
 
-def app_version = '0.12.0'
+def app_version = '0.13.0'
 
 targetCompatibility = '1.8'
 sourceCompatibility = '1.8'

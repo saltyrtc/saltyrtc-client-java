@@ -12,6 +12,19 @@ Possible log types:
 - `[security]` to invite users to upgrade in case of vulnerabilities.
 
 
+### v0.13.0 (2019-08-13)
+
+- [fixed] Protocol errors triggered by new clients after task state (#101)
+- [fixed] Validation of 'send-error' message (#104)
+- [fixed] Synchronisation issues (#123, #124)
+- [added] Dual stack mode configuration (#116)
+- [changed] Update dependencies (for proper dual stack mode)
+- [changed] Minor optimisations and general cleanup (#109, #112, #118, #126)
+
+Contributors:
+
+- [@ovalseven8][@ovalseven8]
+
 ### v0.12.0 (2018-12-05)
 
 - [added] Add close code 3008 (timeout) (#87)
