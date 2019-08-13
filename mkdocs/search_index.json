@@ -12,12 +12,12 @@
         },
         {
             "location": "/installing/",
-            "text": "Installing\n\n\nThe package is available \non Bintray\n and \nin JCenter\n.\n\n\nGradle\n\n\ncompile 'org.saltyrtc.client:saltyrtc-client:0.12.0'\n\n\n\n\nMaven\n\n\n<dependency>\n  <groupId>org.saltyrtc.client</groupId>\n  <artifactId>saltyrtc-client</artifactId>\n  <version>0.12.0</version>\n  <type>pom</type>\n</dependency>\n\n\n\n\nDependency verification\n\n\nThis project uses \ngradle-witness\n\nto make sure that you always get the exact same versions of your dependencies.\n\n\nThe SHA256 hashes for the published releases of this project can be found in the \nREADME file\n.",
+            "text": "Installing\n\n\nThe package is available \non Bintray\n and \nin JCenter\n.\n\n\nGradle\n\n\ncompile 'org.saltyrtc.client:saltyrtc-client:0.13.0'\n\n\n\n\nMaven\n\n\n<dependency>\n  <groupId>org.saltyrtc.client</groupId>\n  <artifactId>saltyrtc-client</artifactId>\n  <version>0.13.0</version>\n  <type>pom</type>\n</dependency>\n\n\n\n\nDependency verification\n\n\nThis project uses \ngradle-witness\n\nto make sure that you always get the exact same versions of your dependencies.\n\n\nThe SHA256 hashes for the published releases of this project can be found in the \nREADME file\n.",
             "title": "Installing"
         },
         {
             "location": "/installing/#installing",
-            "text": "The package is available  on Bintray  and  in JCenter .  Gradle  compile 'org.saltyrtc.client:saltyrtc-client:0.12.0'  Maven  <dependency>\n  <groupId>org.saltyrtc.client</groupId>\n  <artifactId>saltyrtc-client</artifactId>\n  <version>0.12.0</version>\n  <type>pom</type>\n</dependency>",
+            "text": "The package is available  on Bintray  and  in JCenter .  Gradle  compile 'org.saltyrtc.client:saltyrtc-client:0.13.0'  Maven  <dependency>\n  <groupId>org.saltyrtc.client</groupId>\n  <artifactId>saltyrtc-client</artifactId>\n  <version>0.13.0</version>\n  <type>pom</type>\n</dependency>",
             "title": "Installing"
         },
         {
