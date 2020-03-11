@@ -31,6 +31,8 @@ import org.saltyrtc.client.tests.DummyTask;
 import org.saltyrtc.client.tests.PingPongTask;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -777,6 +779,21 @@ public class ConnectionTest {
 
         // Disconnect
         disconnect(initiator, responder);
+    }
+
+    @Test
+    public void testSSLSocketFactory() throws Exception {
+        final SSLSocketFactory sslSocketFactory = SSLContextHelper.getSSLContext().getSocketFactory();
+
+        final SaltyRTC initiator = new SaltyRTCBuilder(this.cryptoProvider)
+            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, sslSocketFactory)
+            .withKeyStore(this.initiator.getKeyStore())
+            .withServerKey(HexHelper.hexStringToByteArray(Config.SALTYRTC_SERVER_PUBLIC_KEY))
+            .usingTasks(new Task[]{ new DummyTask() })
+            .asInitiator();
+
+        // Connect and wait for peer handshake
+        connect(SignalingState.PEER_HANDSHAKE, initiator);
     }
 
 }
