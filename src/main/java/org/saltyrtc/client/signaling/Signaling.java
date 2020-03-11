@@ -42,6 +42,7 @@ import org.saltyrtc.client.tasks.Task;
 import org.slf4j.Logger;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
@@ -74,6 +75,7 @@ public abstract class Signaling implements SignalingInterface {
     private final String host;
     private final int port;
     private final SSLContext sslContext;
+    private final SSLSocketFactory sslSocketFactory;
     private WebSocket ws;
     final private int pingInterval;
     final private int wsConnectTimeoutInitial;
@@ -116,6 +118,7 @@ public abstract class Signaling implements SignalingInterface {
 
     public Signaling(SaltyRTC salty, String host, int port,
                      @Nullable SSLContext sslContext,
+                     @Nullable SSLSocketFactory sslSocketFactory,
                      @NonNull CryptoProvider cryptoProvider,
                      @NonNull SaltyRTCBuilder.DualStackMode wsDualStackMode,
                      @Nullable Integer wsConnectTimeout,
@@ -131,6 +134,7 @@ public abstract class Signaling implements SignalingInterface {
         this.host = host;
         this.port = port;
         this.sslContext = sslContext;
+        this.sslSocketFactory = sslSocketFactory;
         this.cryptoProvider = cryptoProvider;
         this.wsConnectTimeoutInitial = wsConnectTimeout == null ? SALTYRTC_WS_CONNECT_TIMEOUT : wsConnectTimeout;
         this.wsConnectAttemptsMax = wsConnectAttemptsMax == null ? SALTYRTC_WS_CONNECT_ATTEMPTS_MAX : wsConnectAttemptsMax;
@@ -548,16 +552,25 @@ public abstract class Signaling implements SignalingInterface {
         // Reset timeout
         this.wsConnectTimeout = this.wsConnectTimeoutInitial;
 
+        // Create factory
+        // Note: We prefer the SSLSocketFactory over the SSLContext, if set.
+        //       They are mutually exclusive due to the way the WebSockets library uses them.
+        final WebSocketFactory factory = new WebSocketFactory()
+            .setDualStackMode(this.wsDualStackMode)
+            .setConnectionTimeout(this.wsConnectTimeout)
+            .setVerifyHostname(true);
+        if (this.sslSocketFactory != null) {
+            factory.setSSLSocketFactory(this.sslSocketFactory);
+        } else {
+            factory.setSSLContext(this.sslContext);
+        }
+
         // Create WebSocket client instance
-        this.ws = new WebSocketFactory()
-                .setDualStackMode(this.wsDualStackMode)
-                .setConnectionTimeout(this.wsConnectTimeout)
-                .setSSLContext(this.sslContext)
-                .setVerifyHostname(true)
-                .createSocket(uri)
-                .setPingInterval(SALTYRTC_WS_PING_INTERVAL)
-                .addProtocol(SALTYRTC_SUBPROTOCOL)
-                .addListener(listener);
+        this.ws = factory
+            .createSocket(uri)
+            .setPingInterval(SALTYRTC_WS_PING_INTERVAL)
+            .addProtocol(SALTYRTC_SUBPROTOCOL)
+            .addListener(listener);
     }
 
     /**

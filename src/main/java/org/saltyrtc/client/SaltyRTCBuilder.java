@@ -18,6 +18,7 @@ import org.saltyrtc.client.signaling.SignalingRole;
 import org.saltyrtc.client.tasks.Task;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
 
 /**
  * Builder class to construct a SaltyRTC instance.
@@ -60,6 +61,7 @@ public class SaltyRTCBuilder {
     private Integer wsConnectAttemptsMax;
     private Boolean wsConnectLinearBackoff;
     private SSLContext sslContext;
+    private SSLSocketFactory sslSocketFactory;
     private SaltyRTCServerInfo serverInfo;
     private byte[] initiatorPublicKey;
     private byte[] authToken;
@@ -135,15 +137,42 @@ public class SaltyRTCBuilder {
      * @param host The SaltyRTC server host.
      * @param port The SaltyRTC server port.
      * @param sslContext The SSL context used to create the encrypted WebSocket connection.
+     * @param sslSocketFactory The SSL socket factory used to create the encrypted WebSocket
+     *   connection. Note: This will be preferred over sslContext if set to a non-null value.
      * @throws IllegalArgumentException Thrown if the host string is invalid.
      */
-    public SaltyRTCBuilder connectTo(String host, int port, SSLContext sslContext) {
+    private SaltyRTCBuilder connectTo(String host, int port, SSLContext sslContext, SSLSocketFactory sslSocketFactory) {
         this.validateHost(host);
         this.host = host;
         this.port = port;
         this.sslContext = sslContext;
+        this.sslSocketFactory = sslSocketFactory;
         this.hasConnectionInfo = true;
         return this;
+    }
+
+    /**
+     * Set SaltyRTC signalling server connection info.
+     *
+     * @param host The SaltyRTC server host.
+     * @param port The SaltyRTC server port.
+     * @param sslContext The SSL context used to create the encrypted WebSocket connection.
+     * @throws IllegalArgumentException Thrown if the host string is invalid.
+     */
+    public SaltyRTCBuilder connectTo(String host, int port, SSLContext sslContext) {
+        return this.connectTo(host, port, sslContext, null);
+    }
+
+    /**
+     * Set SaltyRTC signalling server connection info.
+     *
+     * @param host The SaltyRTC server host.
+     * @param port The SaltyRTC server port.
+     * @param sslSocketFactory The SSL context used to create the encrypted WebSocket connection.
+     * @throws IllegalArgumentException Thrown if the host string is invalid.
+     */
+    public SaltyRTCBuilder connectTo(String host, int port, SSLSocketFactory sslSocketFactory) {
+        return this.connectTo(host, port, null, sslSocketFactory);
     }
 
     /**
@@ -326,6 +355,7 @@ public class SaltyRTCBuilder {
         this.host = serverInfo.getHost(hexPublicKey);
         this.port = serverInfo.getPort(hexPublicKey);
         this.sslContext = serverInfo.getSSLContext(hexPublicKey);
+        this.sslSocketFactory = serverInfo.getSSLSocketFactory(hexPublicKey);
     }
 
     /**
@@ -345,15 +375,38 @@ public class SaltyRTCBuilder {
 
         if (this.hasTrustedPeerKey) {
             return new SaltyRTC(
-                this.keyStore, this.host, this.port, this.sslContext, this.cryptoProvider,
-                this.wsDualStackMode, this.wsConnectTimeout, this.wsConnectAttemptsMax, this.wsConnectLinearBackoff,
-                this.peerTrustedKey, this.serverKey,
-                this.tasks, this.pingInterval, SignalingRole.Initiator);
+                this.keyStore,
+                this.host,
+                this.port,
+                this.sslContext,
+                this.sslSocketFactory,
+                this.cryptoProvider,
+                this.wsDualStackMode,
+                this.wsConnectTimeout,
+                this.wsConnectAttemptsMax,
+                this.wsConnectLinearBackoff,
+                this.peerTrustedKey,
+                this.serverKey,
+                this.tasks,
+                this.pingInterval,
+                SignalingRole.Initiator
+            );
         } else {
             return new SaltyRTC(
-                this.keyStore, this.host, this.port, this.sslContext, this.cryptoProvider,
-                this.wsDualStackMode, this.wsConnectTimeout, this.wsConnectAttemptsMax, this.wsConnectLinearBackoff,
-                this.serverKey, this.tasks, this.pingInterval);
+                this.keyStore,
+                this.host,
+                this.port,
+                this.sslContext,
+                this.sslSocketFactory,
+                this.cryptoProvider,
+                this.wsDualStackMode,
+                this.wsConnectTimeout,
+                this.wsConnectAttemptsMax,
+                this.wsConnectLinearBackoff,
+                this.serverKey,
+                this.tasks,
+                this.pingInterval
+            );
         }
     }
 
@@ -373,19 +426,45 @@ public class SaltyRTCBuilder {
             if (this.serverInfo != null) {
                 this.processServerInfo(this.serverInfo, this.peerTrustedKey);
             }
-            return new SaltyRTC(this.keyStore, this.host, this.port, this.sslContext, this.cryptoProvider,
-                this.wsDualStackMode, this.wsConnectTimeout, this.wsConnectAttemptsMax, this.wsConnectLinearBackoff,
-                this.peerTrustedKey, this.serverKey,
-                this.tasks, this.pingInterval, SignalingRole.Responder);
+            return new SaltyRTC(
+                this.keyStore,
+                this.host,
+                this.port,
+                this.sslContext,
+                this.sslSocketFactory,
+                this.cryptoProvider,
+                this.wsDualStackMode,
+                this.wsConnectTimeout,
+                this.wsConnectAttemptsMax,
+                this.wsConnectLinearBackoff,
+                this.peerTrustedKey,
+                this.serverKey,
+                this.tasks,
+                this.pingInterval,
+                SignalingRole.Responder
+            );
         } else {
             this.requireInitiatorInfo();
             if (this.serverInfo != null) {
                 this.processServerInfo(this.serverInfo, this.initiatorPublicKey);
             }
-            return new SaltyRTC(this.keyStore, this.host, this.port, this.sslContext, this.cryptoProvider,
-                this.wsDualStackMode, this.wsConnectTimeout, this.wsConnectAttemptsMax, this.wsConnectLinearBackoff,
-                this.initiatorPublicKey, this.authToken,
-                this.serverKey, this.tasks, this.pingInterval);
+            return new SaltyRTC(
+                this.keyStore,
+                this.host,
+                this.port,
+                this.sslContext,
+                this.sslSocketFactory,
+                this.cryptoProvider,
+                this.wsDualStackMode,
+                this.wsConnectTimeout,
+                this.wsConnectAttemptsMax,
+                this.wsConnectLinearBackoff,
+                this.initiatorPublicKey,
+                this.authToken,
+                this.serverKey,
+                this.tasks,
+                this.pingInterval
+            );
         }
     }
 }
