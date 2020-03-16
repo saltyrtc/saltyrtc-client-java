@@ -12,6 +12,10 @@ Possible log types:
 - `[security]` to invite users to upgrade in case of vulnerabilities.
 
 
+### v0.14.0 (2020-03-16)
+
+- [added] Optionally provide a custom `SSLSocketFactory` (#128)
+
 ### v0.13.0 (2019-08-13)
 
 - [fixed] Protocol errors triggered by new clients after task state (#101)
