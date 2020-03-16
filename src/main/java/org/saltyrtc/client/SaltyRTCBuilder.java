@@ -138,11 +138,15 @@ public class SaltyRTCBuilder {
      * @param port The SaltyRTC server port.
      * @param sslContext The SSL context used to create the encrypted WebSocket connection.
      * @param sslSocketFactory The SSL socket factory used to create the encrypted WebSocket
-     *   connection. Note: This will be preferred over sslContext if set to a non-null value.
-     * @throws IllegalArgumentException Thrown if the host string is invalid.
+     *   connection.
+     * @throws IllegalArgumentException Thrown if the host string is invalid or if both SSLContext
+     *   and SSLSocketFactory have been provided.
      */
     private SaltyRTCBuilder connectTo(String host, int port, SSLContext sslContext, SSLSocketFactory sslSocketFactory) {
         this.validateHost(host);
+        if (this.sslContext != null && this.sslSocketFactory != null) {
+            throw new IllegalArgumentException("SSLContext and SSLSocketFactory are mutually exclusive");
+        }
         this.host = host;
         this.port = port;
         this.sslContext = sslContext;
@@ -168,7 +172,8 @@ public class SaltyRTCBuilder {
      *
      * @param host The SaltyRTC server host.
      * @param port The SaltyRTC server port.
-     * @param sslSocketFactory The SSL context used to create the encrypted WebSocket connection.
+     * @param sslSocketFactory The SSL socket factory used to create the encrypted WebSocket
+     *   connection.
      * @throws IllegalArgumentException Thrown if the host string is invalid.
      */
     public SaltyRTCBuilder connectTo(String host, int port, SSLSocketFactory sslSocketFactory) {
@@ -349,6 +354,8 @@ public class SaltyRTCBuilder {
 
     /**
      * If a SaltyRTCServerInfo instance is provided, dynamically determine host and port.
+     * @throws IllegalArgumentException Thrown if both SSLContext and SSLSocketFactory have been
+     *   provided.
      */
     private void processServerInfo(@NonNull SaltyRTCServerInfo serverInfo, byte[] publicKey) {
         final String hexPublicKey = HexHelper.asHex(publicKey);
@@ -356,6 +363,9 @@ public class SaltyRTCBuilder {
         this.port = serverInfo.getPort(hexPublicKey);
         this.sslContext = serverInfo.getSSLContext(hexPublicKey);
         this.sslSocketFactory = serverInfo.getSSLSocketFactory(hexPublicKey);
+        if (this.sslContext != null && this.sslSocketFactory != null) {
+            throw new IllegalArgumentException("SSLContext and SSLSocketFactory are mutually exclusive");
+        }
     }
 
     /**

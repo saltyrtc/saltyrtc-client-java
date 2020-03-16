@@ -8,15 +8,25 @@ import javax.net.ssl.SSLSocketFactory;
  * server based on the public key of the intiator.
  *
  * This allows techniques like load balancing based on a prefix of the public key.
+ *
+ * Note: Returning a non-null value for both getSSLContext and getSSLSocketFactory is not
+ *       allowed since they are mutually exclusive.
  */
 public interface SaltyRTCServerInfo {
     String getHost(String initiatorPublicKey);
     int getPort(String initiatorPublicKey);
-    SSLContext getSSLContext(String initiatorPublicKey);
 
     /**
-     * Return a non-null value if the WebSocket should use the SSLSocketFactory returned by this
-     * method instead of the one associated to the SSLContext returned by getSSLContext.
+     * Return null if you do not want to use TLS. Otherwise, return a non-null value if the
+     * WebSocket should use the SSLContext returned by this method.
+     */
+    default SSLContext getSSLContext(String initiatorPublicKey) {
+        return null;
+    }
+
+    /**
+     * Return null if you do not want to use TLS. Otherwise, return a non-null value if the
+     * WebSocket should use the SSLSocketFactory returned by this method.
      */
     default SSLSocketFactory getSSLSocketFactory(String initiatorPublicKey) {
         return null;
