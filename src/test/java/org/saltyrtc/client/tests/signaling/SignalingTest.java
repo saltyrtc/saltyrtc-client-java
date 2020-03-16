@@ -24,6 +24,8 @@ import org.saltyrtc.client.tests.DummyTask;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
+import javax.net.ssl.SSLContext;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
@@ -35,13 +37,13 @@ public class SignalingTest {
     public void testWsPath() throws Exception {
         // Create signaling instances for initiator and responder
         final InitiatorSignaling initiator = new InitiatorSignaling(
-                null, Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, null, new LazysodiumCryptoProvider(),
+                null, Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, null, null, new LazysodiumCryptoProvider(),
                 SaltyRTCBuilder.DualStackMode.BOTH, null, null, null,
                 new KeyStore(this.cryptoProvider), null, null,
                 new Task[] { new DummyTask() },
                 0);
         final ResponderSignaling responder = new ResponderSignaling(
-                null, Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, null, new LazysodiumCryptoProvider(),
+                null, Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, null, null, new LazysodiumCryptoProvider(),
                 SaltyRTCBuilder.DualStackMode.BOTH, null, null, null,
                 new KeyStore(this.cryptoProvider), initiator.getPublicPermanentKey(), initiator.getAuthToken(), null, null,
                 new Task[] { new DummyTask() },
@@ -65,7 +67,7 @@ public class SignalingTest {
     public void testSaltyRTCBuilderWithoutTimeout() throws Exception {
         final SaltyRTC salty = new SaltyRTCBuilder(this.cryptoProvider)
             .withKeyStore(new KeyStore(this.cryptoProvider))
-            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, null)
+            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, (SSLContext) null)
             .usingTasks(new Task[] { new DummyTask() })
             .asInitiator();
 
@@ -88,7 +90,7 @@ public class SignalingTest {
     public void testSaltyRTCBuilderWithTimeout() throws Exception {
         final SaltyRTC salty = new SaltyRTCBuilder(this.cryptoProvider)
             .withKeyStore(new KeyStore(this.cryptoProvider))
-            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, null)
+            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, (SSLContext) null)
             .withWebsocketConnectTimeout(1234)
             .usingTasks(new Task[] { new DummyTask() })
             .asInitiator();
@@ -112,7 +114,7 @@ public class SignalingTest {
     public void testSaltyRTCBuilderWithConnectAttemptsMax() throws Exception {
         final SaltyRTC salty = new SaltyRTCBuilder(this.cryptoProvider)
             .withKeyStore(new KeyStore(this.cryptoProvider))
-            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, null)
+            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, (SSLContext) null)
             .withWebSocketConnectAttemptsMax(1337)
             .usingTasks(new Task[] { new DummyTask() })
             .asInitiator();
@@ -136,7 +138,7 @@ public class SignalingTest {
     public void testSaltyRTCBuilderWithLinearBackoff() throws Exception {
         final SaltyRTC salty = new SaltyRTCBuilder(this.cryptoProvider)
             .withKeyStore(new KeyStore(this.cryptoProvider))
-            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, null)
+            .connectTo(Config.SALTYRTC_HOST, Config.SALTYRTC_PORT, (SSLContext) null)
             .withWebSocketConnectRetryLinearBackoff(false)
             .usingTasks(new Task[] { new DummyTask() })
             .asInitiator();

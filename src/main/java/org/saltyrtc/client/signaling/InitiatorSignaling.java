@@ -40,6 +40,7 @@ import org.saltyrtc.client.tasks.Task;
 import org.slf4j.Logger;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -60,6 +61,7 @@ public class InitiatorSignaling extends Signaling {
 
     public InitiatorSignaling(SaltyRTC saltyRTC, String host, int port,
                               @Nullable SSLContext sslContext,
+                              @Nullable SSLSocketFactory sslSocketFactory,
                               @NonNull CryptoProvider cryptoProvider,
                               @NonNull SaltyRTCBuilder.DualStackMode wsDualStackMode,
                               @Nullable Integer wsConnectTimeout,
@@ -70,7 +72,7 @@ public class InitiatorSignaling extends Signaling {
                               @Nullable byte[] expectedServerKey,
                               @NonNull Task[] tasks,
                               int pingInterval) {
-        super(saltyRTC, host, port, sslContext, cryptoProvider,
+        super(saltyRTC, host, port, sslContext, sslSocketFactory, cryptoProvider,
               wsDualStackMode, wsConnectTimeout, wsConnectAttemptsMax, wsConnectLinearBackoff,
               permanentKey, responderTrustedKey, expectedServerKey, SignalingRole.Initiator, tasks, pingInterval);
         if (responderTrustedKey == null) {

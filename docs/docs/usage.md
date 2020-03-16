@@ -41,7 +41,7 @@ final SaltyRTCBuilder builder = new SaltyRTCBuilder(cryptoProvider);
 Then you need to provide connection info:
 
 ```java
-builder.connectTo(host, port, sslContext);
+builder.connectTo(host, port, sslContextOrSslSocketFactory);
 ```
 
 For testing, you can use [our test server](https://saltyrtc.org/pages/getting-started.html).
