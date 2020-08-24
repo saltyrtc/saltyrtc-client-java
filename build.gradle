@@ -41,6 +41,11 @@ dependencies {
     compile 'org.msgpack:msgpack-core:0.8.+'
     compile 'org.msgpack:jackson-dataformat-msgpack:0.8.+'
 
+    // Override some jackson-dataformat-msgpack 2.9 dependencies due to security vulnerabilities
+    compile ('com.fasterxml.jackson.core:jackson-databind:2.10.+') {
+        force = true
+    }
+
     // Dependency: WebSockets
     compile 'com.neovisionaries:nv-websocket-client:2.9+'
 
