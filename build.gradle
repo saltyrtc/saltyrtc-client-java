@@ -2,6 +2,9 @@ buildscript {
     repositories {
         jcenter()
     }
+    dependencies {
+        classpath 'org.owasp:dependency-check-gradle:5.3.2'
+    }
 }
 
 plugins {
@@ -15,6 +18,7 @@ plugins {
 }
 
 apply plugin: 'maven'
+apply plugin: 'org.owasp.dependencycheck'
 
 def app_version = '0.14.0'
 
@@ -30,12 +34,17 @@ repositories {
 // In this section you declare the dependencies for your production and test code
 dependencies {
     // The production code uses the SLF4J logging API at compile time
-    compile 'org.slf4j:slf4j-api:1.7.25'
+    compile 'org.slf4j:slf4j-api:1.7.30'
 
     // Dependency: Msgpack serialization
-    compile group: 'org.json', name: 'json', version: '20180813'
+    compile group: 'org.json', name: 'json', version: '20200518'
     compile 'org.msgpack:msgpack-core:0.8.+'
     compile 'org.msgpack:jackson-dataformat-msgpack:0.8.+'
+
+    // Override some jackson-dataformat-msgpack 2.9 dependencies due to security vulnerabilities
+    compile ('com.fasterxml.jackson.core:jackson-databind:2.10.+') {
+        force = true
+    }
 
     // Dependency: WebSockets
     compile 'com.neovisionaries:nv-websocket-client:2.9+'
@@ -125,4 +134,9 @@ uploadArchives {
             pom.artifactId = 'saltyrtc-client'
         }
     }
+}
+
+dependencyCheck {
+    skipConfigurations  += 'lintClassPath'
+    failBuildOnCVSS 0
 }
