@@ -34,7 +34,7 @@ repositories {
 // In this section you declare the dependencies for your production and test code
 dependencies {
     // The production code uses the SLF4J logging API at compile time
-    compile 'org.slf4j:slf4j-api:1.7.25'
+    compile 'org.slf4j:slf4j-api:1.7.30'
 
     // Dependency: Msgpack serialization
     compile group: 'org.json', name: 'json', version: '20180813'
