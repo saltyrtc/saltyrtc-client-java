@@ -12,6 +12,12 @@ Possible log types:
 - `[security]` to invite users to upgrade in case of vulnerabilities.
 
 
+### v0.14.1-rc.1 (2020-08-24)
+
+- [changed] Dependency upgrades
+- [security] Added a dependency version override for jackson-databind which had
+  some CVEs reported against the previously used version
+
 ### v0.14.0 (2020-03-16)
 
 - [added] Optionally provide a custom `SSLSocketFactory` (#128)
