@@ -1,6 +1,6 @@
 buildscript {
     repositories {
-        jcenter()
+        mavenCentral()
     }
     dependencies {
         classpath 'org.owasp:dependency-check-gradle:5.3.2'
@@ -11,24 +11,28 @@ plugins {
     // Base
     id 'java'
 
-    // Publishing on bintray
+    // Publishing
     id 'maven'
     id 'maven-publish'
-    id 'com.jfrog.bintray' version '1.8.4'
+    id 'signing'
 }
 
 apply plugin: 'maven'
 apply plugin: 'org.owasp.dependencycheck'
 
-def app_version = '0.14.1'
-
 targetCompatibility = '1.8'
 sourceCompatibility = '1.8'
 
+ext {
+    groupId = 'org.saltyrtc'
+    artifactId = 'saltyrtc-client'
+    libraryVersion = '0.14.1'
+}
+
 // In this section you declare where to find the dependencies of your project
 repositories {
-    jcenter()
-    maven { url  "https://dl.bintray.com/terl/lazysodium-maven" }
+    mavenCentral()
+    jcenter() // TODO: Remove
 }
 
 // In this section you declare the dependencies for your production and test code
@@ -38,25 +42,25 @@ dependencies {
 
     // Dependency: Msgpack serialization
     compile group: 'org.json', name: 'json', version: '20200518'
-    compile 'org.msgpack:msgpack-core:0.8.+'
-    compile 'org.msgpack:jackson-dataformat-msgpack:0.8.+'
+    compile 'org.msgpack:msgpack-core:[0.8,0.9)'
+    compile 'org.msgpack:jackson-dataformat-msgpack:[0.8,0.9)'
 
     // Override some jackson-dataformat-msgpack 2.9 dependencies due to security vulnerabilities
-    compile ('com.fasterxml.jackson.core:jackson-databind:2.10.+') {
+    compile ('com.fasterxml.jackson.core:jackson-databind:[2.10.0,2.11)') {
         force = true
     }
 
     // Dependency: WebSockets
-    compile 'com.neovisionaries:nv-websocket-client:2.9+'
+    compile 'com.neovisionaries:nv-websocket-client:[2.9,2.10)'
 
     // Dependency: Binary chunking
-    compile 'org.saltyrtc.chunked-dc:chunked-dc:1.+'
+    compile 'org.saltyrtc:chunked-dc:[1,2)'
 
     // Test dependencies
-    testCompile 'org.slf4j:slf4j-simple:1.7.+'
+    testCompile 'org.slf4j:slf4j-simple:[1.7,1.8)'
     testCompile 'junit:junit:4.12'
-    testCompile 'com.goterl.lazycode:lazysodium-java:3.3.0'
-    testCompile 'net.java.dev.jna:jna:5.0.0'
+    testCompile 'com.goterl.lazycode:lazysodium-java:[3.3,4)'
+    testCompile 'net.java.dev.jna:jna:[5,6)'
 }
 
 test {
@@ -89,54 +93,66 @@ publishing {
     publications {
         SaltyRTC(MavenPublication) {
             from components.java
-            groupId 'org.saltyrtc.client'
-            artifactId 'saltyrtc-client'
-            version app_version
+
             artifact sourcesJar
             artifact javadocJar
+
+            groupId = project.ext.groupId
+            artifactId = project.ext.artifactId
+            version = project.ext.libraryVersion
+
+            pom {
+                name = 'SaltyRTC Client'
+                description = 'Java client library for SaltyRTC'
+                url = 'https://saltyrtc.org/'
+
+                scm {
+                    url = 'https://github.com/saltyrtc/saltyrtc-client-java.git'
+                }
+
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'LICENSE-APACHE'
+                    }
+                    license {
+                        name = 'The MIT License'
+                        url = 'LICENSE-MIT'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id = 'db'
+                        name = 'Danilo Bargen'
+                        email = 'danilo.bargen@threema.ch'
+                    }
+                }
+            }
         }
     }
-}
 
-// Upload to Bintray
-bintray {
-    user = System.getenv('BINTRAY_USER')
-    key = System.getenv('BINTRAY_KEY')
-    publications = ['SaltyRTC']
-    pkg {
-        repo = 'maven'
-        name = 'saltyrtc-client'
-        userOrg = 'saltyrtc'
-        desc = 'Java client for SaltyRTC.'
-        websiteUrl = 'http://saltyrtc.org/'
-        issueTrackerUrl = 'https://github.com/saltyrtc/saltyrtc-client-java/issues'
-        vcsUrl = 'https://github.com/saltyrtc/saltyrtc-client-java.git'
-        githubRepo = 'saltyrtc/saltyrtc-client-java'
-        publicDownloadNumbers = true
-        licenses = ['MIT', 'Apache-2.0']
-        labels = ['saltyrtc', 'webrtc', 'ortc', 'data channels', 'signaling', 'secure']
-        version {
-            name = app_version
-            desc = 'SaltyRTC Java Client v${app_version}'
-            released = new Date()
-            vcsTag = 'v${app_version}'
-        }
-    }
-}
-
-// Upload to local Maven repo for testing
-uploadArchives {
     repositories {
-        mavenDeployer {
-            repository(url: uri('/tmp/maven/'))
-            pom.version = app_version
-            pom.groupId = 'org.saltyrtc.client'
-            pom.artifactId = 'saltyrtc-client'
+        maven {
+            def releasesRepoUrl = 'https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/'
+            def snapshotsRepoUrl = 'https://s01.oss.sonatype.org/content/repositories/snapshots'
+            url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+            if (project.hasProperty('ossrhUsername') && project.hasProperty('ossrhPassword')) {
+                credentials {
+                    username ossrhUsername
+                    password ossrhPassword
+                }
+            }
         }
     }
+}
+
+signing {
+    useGpgCmd() // Use gpg-agent. For config options, see `gradle.properties`.
+    sign publishing.publications.SaltyRTC
 }
 
 dependencyCheck {
-    skipConfigurations  += 'lintClassPath'
+    skipConfigurations += 'lintClassPath'
     failBuildOnCVSS 0
 }
