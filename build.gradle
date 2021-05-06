@@ -12,12 +12,10 @@ plugins {
     id 'java'
 
     // Publishing
-    id 'maven'
     id 'maven-publish'
     id 'signing'
 }
 
-apply plugin: 'maven'
 apply plugin: 'org.owasp.dependencycheck'
 
 targetCompatibility = '1.8'
@@ -38,29 +36,29 @@ repositories {
 // In this section you declare the dependencies for your production and test code
 dependencies {
     // The production code uses the SLF4J logging API at compile time
-    compile 'org.slf4j:slf4j-api:1.7.30'
+    implementation 'org.slf4j:slf4j-api:1.7.30'
 
     // Dependency: Msgpack serialization
-    compile group: 'org.json', name: 'json', version: '20200518'
-    compile 'org.msgpack:msgpack-core:[0.8,0.9)'
-    compile 'org.msgpack:jackson-dataformat-msgpack:[0.8,0.9)'
+    implementation group: 'org.json', name: 'json', version: '20200518'
+    implementation 'org.msgpack:msgpack-core:[0.8,0.9)'
+    implementation 'org.msgpack:jackson-dataformat-msgpack:[0.8,0.9)'
 
     // Override some jackson-dataformat-msgpack 2.9 dependencies due to security vulnerabilities
-    compile ('com.fasterxml.jackson.core:jackson-databind:[2.10.0,2.11)') {
+    implementation ('com.fasterxml.jackson.core:jackson-databind:[2.10.0,2.11)') {
         force = true
     }
 
     // Dependency: WebSockets
-    compile 'com.neovisionaries:nv-websocket-client:[2.9,2.10)'
+    implementation 'com.neovisionaries:nv-websocket-client:[2.9,2.10)'
 
     // Dependency: Binary chunking
-    compile 'org.saltyrtc:chunked-dc:[1,2)'
+    implementation 'org.saltyrtc:chunked-dc:[1,2)'
 
     // Test dependencies
-    testCompile 'org.slf4j:slf4j-simple:[1.7,1.8)'
-    testCompile 'junit:junit:4.12'
-    testCompile 'com.goterl.lazycode:lazysodium-java:[3.3,4)'
-    testCompile 'net.java.dev.jna:jna:[5,6)'
+    testImplementation 'org.slf4j:slf4j-simple:[1.7,1.8)'
+    testImplementation 'junit:junit:4.12'
+    testImplementation 'com.goterl.lazycode:lazysodium-java:[3.3,4)'
+    testImplementation 'net.java.dev.jna:jna:[5,6)'
 }
 
 test {
