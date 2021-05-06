@@ -14,8 +14,7 @@ Update version numbers:
 
 Build:
 
-    rm -r build
-    ./gradlew build publish
+    ./gradlew clean build
 
 Add and commit:
 
