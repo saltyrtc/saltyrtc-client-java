@@ -12,19 +12,19 @@ implementation for Java 8+.
 
 ## Installing
 
-The package is available [on Bintray](https://bintray.com/saltyrtc/maven/saltyrtc-client/).
+The package is available on Maven Central.
 
 Gradle:
 
 ```groovy
-compile 'org.saltyrtc.client:saltyrtc-client:0.14.1'
+compile 'org.saltyrtc:saltyrtc-client:0.14.1'
 ```
 
 Maven:
 
 ```xml
 <dependency>
-  <groupId>org.saltyrtc.client</groupId>
+  <groupId>org.saltyrtc</groupId>
   <artifactId>saltyrtc-client</artifactId>
   <version>0.14.1</version>
   <type>pom</type>
@@ -42,15 +42,15 @@ using more than one thread needs to take care of synchronisation itself.
 ## Manual Testing
 
 To try a development version of the library, you can build a local version to
-the maven repository at `/tmp/maven`:
+the local maven repository (usually at `$HOME/.m2/repository/`):
 
-    ./gradlew uploadArchives
+    ./gradlew publishToMavenLocal
 
 Include it in your project like this:
 
     repositories {
         ...
-        maven { url "/tmp/maven" }
+        mavenLocal()
     }
 
 ## Coding Guidelines
@@ -121,32 +121,13 @@ current directory, run the tests:
 
 ## Security
 
-### Release Checksums
+### Signing
 
-These are the SHA256 hashes for the published releases of this project:
+Releases are signed with the following PGP ED25519 public key:
 
-- v0.14.1: `d1b8ef4bed26f51088d09f9788decf8a38f2fe2b700a991a6e6f5300e2452c04`
-- v0.14.0: `c243a44ad24cc913bb1e9e23423fc418425eadefe5da24587164779ac64eca49`
-- v0.13.0: `8322f36ae18c508667a0338409352abf378a1535147adb20f443cbbc61f5cec1`
-- v0.12.0: `6f1956a7982103a50570d85e15ae397fde283e3238548fb96ec7370a521e81fd`
-- v0.11.3: `6e2094dad6ec3d12604402c18cecd903e1b3691d90446efb759d29218c418943`
-- v0.11.2: `ac47cf3b9db07fd3aec4c22e05b6a84ffbba48b0c3983dee29ca31504c5959e4`
-- v0.11.1: `491f6d77fba83bab1c833f8fd0ceba32175db4ba4f6d43e12ea557e7939d084a`
-- v0.11.0: `2fd9a617cf1ecdd4a6a03c535f3c327dffa365a90de7334799e9db5194fa16e2`
-- v0.10.1: `4b32aa260032034d3f7dfc95332a2bed9663e17176b2341b52a181c1325d6e5e`
-- v0.10.0: `6cdd5ee1562fce06fd14f931b2222f15d5e5580021c4fd22643e6218fa78e69b`
-- v0.9.3: `6a17b4adce4c52987a058b2ae95e57b57bed94ad8a28b6324243b3da72167bf0`
-- v0.9.2: `ed16493362af0077e703d74068d74f82dca9a69d9f741bc4613c1215acfb4c15`
-- v0.9.1: `13c74b79cb03e3115b19d2f79eff7523e6f03f0b122c12eec6c0a58499cb67ae`
-- v0.9.0: `ea4f39d6f91953a934a5da43161dbcde2ae3d9c2bcaed2d637c4b545cc446bea`
-- v0.8.2: `386ee658e3c365b67c562632d469334cb5dd987b1c67b79bbdb65ca246edc89c`
-- v0.8.1: `3e39f14f75d8b9a374c667c4f6b562ec6d2a43f751140ae4e023a07d58ea6bd9`
-- v0.8.0: `82f1b3161e6775f460c64f34d6b9a7cf0f2956f30da5e51f3f30872ab19e995b`
-- v0.7.1: `677d17be2c5ea209275acd872a3874305f8b064ae2aed741bc15aaf764ec0024`
-- v0.7.0: `db3e17e0b8e1ad7ab2ccf2529d292f7afda6ad52b146fe5da396844ad4d0b5c4`
-- v0.6.2: `f7fa5c46c946e08867d5ffe9c819e29047068cf18e2acf72a1182493099ed807`
-- v0.6.1: `7861660e81377b525313dc136c74e758abde05f154e52309251b761ac5c8fe0e`
-- v0.6.0: `394f5ce12bada22c483cc86ebc92598743f143b250e49d18e3c2a1292cf5abdc`
+    sec   ed25519 2021-05-05 [SC] [expires: 2025-05-04]
+          27655CDD319B686A73661526DCD186BEB204C8FD
+    uid           SaltyRTC (Release signing key)
 
 ### Responsible Disclosure / Reporting Security Issues
 
@@ -167,7 +148,7 @@ Please report security issues directly to one or both of the following contacts:
 
 ## License
 
-    Copyright (c) 2016-2018 Threema GmbH
+    Copyright (c) 2016-2021 Threema GmbH
 
     Licensed under the Apache License, Version 2.0, <see LICENSE-APACHE file>
     or the MIT license <see LICENSE-MIT file>, at your option. This file may not be
